@@ -1387,10 +1387,15 @@ class TestUpdateBubbleCallbackMC:
             y = np.asarray(self._named(fig, name).y, dtype=float)
             np.testing.assert_allclose(
                 y, np.percentile(allp, pct, axis=0)[:len(y)], rtol=1e-5)
-        # and NOT the percentile of only the 8 drawn lines
+        # and NOT the percentile of only the 8 drawn lines (which ship every
+        # other step, at 2 significant figures -- hence the loose tolerance)
+        from figures.bubble import _mc_path_steps
         med = np.asarray(self._named(fig, "MC median").y, dtype=float)
         drawn = np.array([np.asarray(t.y, dtype=float) for t in self._lines(fig)])
-        assert not np.allclose(med, np.percentile(drawn, 50, axis=0), rtol=1e-3)
+        steps = _mc_path_steps(len(med))
+        assert drawn.shape[1] == len(steps)
+        assert not np.allclose(med[steps], np.percentile(drawn, 50, axis=0),
+                               rtol=0.06)
 
     def test_example_lines_are_drawn_on_top_of_the_fan(self):
         fig = self._run(mc_sims=8)
@@ -1420,9 +1425,12 @@ class TestUpdateBubbleCallbackMC:
                 np.asarray(self._named(stacked, name).y, dtype=float),
                 2.5 * np.asarray(self._named(base, name).y, dtype=float),
                 rtol=1e-5)
+        # The lines are rounded to 2 significant figures AFTER scaling, so
+        # each side is within 5% of its true value: 11% covers both, and a
+        # missing x2.5 is 60% out.
         np.testing.assert_allclose(
             np.asarray(self._lines(stacked)[0].y, dtype=float),
-            2.5 * np.asarray(self._lines(base)[0].y, dtype=float), rtol=1e-5)
+            2.5 * np.asarray(self._lines(base)[0].y, dtype=float), rtol=0.11)
 
     def test_mc_traces_stop_at_the_visible_right_edge(self):
         """Nothing else on Tab 1 is sent past the x-range; a 40-year MC run

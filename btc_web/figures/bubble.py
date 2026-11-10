@@ -78,6 +78,47 @@ def _mc_path_alpha(n):
     return min(MC_PATH_ALPHA, MC_PATH_ALPHA_BUDGET / max(int(n), 1))
 
 
+# Payload knobs for the example paths (operator request 2026-11-09). 200 paths
+# are the bulk of the Tab-1 MC payload and, being random walks, barely
+# compress: at one float32 per monthly step they cost ~100 KB gzipped. Sending
+# every 2nd step, as plain numbers rounded to 2 significant figures, cuts that
+# to roughly a fifth. The fan (_add_mc_fan) is computed from the full-precision
+# paths and is not affected.
+MC_PATH_POINT_STRIDE = 2
+MC_PATH_SIG_FIGS = 2
+
+
+def _mc_path_steps(n_steps):
+    """Column indices of the steps an example path ships: every
+    MC_PATH_POINT_STRIDE-th one, plus the last, so the path still reaches the
+    right edge of the fan."""
+    idx = list(range(0, n_steps, MC_PATH_POINT_STRIDE))
+    if n_steps and idx[-1] != n_steps - 1:
+        idx.append(n_steps - 1)
+    return idx
+
+
+def _sig_round_list(row, sig=MC_PATH_SIG_FIGS):
+    """`row` as a plain list rounded to `sig` significant figures.
+
+    Whole numbers come back as ints, so 75000 serialises as "75000" rather
+    than "75000.0"; the scaling only ever multiplies or divides by an exact
+    power of ten, so fractions come back noise-free (7.4, not
+    7.4000000000000004). Zero and non-finite values pass through.
+    """
+    a = np.asarray(row, dtype=np.float64)
+    safe = np.isfinite(a) & (a != 0)
+    exp = np.floor(np.log10(np.abs(a), where=safe, out=np.zeros_like(a)))
+    dec = (sig - 1) - exp                  # decimal places to keep
+    up = 10.0 ** np.maximum(dec, 0)        # exact: integer powers of ten
+    down = 10.0 ** np.maximum(-dec, 0)
+    out = np.where(safe, np.round(a * up / down) * down / up, a)
+    if safe.all() and (dec <= 0).all():
+        return out.astype(np.int64).tolist()
+    return [int(v) if v == v and abs(v) != float("inf") and v == int(v) else v
+            for v in out.tolist()]
+
+
 def _add_mc_spaghetti(fig, paths, t_axis, n_display=100):
     """Add up to n_display sample paths from a (n_sims, n_steps) array.
 
@@ -85,8 +126,11 @@ def _add_mc_spaghetti(fig, paths, t_axis, n_display=100):
     path is drawn in one dark neutral (colors.MC_PATH_COLOR) whose alpha
     falls with the number drawn (_mc_path_alpha): the paths are
     interchangeable examples, and the spread they used to encode by colour is
-    carried by the fan (_add_mc_fan). Arrays ship as float32 -- 200 paths are
-    the bulk of the MC payload. Each trace is a hairline
+    carried by the fan (_add_mc_fan). To keep the payload down each path
+    ships every MC_PATH_POINT_STRIDE-th step (_mc_path_steps) with prices
+    rounded to MC_PATH_SIG_FIGS significant figures as a plain list
+    (_sig_round_list); x stays one float32 array, identical across paths, so
+    it compresses away. Each trace is a hairline
     (colors.MC_PATH_WIDTH) flagged meta.qs_keep_width so
     assets/chart_responsive.js does not fatten it to the user's trace width
     and bury the fan, and has hoverinfo='skip' so the underlying price
@@ -103,12 +147,13 @@ def _add_mc_spaghetti(fig, paths, t_axis, n_display=100):
     if not hasattr(paths, "shape") or paths.size == 0 or paths.shape[0] == 0:
         return
     stride = max(1, paths.shape[0] // n_display)
-    sample = paths[::stride][:n_display]
+    sample = np.asarray(paths[::stride][:n_display])
     color = _hex_alpha(MC_PATH_COLOR, round(_mc_path_alpha(len(sample)), 4))
-    x32 = np.asarray(t_axis, dtype=np.float32)
-    for i, path in enumerate(np.asarray(sample, dtype=np.float32)):
+    steps = _mc_path_steps(sample.shape[1])
+    x32 = np.asarray(t_axis, dtype=np.float32)[steps]
+    for i, path in enumerate(sample[:, steps]):
         fig.add_trace(go.Scatter(
-            x=x32, y=path,
+            x=x32, y=_sig_round_list(path),
             mode="lines",
             line=dict(color=color, width=MC_PATH_WIDTH),
             meta={"qs_keep_width": True},

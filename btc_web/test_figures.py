@@ -1341,21 +1341,92 @@ def test_add_mc_spaghetti_uses_the_count_dependent_alpha():
         assert alphas.pop() == pytest.approx(_mc_path_alpha(n), abs=5e-4)
 
 
-def test_add_mc_spaghetti_ships_float32():
-    """200 paths are the bulk of the Tab-1 MC payload; Dash sends numpy arrays
-    as base64 of the raw bytes, so float32 halves it (rounding would not)."""
+def test_add_mc_spaghetti_keeps_every_other_point():
+    """The example paths ship every MC_PATH_POINT_STRIDE-th step (operator
+    request 2026-11-09: the 200 paths are ~100 KB of the Tab-1 MC payload).
+    The first and last steps always survive, so a path still starts at the
+    entry price and reaches the right edge of the fan."""
+    from figures.bubble import _add_mc_spaghetti, MC_PATH_POINT_STRIDE
+    import numpy as np
+    import plotly.graph_objects as go
+
+    assert MC_PATH_POINT_STRIDE == 2
+    for n_steps, kept in ((7, [0, 2, 4, 6]), (8, [0, 2, 4, 6, 7]),
+                          (2, [0, 1]), (1, [0])):
+        fig = go.Figure()
+        t_axis = np.linspace(18.5, 28.5, n_steps)
+        paths = 50_000.0 + 1000.0 * np.arange(3 * n_steps).reshape(3, n_steps)
+        _add_mc_spaghetti(fig, paths, t_axis, n_display=3)
+        assert len(fig.data) == 3
+        for t, row in zip(fig.data, paths):
+            assert t.x.dtype == np.float32, "x stays a compact float32 array"
+            np.testing.assert_allclose(t.x, t_axis[kept], rtol=1e-6)
+            assert len(t.y) == len(kept)
+            np.testing.assert_allclose(t.y, row[kept], rtol=0.05)
+
+
+def test_add_mc_spaghetti_rounds_prices_to_two_sig_figs():
+    """Prices ship as plain numbers rounded to MC_PATH_SIG_FIGS. Dash sends a
+    numpy array as base64 of its raw bytes, which rounding cannot shrink; a
+    plain list of short integers gzips to a fraction of it."""
+    from figures.bubble import _add_mc_spaghetti, MC_PATH_SIG_FIGS
+    import numpy as np
+    import plotly.graph_objects as go
+
+    assert MC_PATH_SIG_FIGS == 2
+    fig = go.Figure()
+    paths = np.array([[74_550.0, 0.0, 123_456.0, 0.0, 1_260_000.0],
+                      [7.44, 0.0, 0.0367, 0.0, 99_600.0]], dtype=np.float32)
+    _add_mc_spaghetti(fig, paths, np.arange(5), n_display=2)
+    ys = [t.y for t in fig.data]
+    assert [list(y) for y in ys] == [[75_000, 120_000, 1_300_000],
+                                     [7.4, 0.037, 100_000]]
+    # whole dollars travel as ints ("75000"), never as "75000.0"
+    assert all(type(v) is int for v in ys[0])
+    assert type(ys[1][2]) is int
+    # no float noise: the JSON text is as short as the number allows
+    assert repr(ys[1][0]) == "7.4" and repr(ys[1][1]) == "0.037"
+
+
+def test_add_mc_spaghetti_rounding_survives_odd_values():
+    """Zero, negative and non-finite steps pass through without raising (the
+    real paths are positive prices; unit tests feed random walks)."""
     from figures.bubble import _add_mc_spaghetti
     import numpy as np
     import plotly.graph_objects as go
 
     fig = go.Figure()
-    paths = 50_000.0 * np.exp(np.linspace(0, 3, 12)).reshape(3, 4)
-    t_axis = np.linspace(18.5, 22.5, 4)
-    _add_mc_spaghetti(fig, paths, t_axis, n_display=3)
-    for t, row in zip(fig.data, paths):
-        assert t.x.dtype == np.float32 and t.y.dtype == np.float32
-        np.testing.assert_allclose(t.y, row, rtol=1e-6)
-        np.testing.assert_allclose(t.x, t_axis, rtol=1e-6)
+    paths = np.array([[0.0, 1.0, -1234.0, 1.0, np.nan]])
+    _add_mc_spaghetti(fig, paths, np.arange(5), n_display=1)
+    y = fig.data[0].y
+    assert y[0] == 0 and y[1] == -1200
+    assert y[2] != y[2], "NaN stays NaN"
+
+
+def test_add_mc_spaghetti_payload_is_under_half_of_float32():
+    """The point of the two knobs: 200 monthly paths over 10 years gzip to
+    well under half of what the float32 arrays did."""
+    import gzip
+    from figures.bubble import _add_mc_spaghetti
+    from plotly.io.json import to_json_plotly
+    import numpy as np
+    import plotly.graph_objects as go
+
+    rng = np.random.default_rng(7)
+    steps = rng.normal(0.01, 0.12, size=(200, 122))
+    paths = 80_000.0 * np.exp(np.cumsum(steps, axis=1))
+    t_axis = np.linspace(18.4, 28.5, 122)
+
+    fig = go.Figure()
+    _add_mc_spaghetti(fig, paths, t_axis, n_display=200)
+    got = len(gzip.compress(to_json_plotly(fig).encode(), 6))
+
+    ref = go.Figure()
+    x32 = t_axis.astype(np.float32)
+    for row in paths.astype(np.float32):
+        ref.add_trace(go.Scatter(x=x32, y=row, mode="lines"))
+    was = len(gzip.compress(to_json_plotly(ref).encode(), 6))
+    assert got < 0.5 * was, f"{got} bytes vs {was} as float32"
 
 
 def test_tab1_default_sims_is_the_whole_cached_scenario():

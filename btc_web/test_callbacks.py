@@ -1290,6 +1290,7 @@ class TestUpdateBubbleCallbackMC:
                 snapshot_pending=False,
                 loaded_hash=None,
                 active_chart_committed=None,
+                mc_paths=["yes"],
             )
 
         # 8-tuple expected (Task 11 changed return shape)
@@ -1350,6 +1351,9 @@ class TestUpdateBubbleCallbackMC:
             cta_active=[], qs_mode=[], scan_active=[], scan_q_val=None,
             sigma_mode="resqr", snapshot_pending=False, loaded_hash=None,
             active_chart_committed=None,
+            # Example paths are opt-in (bub-mc-paths, default off); the tests
+            # below are about the paths unless they pass mc_paths themselves.
+            mc_paths=["yes"],
         )
         kw.update(over)
         with _patch_ctx("bub-qs"):
@@ -1440,6 +1444,40 @@ class TestUpdateBubbleCallbackMC:
         second = self._run(mc_sims=8)
         assert len(second.data) == len(first.data)
         assert len(self._lines(second)) == 8
+
+    # ── "Show individual price paths" (bub-mc-paths, default OFF) ────────────
+
+    _FAN = ("MC 5\u201395%", "MC 25\u201375%", "MC median")
+
+    @pytest.mark.parametrize("off", [[], None, "yes", ["no"]])
+    def test_paths_off_draws_the_fan_alone(self, off):
+        """Off is the default, and anything that is not a list containing
+        "yes" (a stale client, an unhydrated control) is off too."""
+        fig = self._run(mc_sims=200, mc_paths=off)
+        assert self._lines(fig) == []
+        for name in self._FAN:
+            self._named(fig, name)
+
+    def test_omitting_the_argument_means_off(self):
+        """A browser still holding the previous callback signature sends no
+        value for the new Input at all."""
+        import inspect
+        assert inspect.signature(update_bubble).parameters["mc_paths"].default is None
+
+    def test_paths_on_adds_the_example_lines_over_the_same_fan(self):
+        off = self._run(mc_sims=8, mc_paths=[])
+        on = self._run(mc_sims=8, mc_paths=["yes"])
+        assert len(self._lines(on)) == 8
+        assert len(on.data) == len(off.data) + 8
+        for name in self._FAN:
+            np.testing.assert_array_equal(
+                np.asarray(self._named(on, name).y, dtype=float),
+                np.asarray(self._named(off, name).y, dtype=float))
+
+    def test_paths_off_with_a_regime_filter_still_draws_the_gray_reference(self):
+        fig = self._run(mc_sims=8, mc_regime=[0, 1], mc_paths=[])
+        assert self._lines(fig) == []
+        self._named(fig, "MC ref median")
 
 
 @pytest.mark.skipif(_q3 is None, reason="app.py import failed")

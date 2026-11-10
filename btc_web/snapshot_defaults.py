@@ -52,6 +52,7 @@ SNAPSHOT_DEFAULTS: dict[str, Any] = {
     'bub-mc-infl:value': 0,
     'bub-mc-loaded:data': 0,
     'bub-mc-model-src:value': 'bub',
+    'bub-mc-paths:value': [],
     'bub-mc-regime:value': [0, 1, 2, 3, 4],
     'bub-mc-rendered-key:data': None,
     'bub-mc-results:data': None,

@@ -186,6 +186,9 @@ from restore_builder import _build_retire_params
     # signature (Dash maps decorator args → params by declaration order).
     Input("bub-timemachine-toggle", "value"),
     Input("bub-asof-slider",        "value"),
+    # Tab-1 MC "Show individual price paths" (default off). Appended LAST for
+    # the same stale-client reason as the two Time Machine Inputs above.
+    Input("bub-mc-paths",           "value"),
     prevent_initial_call=True,
 )
 def update_bubble(_first_render, sel_qs, adv_qs, toggles, ma_sel, bubble_toggles,
@@ -216,7 +219,7 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, ma_sel, bubble_toggles
                   snapshot_pending=False,
                   loaded_hash=None,
                   active_chart_committed=None,
-                  tm_toggle=None, asof_slider=None):
+                  tm_toggle=None, asof_slider=None, mc_paths=None):
     """Bubble + QR overlay chart callback -- coerce inputs, build figure."""
     import time as _time
     _t0 = _time.perf_counter()
@@ -247,7 +250,7 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, ma_sel, bubble_toggles
         # completion driven, mirrors dca-mc-loaded exclusion in update_dca.
         "bub-mc-enable", "bub-mc-bins", "bub-mc-regime", "bub-mc-sims",
         "bub-mc-years", "bub-mc-window", "bub-mc-start-yr", "bub-mc-entry-q",
-        "bub-mc-model-src",
+        "bub-mc-model-src", "bub-mc-paths",
     }
     if (active_chart_committed and active_chart_committed == loaded_hash
             and _trg in _POST_RESTORE_TRIGGERS):
@@ -474,6 +477,10 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, ma_sel, bubble_toggles
         # always the percentiles of every path of the scenario, so it reads
         # the same at sims=1 as at sims=200.
         display_sims = int(mc_p.get("mc_sims") or 100)
+        # The example lines are opt-in (bub-mc-paths, default off): the fan
+        # alone is the default picture. Anything but a list holding "yes"
+        # (a stale client sends nothing for this Input) means off.
+        show_paths = isinstance(mc_paths, list) and "yes" in mc_paths
         blocked = mc_p.get("mc_blocked_bins") or []
         paths = None
         if is_free:
@@ -490,7 +497,8 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, ma_sel, bubble_toggles
             t_start = yr_to_t(mc_start_yr_int, _app_ctx.M.genesis)
             t_end = yr_to_t(mc_end_yr_int, _app_ctx.M.genesis)
             t_axis = np.linspace(t_start, t_end, n_steps)
-            fan_paths = line_paths = paths
+            fan_paths = paths
+            line_paths = paths if show_paths else None
             # Rank paths by regime alignment (best-aligned first), then
             # trim to display_sims. For free-tier cached paths the
             # transition matrix wasn't bin-masked at sim time so every
@@ -498,7 +506,7 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, ma_sel, bubble_toggles
             # way the regime checklist can have a visible effect on
             # cached scenarios. Live (paid) sims already respect the
             # filter via _apply_bin_mask on the transition matrix.
-            if blocked:
+            if blocked and show_paths:
                 regime_model = _app_ctx.PRICE_MODELS.get(mc_p.get("mc_model_src"))
                 if regime_model is not None:
                     line_paths = filter_paths_by_regime(
@@ -543,9 +551,11 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, ma_sel, bubble_toggles
             # another bundle of traces (200 → 300 → 400 → ...).
             import plotly.graph_objects as _go
             fig = _go.Figure(fig)
-            # Fan first, example lines on top of it.
+            # Fan first, example lines (when asked for) on top of it.
             _add_mc_fan(fig, fan_paths, t_axis, reference=fan_is_reference)
-            _add_mc_spaghetti(fig, line_paths, t_axis, n_display=display_sims)
+            if line_paths is not None:
+                _add_mc_spaghetti(fig, line_paths, t_axis,
+                                  n_display=display_sims)
 
     apply_zoom_lock(fig, "chart_zoom" in toggles)
 

@@ -175,7 +175,7 @@ _TAB_CONTROLS = {
                     # MC controls appended 2026-04-26
                     "bub-mc-advanced","bub-mc-amount","bub-mc-bins","bub-mc-enable",
                     "bub-mc-entry-q","bub-mc-freq","bub-mc-infl","bub-mc-loaded",
-                    "bub-mc-model-src","bub-mc-regime","bub-mc-rendered-key",
+                    "bub-mc-model-src","bub-mc-paths","bub-mc-regime","bub-mc-rendered-key",
                     "bub-mc-results","bub-mc-sims","bub-mc-start-yr","bub-mc-stack",
                     "bub-mc-unblocked","bub-mc-window","bub-mc-years",
                     # User Model P1/P2 anchor points (added 2026-04-26)

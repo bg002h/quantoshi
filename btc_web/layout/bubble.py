@@ -450,6 +450,7 @@ def _bubble_controls():
             default_entry_q=10,
             amount_default=100,
             mc_enabled_default=False,
+            show_paths_toggle=True,
             # "sims" = how many example paths are drawn over the fan.
             # Default: every path of a cached scenario, faint enough
             # (figures.bubble._mc_path_alpha) to read as a density cloud.

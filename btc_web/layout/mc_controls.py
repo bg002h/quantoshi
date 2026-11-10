@@ -96,8 +96,13 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                   show_stack=False, show_mc_entry_q=False,
                   default_entry_q=50, start_yr_label=None,
                   shared_controls=frozenset(), mc_enabled_default=False,
-                  default_sims=200, sims_options=None):
-    """Monte Carlo simulation controls, reusable across tabs."""
+                  default_sims=200, sims_options=None,
+                  show_paths_toggle=False):
+    """Monte Carlo simulation controls, reusable across tabs.
+
+    show_paths_toggle: add the "{prefix}-mc-paths" checklist (Tab 1 only --
+    the one tab that draws MC price paths). Default off = fan only.
+    """
     yr_now = pd.Timestamp.today().year
     _mc_enable_val = ["yes"] if mc_enabled_default else []
     if not _app_ctx._HAS_MARKOV:
@@ -105,6 +110,8 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
         _ph = []  # placeholder components
         _ph.append(dcc.Checklist(id=f"{prefix}-mc-enable", value=[]))
         _ph.append(dcc.Checklist(id=f"{prefix}-mc-advanced", value=[]))
+        if show_paths_toggle:
+            _ph.append(dcc.Checklist(id=f"{prefix}-mc-paths", value=[]))
         if "amount" not in shared_controls:
             _ph.append(dbc.Input(id=f"{prefix}-mc-amount", value=amount_default))
         if "infl" not in shared_controls:
@@ -158,6 +165,14 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
         _section_card(
         "Monte Carlo Simulation",
         html.Div(id=f"{prefix}-mc-body", style=_STYLE_HIDDEN, children=[
+            *([dcc.Checklist(
+                id=f"{prefix}-mc-paths",
+                options=[{"label": " Show individual price paths",
+                          "value": "yes"}],
+                value=[], inputStyle=_CB_MARGIN,
+                style={"fontSize": UI_FONT_MD, "color": MUTED_TEXT,
+                       "marginBottom": "6px"})]
+              if show_paths_toggle else []),
             dcc.Checklist(id=f"{prefix}-mc-advanced",
                           options=[{"label": " Advanced simulator options", "value": "yes"}],
                           value=[], inputStyle=_CB_MARGIN,

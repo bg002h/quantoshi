@@ -415,6 +415,11 @@ _SNAPSHOT_CONTROLS = [
     # APPEND-ONLY at the true tail -- same index-stability rule as above;
     # test_bub_moving_avg.py pins this as the last entry.
     ("bub-ma", "value"),           # ma200w | ma52w | ma30d | ma7d (bitmask)
+    # ── Tab-1 MC "Show individual price paths" (appended 2026-11-09) ──
+    # APPEND-ONLY at the true tail -- same index-stability rule as above;
+    # test_mc_paths_toggle.py pins this at index 339. Links made before this
+    # field existed: see _PREDATING_LINK_VALUES.
+    ("bub-mc-paths", "value"),     # [] | ["yes"]  (bitmask)
 ]
 
 _SNAP_PREFIX_V4 = "q4:"   # current format (v4: sparse diff against fingerprint)
@@ -476,6 +481,7 @@ _CHECKLIST_OPTIONS = {
     # so it must not be able to move when the table does.
     # test_bub_moving_avg.py asserts the two stay equal.
     "bub-ma":             ["ma200w", "ma52w", "ma30d", "ma7d"],
+    "bub-mc-paths":       ["yes"],
     "bub-show-stack":     ["yes"],
     "bub-use-lots":       ["yes"],
     "hm-toggles":         ["colorbar", "chart_zoom"],
@@ -665,6 +671,33 @@ def _safe_decompress(encoded):
     return out
 
 
+# Fields whose DEFAULT differs from what the app did before the field existed.
+# {key: (value, requires)}: a decoded link that carries no value at all for
+# `key` predates the field, and gets `value` -- but only when `requires` (a
+# checklist key) is ticked in that link, i.e. only when the old behaviour was
+# actually on screen.
+#   bub-mc-paths: until 2026-11-09 Tab-1 MC always drew the example paths.
+#   The toggle defaults to off, so without this every older MC link would
+#   silently restore as fan-only.
+# A link made after the field exists always carries a value for it (v4: the
+# registered default of its own fingerprint; positional: a bitmask int), so
+# this never overrides a choice.
+_PREDATING_LINK_VALUES = {
+    "bub-mc-paths:value": (["yes"], "bub-mc-enable:value"),
+}
+
+
+def _fill_predating_fields(state):
+    """Apply _PREDATING_LINK_VALUES to a decoded state dict, in place."""
+    for key, (value, requires) in _PREDATING_LINK_VALUES.items():
+        if key in state:
+            continue
+        gate = state.get(requires)
+        if isinstance(gate, list) and "yes" in gate:
+            state[key] = list(value)
+    return state
+
+
 def _decode_snapshot(encoded):
     """Decode v2 (positional array) snapshot.
 
@@ -696,7 +729,7 @@ def _decode_snapshot(encoded):
             state[f"{cid}:{prop}"] = val
         if lots:
             state["_lots"] = lots
-        return state
+        return _fill_predating_fields(state)
     except Exception:
         return None
 
@@ -903,6 +936,6 @@ def _decode_snapshot_v4(encoded_with_fp_prefix):
                     state[key] = v
         if lots:
             state["_lots"] = lots
-        return state
+        return _fill_predating_fields(state)
     except Exception:
         return None

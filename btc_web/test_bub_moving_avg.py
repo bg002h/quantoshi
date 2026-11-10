@@ -306,11 +306,11 @@ class TestSnapshotRegistry:
     def test_entry_is_at_the_absolute_tail(self):
         """v4 links are index-addressed: a new field anywhere but the tail
         shifts every later field and corrupts already-shipped links."""
-        assert _SNAPSHOT_CONTROLS[-1] == ("bub-ma", "value")
+        assert _SNAPSHOT_CONTROLS[338] == ("bub-ma", "value")
 
     def test_previous_tail_entries_kept_their_indices(self):
-        assert _SNAPSHOT_CONTROLS[-3] == ("bub-occ-tail", "value")
-        assert _SNAPSHOT_CONTROLS[-2] == ("bub-occ-window", "value")
+        assert _SNAPSHOT_CONTROLS[336] == ("bub-occ-tail", "value")
+        assert _SNAPSHOT_CONTROLS[337] == ("bub-occ-window", "value")
 
     def test_checklist_options_registered_in_table_order(self):
         assert _CHECKLIST_OPTIONS["bub-ma"] == list(MA_VALUES)

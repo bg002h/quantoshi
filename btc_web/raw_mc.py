@@ -285,6 +285,7 @@ def months_for(asof: pd.Timestamp | None = None) -> pd.DataFrame:
 RAW_SRCS = ("raw_iid", "raw_cycle")
 RAW_TRENDS = ("power", "exp", "none")
 RAW_SIMS_MAX = 3200
+RAW_LINES_MIN, RAW_LINES_MAX, RAW_LINES_DEFAULT = 5, 200, 20   # "Lines shown" control
 RAW_MIN_MONTHS = 36
 BLOCK = 3                     # cycle-mode block length (steps / history months)
 PHASE_TOLS = (0.04, 0.08)     # then: every complete-cycle block of that length

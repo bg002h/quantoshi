@@ -697,6 +697,8 @@ TRACE_WIDTH_HALVING     = 1.4       # vertical halving lines
 TRACE_WIDTH_MA          = 1.6       # Tab-1 moving averages (bub-ma)
 MC_PATH_WIDTH           = 1.0       # Tab-1 MC example paths — hairlines; exempt from the
                                     # chart_responsive.js width override (meta.qs_keep_width)
+MC_EXTREME_WIDTH        = 1.6       # Tab-1 Raw MC "Highest end" / "Lowest end" paths — dashed, bolder than the
+                                    # example hairlines; same meta.qs_keep_width exemption
 TODAY_GLOW_WIDTH        = 6         # glow halo around today line
 GRID_MAJOR_WIDTH        = 1.0
 GRID_MINOR_WIDTH        = 0.8
@@ -740,6 +742,7 @@ MC_MEDIAN_ALPHA       = 0.9    # MC active median line
 MC_PATH_ALPHA         = 0.45   # Tab-1 MC example path lines — a few distinct lines
 MC_PATH_ALPHA_BUDGET  = 8.0    # cap on the SUM of path alphas: 200 paths -> 0.04 each, a density
                                # cloud the fan shows through (0.45 x 200 is a black slab)
+MC_EXTREME_ALPHA      = 0.6    # Tab-1 Raw MC extreme paths (MC_PATH_COLOR) — stronger than any example line
 MC_LEGEND_BG_ALPHA    = 0.7    # MC legend repositioned bg
 
 # ── Supercharge / Citadel band fills ──

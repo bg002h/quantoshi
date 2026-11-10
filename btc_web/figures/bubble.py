@@ -21,6 +21,7 @@ from colors import (
     HALVING_LINE_COLOR, HALVING_PAST_OPACITY, HALVING_FUTURE_OPACITY,
     TRACE_WIDTH_HALVING, MA_LINE_COLOR, TRACE_WIDTH_MA,
     MC_PATH_COLOR, MC_PATH_ALPHA, MC_PATH_ALPHA_BUDGET, MC_PATH_WIDTH, BLACK_A0,
+    MC_EXTREME_WIDTH, MC_EXTREME_ALPHA,
     MC_PRICE_BAND_OUTER_ALPHA, MC_PRICE_BAND_INNER_ALPHA,
     MC_AMBER, MC_GHOST_GRAY,
 )
@@ -168,6 +169,97 @@ def _add_mc_spaghetti(fig, paths, t_axis, n_display=100):
             name=("MC paths" if i == 0 else None),
             hoverinfo="skip",
             legendgroup="mc-spaghetti",
+        ))
+
+
+# The Raw MC example lines are drawn from this central slice of the paths,
+# ranked by price at the last plotted step: the 2nd to the 98th percentile.
+# The freak tails belong to the "Highest end" / "Lowest end" extremes.
+_LINE_RANK_LO, _LINE_RANK_HI = 0.02, 0.98
+
+
+def select_line_paths(paths, n_lines):
+    """Row indices of the `n_lines` example paths to draw, low end price first.
+
+    Paths are ranked by their price at the LAST column (the last plotted step,
+    so the choice follows the visible right edge) and taken at evenly spaced
+    ranks from the 2nd to the 98th percentile: a spread across the outcomes,
+    not a stride through row order. Ties keep row order (stable sort), so the
+    pick is deterministic. n_lines >= len(paths) selects every path.
+
+    Always returns `min(n_lines, len(paths))` DISTINCT rows. When n_lines is
+    too close to the path count for the 2nd-98th window to hold that many
+    ranks, it takes n_lines consecutive ranks centred on the median instead
+    (a duplicate would be one line drawn twice). n_lines == 1 is the median.
+
+    Hand the chosen rows to `_add_mc_spaghetti(fig, paths[idx], t_axis,
+    n_display=len(idx))`: its stride is then 1, so it draws exactly them.
+
+    Args:
+        paths: np.ndarray (n_sims, n_steps), or None / 0-row -> no indices.
+        n_lines: how many lines to draw; < 1 -> no indices.
+
+    Returns:
+        np.ndarray of row indices into `paths` (dtype intp).
+    """
+    if paths is None or not hasattr(paths, "shape") \
+            or paths.size == 0 or paths.shape[0] == 0:
+        return np.empty(0, dtype=np.intp)
+    n, k = paths.shape[0], int(n_lines)
+    if k < 1:
+        return np.empty(0, dtype=np.intp)
+    if k >= n:
+        return np.arange(n, dtype=np.intp)
+    order = np.argsort(paths[:, -1], kind="stable")      # rank -> row
+    lo = int(round(_LINE_RANK_LO * (n - 1)))
+    hi = int(round(_LINE_RANK_HI * (n - 1)))
+    if k == 1:
+        ranks = np.array([(n - 1) // 2])
+    elif hi - lo + 1 > k:
+        # gap between neighbours > 1, so rounding cannot collide two ranks
+        ranks = np.rint(np.linspace(lo, hi, k)).astype(np.intp)
+    else:
+        start = (n - k) // 2
+        ranks = np.arange(start, start + k)
+    return order[ranks]
+
+
+def _add_mc_extremes(fig, paths, t_axis):
+    """Add the highest- and lowest-ending paths as two dashed lines.
+
+    "Highest end" / "Lowest end" are the rows of `paths` with the largest and
+    smallest price at the last column, chosen from ALL the rows (select_line_paths
+    leaves them out, so they never double an example line). They are told
+    apart from the solid example lines by dash pattern and a heavier width
+    (colors.MC_EXTREME_WIDTH) in the same dark neutral (MC_PATH_COLOR at
+    colors.MC_EXTREME_ALPHA) -- never by hue. They carry the example paths'
+    payload treatment (every MC_PATH_POINT_STRIDE-th step, prices rounded to
+    MC_PATH_SIG_FIGS significant figures), meta.qs_keep_width so
+    assets/chart_responsive.js leaves the width alone, and hoverinfo='skip'.
+
+    Args:
+        fig: go.Figure to mutate. Its existing traces are not touched.
+        paths: np.ndarray (n_sims, n_steps), or None / 0-row -> no-op.
+        t_axis: np.ndarray (n_steps,) -- x values matching paths' columns.
+    """
+    if paths is None:
+        return
+    if not hasattr(paths, "shape") or paths.size == 0 or paths.shape[0] == 0:
+        return
+    end = np.asarray(paths)[:, -1]
+    color = _hex_alpha(MC_PATH_COLOR, MC_EXTREME_ALPHA)
+    steps = _mc_path_steps(paths.shape[1])
+    x32 = np.asarray(t_axis, dtype=np.float32)[steps]
+    for name, row in (("Highest end", int(np.argmax(end))),
+                      ("Lowest end", int(np.argmin(end)))):
+        fig.add_trace(go.Scatter(
+            x=x32, y=_sig_round_list(np.asarray(paths)[row, steps]),
+            mode="lines",
+            line=dict(color=color, width=MC_EXTREME_WIDTH, dash="dash"),
+            meta={"qs_keep_width": True},
+            showlegend=True,
+            name=name,
+            hoverinfo="skip",
         ))
 
 

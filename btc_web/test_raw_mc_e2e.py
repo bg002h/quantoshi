@@ -224,9 +224,17 @@ def test_raw_cycle_draws_its_fan_and_drops_the_paid_chrome(mc_on):
         "bubble-graph-chart-wrap still has mc-premium-chart in Raw"
     assert page.locator("#bub-mc-model-src").is_visible()
     # Raw-only controls are shown, model-only ones are not.
-    for sel in ("#bub-mc-raw-regime", "#bub-mc-lines", "#bub-mc-extremes"):
-        assert page.locator(sel).is_visible(), f"{sel} should be visible in Raw"
+    assert page.locator("#bub-mc-raw-regime").is_visible(), \
+        "#bub-mc-raw-regime should be visible in Raw"
     assert not page.locator("#bub-mc-start-yr").is_visible()
+    # Lines shown / Show extremes appear only with drawn paths (review M-6).
+    assert not page.locator(_PATHS).first.is_checked(), "fixture: paths must start off"
+    for sel in ("#bub-mc-lines", "#bub-mc-extremes"):
+        assert not page.locator(sel).is_visible(), f"{sel} visible with paths off"
+    page.locator(_PATHS).first.click()
+    for sel in ("#bub-mc-lines", "#bub-mc-extremes"):
+        assert _wait_until(lambda: page.locator(sel).is_visible()), \
+            f"{sel} should be visible in Raw once paths are ticked"
 
 
 def test_raw_independent_names_its_legend_entry(mc_on):
@@ -242,6 +250,8 @@ def test_ticking_paths_draws_twenty_lines_and_extremes_add_two(raw_on):
     page = raw_on.page
     assert _line_count(page, "mc-spaghetti") == 0, "control: no lines before the tick"
     assert not _has_trace(page, "Highest end")
+    assert not page.locator(_EXTREMES).first.is_visible(), \
+        "Show extremes visible before paths are ticked"
 
     page.locator(_PATHS).first.click()
     assert _wait_until(lambda: _line_count(page, "mc-spaghetti") == _DEFAULT_LINES), \
@@ -253,6 +263,51 @@ def test_ticking_paths_draws_twenty_lines_and_extremes_add_two(raw_on):
                        and _has_trace(page, "Lowest end")), \
         f"extremes missing; traces: {_names(page)}"
     assert _line_count(page, "mc-spaghetti") == _DEFAULT_LINES
+
+
+def _typed_value_reaches_server(page, cid, typed):
+    """Type ``typed`` into number input ``cid`` and return the value the next
+    update_bubble POST carries for it (None = the browser sent null)."""
+    seen = []
+
+    def grab(req):
+        if req.method != "POST" or "_dash-update-component" not in req.url:
+            return
+        try:
+            body = req.post_data_json
+        except Exception:
+            return
+        if "bub-mc-raw-status.children" not in body.get("output", ""):
+            return
+        for i in body.get("inputs", []):
+            if i.get("id") == cid:
+                seen.append(i.get("value"))
+    page.on("request", grab)
+    try:
+        box = page.locator(f"#{cid}")
+        box.scroll_into_view_if_needed()
+        box.fill(str(typed))
+        box.press("Enter")
+        assert _wait_until(lambda: seen or page.wait_for_timeout(250)), \
+            f"no update_bubble POST after typing {typed} into {cid}"
+    finally:
+        page.remove_listener("request", grab)
+    return seen[-1]
+
+
+def test_out_of_range_numbers_reach_the_server_to_be_clamped(raw_on):
+    """Review M-10: with no HTML max the browser sends 5000 (not null, which
+    the server would coerce to the 1000 default); the server clamps it to
+    3200 (test_raw_mc_callback::test_raw_sims_coercion). Same for lines."""
+    page = raw_on.page
+    assert _typed_value_reaches_server(page, "bub-mc-raw-sims", 5000) == 5000
+    page.locator(_PATHS).first.click()
+    assert _wait_until(lambda: page.locator("#bub-mc-lines").is_visible())
+    # the paths POST must land first, or it could be the one grabbed below
+    assert _wait_until(lambda: _line_count(page, "mc-spaghetti") == _DEFAULT_LINES)
+    assert _typed_value_reaches_server(page, "bub-mc-lines", 500) == 500
+    assert _wait_until(lambda: _line_count(page, "mc-spaghetti") == 200), \
+        f"500 lines should clamp to 200, got {_line_count(page, 'mc-spaghetti')}"
 
 
 # ── the regime box: a real click ticks paths, in one redraw ──────────────────

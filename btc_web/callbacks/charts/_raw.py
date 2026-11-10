@@ -8,6 +8,8 @@ cached, stored or kept in a module global.
 """
 from __future__ import annotations
 
+import logging
+
 import numpy as np
 import pandas as pd
 from dash import html
@@ -24,6 +26,9 @@ RAW_WINDOW_MIN = 2010
 RAW_BINS_RANGE = range(3, 11)
 RAW_BINS_DEFAULT = 5
 RAW_TREND_DEFAULT = "power"
+RAW_FAILED = "Raw simulation failed: no fan drawn"
+
+logger = logging.getLogger(__name__)
 
 # Legend wording: "MC median · raw cycle, power law, 2010–2026"
 _VARIANT_NAME = {"raw_iid": "raw independent", "raw_cycle": "raw cycle"}
@@ -84,23 +89,31 @@ def add_raw_overlay(fig, *, variant, price_data, xrange, stack, show_stack,
                     regime, lines):
     """Simulate and draw the Raw fan (+ lines / extremes) onto a clone of
     ``fig``. Returns ``(figure, raw-status children)``; a refused run returns
-    the figure untouched with the reason in the status."""
+    the figure untouched with the reason in the status, and so does a run that
+    raises (logged, status ``RAW_FAILED``) -- this never raises itself."""
     from figures.bubble import (_add_mc_fan, _add_mc_spaghetti,
                                 _add_mc_extremes, select_line_paths)
     c = raw_controls(sims, years, window, trend, bins, regime, lines)
-    series, data_fp = raw_mc.get_prices()
     try:
         live = float(price_data)
     except (TypeError, ValueError):
         live = 0.0
-    # F-23 N-4: fall back to the registry's last close, the series the fan uses
-    p0 = live if np.isfinite(live) and live > 0 else float(series.iloc[-1])
-    req = raw_mc.RawRequest(
-        variant=variant, trend=c["trend"], window=c["window"], bins=c["bins"],
-        checked=c["checked"], sims=c["sims"], years=c["years"],
-        today=pd.Timestamp.today().normalize(), p0=p0, data_fp=data_fp,
-        asof=None)
-    res = raw_mc.simulate(req)
+    req = None
+    try:
+        series, data_fp = raw_mc.get_prices()
+        # F-23 N-4: fall back to the registry's last close, the series the fan uses
+        p0 = live if np.isfinite(live) and live > 0 else float(series.iloc[-1])
+        req = raw_mc.RawRequest(
+            variant=variant, trend=c["trend"], window=c["window"], bins=c["bins"],
+            checked=c["checked"], sims=c["sims"], years=c["years"],
+            today=pd.Timestamp.today().normalize(), p0=p0, data_fp=data_fp,
+            asof=None)
+        res = raw_mc.simulate(req)
+    except Exception:                         # noqa: BLE001 -- final review M-7
+        # A Raw fault must not 500 update_bubble (that freezes all of Tab 1):
+        # draw the chart without a fan, say so, and log it.
+        logger.exception("Raw simulation failed for %r", req)
+        return fig, _status_children([RAW_FAILED])
     ok, status, paths, t_axis = res.ok, list(res.status), res.paths, res.t_axis
     del res                                   # never hold a RawResult (ALARA)
     if not ok or paths.size == 0:

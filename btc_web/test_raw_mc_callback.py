@@ -32,7 +32,7 @@ RAW_INPUT_IDS = ["bub-mc-raw-sims", "bub-mc-raw-years", "bub-mc-raw-window",
                  "bub-mc-lines", "bub-mc-extremes"]
 RAW_PARAMS = ["mc_raw_sims", "mc_raw_years", "mc_raw_window", "mc_raw_trend",
               "mc_raw_bins", "mc_raw_regime", "mc_lines", "mc_extremes"]
-NEW_IDS = RAW_INPUT_IDS + ["bub-mc-raw-status", "bub-mc-panel"]
+NEW_IDS = RAW_INPUT_IDS + ["bub-mc-raw-status", "bub-mc-panel", "bub-mc-lines-wrap"]
 
 
 # ── layout helpers ──────────────────────────────────────────────────────────
@@ -185,7 +185,7 @@ def test_mode_classes_not_defeated_by_inline_display():
 def test_positions_of_lines_extremes_and_status():
     ids = _ids_in_order(_bub())
     i = ids.index("bub-mc-paths")
-    assert ids[i + 1:i + 3] == ["bub-mc-lines", "bub-mc-extremes"]
+    assert ids[i + 1:i + 4] == ["bub-mc-lines-wrap", "bub-mc-lines", "bub-mc-extremes"]
     assert ids[ids.index("bub-mc-model-src") + 1] == "bub-mc-raw-status"
 
 
@@ -193,8 +193,10 @@ def test_control_values_and_ranges():
     root = _bub()
     g = lambda cid: _by_id(root, cid)[0]  # noqa: E731
     s = g("bub-mc-raw-sims")
-    assert (s.type, s.min, s.max, s.step, s.value, s.debounce) == (
-        "number", 1, RAW_SIMS_MAX, 1, 1000, True)
+    # M-10: no HTML min/max (out-of-range would arrive as null); server clamps
+    mm = lambda n: (getattr(n, "min", None), getattr(n, "max", None))  # noqa: E731
+    assert (s.type, *mm(s), s.step, s.value, s.debounce) == (
+        "number", None, None, 1, 1000, True)
     y = g("bub-mc-raw-years")
     assert [o["value"] for o in y.options] == [10, 20, 30, 40] and y.value == 40
     assert all(isinstance(o["label"], str) for o in y.options)   # no bolding
@@ -211,10 +213,81 @@ def test_control_values_and_ranges():
     assert r.value == [0, 1, 2, 3, 4]
     assert r.options == raw_mc.regime_options(5, (2010, YR), "power")
     ln = g("bub-mc-lines")
-    assert (ln.type, ln.min, ln.max, ln.step, ln.value) == ("number", 5, 200, 1, 20)
+    assert (ln.type, *mm(ln), ln.step, ln.value, ln.debounce) == (
+        "number", None, None, 1, 20, True)
     ex = g("bub-mc-extremes")
     assert [o["value"] for o in ex.options] == ["yes"] and ex.value == []
     assert "Show extremes" in str(ex.options[0]["label"])
+
+
+def test_number_inputs_state_their_range_in_the_label():
+    """M-10: with no HTML min/max the label is the only range hint."""
+    labels = [_texts(n) for n, _ in _walk(_bub()) if type(n).__name__ == "Label"]
+    assert f"Simulations (1–{RAW_SIMS_MAX}, free)" in labels
+    assert "Lines shown (5–200)" in labels
+
+
+def test_source_label_says_source_in_raw_only():
+    """M-6: Raw draws no model's bands, so its label is "Source"; the model
+    label text is unchanged (and the other tabs keep the plain label)."""
+    from layout import mc_controls
+    root = _bub()
+    ids = _ids_in_order(root)
+    lab = next(n for n, _ in _walk(root) if type(n).__name__ == "Label"
+               and "Model source (quantile bands)" in _texts(n))
+    spans = {(_texts(c), " ".join(_classes(c))) for c in lab.children}
+    assert spans == {("Model source (quantile bands)", "qs-mc-model-only"),
+                     ("Source", "qs-mc-raw-only")}
+    assert "bub-mc-model-src" in ids
+    for p in ("dca", "ret", "hm", "sc", "cp"):
+        other = mc_controls._mc_controls(p)
+        labs = [n for n, _ in _walk(other) if type(n).__name__ == "Label"
+                and "Model source" in _texts(n)]
+        assert labs and all(n.children == "Model source (quantile bands)"
+                            for n in labs), p
+
+
+def test_lines_block_hidden_until_paths():
+    """M-6: Lines shown / Show extremes sit in bub-mc-lines-wrap, hidden by
+    default and toggled by ONE clientside Input, bub-mc-paths.value."""
+    wrap = _by_id(_bub(), "bub-mc-lines-wrap")[0]
+    assert wrap.style == {"display": "none"}
+    assert not _classes(wrap)               # the class rules live on the parent
+    hits = _entries("bub-mc-lines-wrap.style")
+    assert len(hits) == 1
+    e = hits[0]
+    assert [(i["id"], i["property"]) for i in e["inputs"]] == [("bub-mc-paths", "value")]
+    assert e["clientside_function"]
+
+
+@needs_node
+def test_lines_block_visibility_js():
+    from layout.mc_controls import RAW_LINES_VIS_JS
+    script = ("const fn = (%s); console.log(JSON.stringify("
+              "[['yes'], [], null].map(fn)));" % RAW_LINES_VIS_JS)
+    res = subprocess.run([_NODE, "-e", script], capture_output=True, text=True,
+                         timeout=30)
+    assert res.returncode == 0, res.stderr
+    assert json.loads(res.stdout) == [{}, {"display": "none"}, {"display": "none"}]
+
+
+def test_layout_survives_any_regime_options_failure(monkeypatch):
+    """I-1: the Tab-1 layout calls into raw_mc; a non-RuntimeError there (e.g.
+    pandas < 2.2 rejecting resample("ME") with ValueError) must fall back to
+    plain bin labels, not break the page."""
+    def boom(*a, **k):
+        raise ValueError("Invalid frequency: ME")
+    monkeypatch.setattr(raw_mc, "regime_options", boom)
+    r = _by_id(_bub(), "bub-mc-raw-regime")[0]
+    assert r.options == [{"label": f"Bin {i + 1}", "value": i} for i in range(5)]
+    assert r.value == [0, 1, 2, 3, 4]
+    from layout import _build_layout
+    assert _build_layout("bubble") is not None     # the whole page still builds
+    from layout.mc_controls import raw_regime_options
+    monkeypatch.setattr(raw_mc, "regime_options",
+                        lambda *a, **k: (_ for _ in ()).throw(KeyError("x")))
+    assert raw_regime_options(3, (2010, YR), "power") == [
+        {"label": f"Bin {i + 1}", "value": i} for i in range(3)]
 
 
 def test_raw_labels_and_hint():
@@ -360,6 +433,25 @@ def test_raw_branch_draws_fan_and_status():
     assert "Power law" in _texts(status)
     iid = _run(mc_model_src="raw_iid", mc_raw_trend="exp")[0]
     assert f"MC median · raw independent, exponential decay, 2010–{YR}" in _names(iid)
+
+
+@pytest.mark.parametrize("exc", [AssertionError("len(k_w) == 47"),
+                                 ValueError("bad"), ZeroDivisionError()])
+def test_raw_simulate_failure_draws_no_fan_and_never_raises(monkeypatch, caplog, exc):
+    """M-7: an exception inside simulate must not 500 update_bubble: the chart
+    still draws (no fan), the status says why, and the exception is logged."""
+    def boom(req):
+        raise exc
+    monkeypatch.setattr(raw_mc, "simulate", boom)
+    with caplog.at_level("ERROR", logger="callbacks.charts._raw"):
+        res = _run(mc_paths=["yes"], mc_extremes=["yes"])
+    fig, status = res[0], res[8]
+    assert len(res) == 9 and fig is not dash.no_update and len(fig.data) > 0
+    assert not any("MC" in n for n in _names(fig))
+    assert _spaghetti(fig) == []
+    assert _texts(status).strip() == "Raw simulation failed: no fan drawn"
+    assert any("Raw simulation failed" in r.getMessage() and r.exc_info
+               for r in caplog.records)
 
 
 def test_raw_refusal_draws_no_fan_but_says_why():

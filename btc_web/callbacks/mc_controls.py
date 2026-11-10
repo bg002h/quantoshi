@@ -204,6 +204,17 @@ _app_ctx.app.clientside_callback(
     prevent_initial_call=True,
 )
 
+# ── Tab 1 Raw: "Lines shown" + "Show extremes" only while paths are drawn ────
+# One Input, no allow_duplicate; bub-mc-lines-wrap exists in the layout without
+# the Markov engine too, like the other Raw ids (final review M-6).
+from layout.mc_controls import RAW_LINES_VIS_JS  # noqa: E402
+
+_app_ctx.app.clientside_callback(
+    RAW_LINES_VIS_JS,
+    Output("bub-mc-lines-wrap", "style"),
+    Input("bub-mc-paths", "value"),
+)
+
 # ── Frequency unlock toggle + modal ──────────────────────────────────────────
 for _fp in ("dca", "ret", "sc"):
     _app_ctx.app.clientside_callback(

@@ -43,7 +43,7 @@ def _hist(trend_kind, window=(2010, 2024), asof=SIM_TODAY):
 @pytest.mark.parametrize("trend", RAW_TRENDS)
 @pytest.mark.parametrize("checked", SELECTIONS)
 def test_steering_targets(raw_prices, variant, trend, checked):  # noqa: F811
-    res = simulate(_req(variant, trend, checked=checked, sims=1000))
+    res = simulate(_req(variant, trend, checked=checked, sims=1000, diagnostics=True))
     assert res.ok
     assert res.unchecked_share <= 0.05          # months 13.. only
     lo, hi = _closed_range(res, checked)
@@ -72,7 +72,8 @@ def test_state_history_definition(raw_prices, trend):  # noqa: F811
 @pytest.mark.parametrize("trend", RAW_TRENDS)
 def test_simulated_state_recursion(raw_prices, variant, trend):  # noqa: F811
     """D_{k+1} = D_k + r_{k+1} - mu(t_{k+1}), with r read back from the paths."""
-    res = simulate(_req(variant, trend, checked=(1, 2), sims=50, years=10))
+    res = simulate(_req(variant, trend, checked=(1, 2), sims=50, years=10,
+                        diagnostics=True))
     dates = [SIM_TODAY + pd.DateOffset(months=k) for k in range(121)]
     mu = res.trend.mu_m(t_of(pd.DatetimeIndex(dates[:-1]) + pd.Timedelta(days=15)))
     _, S = state_history(raw_mc.months_for(SIM_TODAY), res.trend, (2010, 2024))
@@ -87,7 +88,8 @@ def test_d0_includes_partial_month(raw_prices):  # noqa: F811
     window = (2010, 2026)
     p0 = float(PRICES[MID]) * 1.07               # live price != last close
     res = simulate(_req(trend="power", checked=(2,), sims=20, years=10,
-                        window=window, today=MID, asof=MID, p0=p0))
+                        window=window, today=MID, asof=MID, p0=p0,
+                        diagnostics=True))
     assert res.ok
     months = raw_mc.months_for(MID)
     states, S = state_history(months, res.trend, window)
@@ -180,7 +182,7 @@ def test_cycle_block_redraw_keeps_slot(raw_prices, checked):  # noqa: F811
     candidate lies in one complete cycle (block integrity per contiguous run:
     review I-1 fallback ruling).  The month's z is rebuilt from the paths, so
     a draw that disagrees with ``sources`` fails too (review I-2)."""
-    res = simulate(_req(checked=checked, sims=300))
+    res = simulate(_req(checked=checked, sims=300, diagnostics=True))
     assert res.ok and res.sources is not None
     win = raw_mc._in_window(raw_mc.months_for(SIM_TODAY), (2010, 2024))
     pool = raw_mc.standardise(win, res.trend).to_numpy()
@@ -199,9 +201,32 @@ def test_cycle_block_redraw_keeps_slot(raw_prices, checked):  # noqa: F811
         assert (wcyc[src[:, 1:]][same_run] == wcyc[src[:, :-1]][same_run]).all()
         redrawn += int(np.sum(np.any(start != start[:, :1], axis=1)))
     assert redrawn > 0                                    # suffix redraws happened
-    base = simulate(_req(sims=300))
+    base = simulate(_req(sims=300, diagnostics=True))
     assert [b["steps"] for b in res.schedule] == [b["steps"] for b in base.schedule]
     assert base.sources is None
+
+
+@pytest.mark.parametrize("variant", RAW_SRCS)
+@pytest.mark.parametrize("checked", [(), (0,), (1, 3)])
+def test_diagnostics_opt_in_only(raw_prices, variant, checked):  # noqa: F811
+    """Review M-2 (ALARA): production (diagnostics False, the default) builds
+    no states / sources history; opting in changes nothing else -- not the
+    seed, the paths, the share or the status."""
+    assert raw_mc.RawRequest.__dataclass_fields__["diagnostics"].default is False
+    prod = simulate(_req(variant, checked=checked, sims=200))
+    diag = simulate(_req(variant, checked=checked, sims=200, diagnostics=True))
+    assert seed_for(_req(variant, checked=checked)) == \
+        seed_for(_req(variant, checked=checked, diagnostics=True))
+    assert prod.states is None and prod.sources is None
+    np.testing.assert_array_equal(prod.paths, diag.paths)
+    assert prod.unchecked_share == diag.unchecked_share
+    assert prod.status == diag.status
+    if checked:
+        assert diag.states is not None
+        assert (diag.sources is not None) == (variant == "raw_cycle")
+        want = float(np.mean(raw_mc._Steer(diag.edges, checked).outside(
+            diag.states[:, raw_mc.STEER_SKIP + 1:])))
+        assert prod.unchecked_share == pytest.approx(want, abs=1e-15)
 
 
 # ── performance ─────────────────────────────────────────────────────────────
@@ -218,7 +243,7 @@ def test_performance_filtered(raw_prices, variant):  # noqa: F811
                                 sims=RAW_SIMS_MAX, years=40))
             cpu = min(cpu, time.process_time() - c0)
             wall = min(wall, time.perf_counter() - w0)
-        assert res.ok and res.states is not None
+        assert res.ok and res.states is None        # production path: no histories
         print(f"\n{variant} {checked}: best of 3 cpu {cpu * 1000:.0f} ms, wall "
               f"{wall * 1000:.0f} ms (target 200 ms, hard bound 600 ms cpu)")
         assert cpu < 0.6

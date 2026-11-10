@@ -254,6 +254,21 @@ def test_status_line_contents(raw_prices):  # noqa: F811
     assert "Exponential" in exp and "fitted on 4 cycles" in exp
 
 
+def test_status_current_cycle_outside_window(raw_prices):  # noqa: F811
+    """Review M-5: a window ending before the current cycle is not "no complete
+    months yet" -- the current cycle has 31 months, just not in the window."""
+    mid = pd.Timestamp("2026-11-08")
+    text = " ".join(simulate(_req(variant="raw_iid", today=mid, asof=mid,
+                                  window=(2013, 2023),
+                                  p0=float(PRICES[mid]))).status)
+    assert "Current cycle is outside the history window" in text
+    assert "no complete months yet" not in text
+    # today = the halving itself: the current cycle really has no months yet
+    fresh = " ".join(simulate(_req(variant="raw_iid")).status)
+    assert "Current cycle: no complete months yet" in fresh
+    assert "outside the history window" not in fresh
+
+
 def test_performance(raw_prices):  # noqa: F811
     for v in RAW_SRCS:
         cpu = wall = np.inf

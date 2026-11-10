@@ -330,8 +330,12 @@ def test_regime_autotick_registration():
     """ONE callback writes bub-mc-paths.value, as its primary (non
     allow_duplicate) Output: an allow_duplicate writer fired update_bubble
     twice per click (auto-tick review I-2)."""
+    # Exact primary outputs only: once any test runs _setup_server, the
+    # share-link restore callback (allow_duplicate, "bub-mc-paths.value@<hash>"
+    # inside a multi-output) joins _callback_list and a substring match
+    # counted it -- an order-dependent false failure.
     writers = [e for e in _APP._callback_list
-               if "bub-mc-paths.value" in str(e["output"])]
+               if "bub-mc-paths.value" in str(e["output"]).strip(".").split("...")]
     assert len(writers) == 1
     e = writers[0]
     assert e["output"] == "bub-mc-paths.value"

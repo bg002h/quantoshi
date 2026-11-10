@@ -305,6 +305,9 @@ class RawRequest:
     p0: float                          # start price (NOT in the seed)
     data_fp: str
     asof: pd.Timestamp | None = None   # frozen-input hook; None in production
+    # Keep the test-only histories (RawResult.states / .sources).  NOT in the
+    # seed; production leaves it False and never builds them (ALARA, review M-2).
+    diagnostics: bool = False
 
 
 @dataclass
@@ -320,10 +323,11 @@ class RawResult:
     unchecked_share: float
     bin_labels: list[str]
     edges: np.ndarray | None
-    states: np.ndarray | None          # (sims, steps + 1), filter runs only
+    states: np.ndarray | None          # (sims, steps + 1), filtered diagnostics runs only
     trend: Trend | None
     fit_where: str
-    # filtered cycle runs: (sims, steps) in-window month index each step copied
+    # filtered cycle diagnostics runs: (sims, steps) in-window month index
+    # each step copied
     sources: np.ndarray | None = None
 
 
@@ -569,8 +573,15 @@ def simulate(req: RawRequest) -> RawResult:
     Regime filter (``effective_checked`` not None): each path's level-vs-trend
     state is carried month by month and a draw that would leave the checked
     bins is redrawn (independent: that month; cycle: the block from that month
-    on, same grid slot), up to MAX_TRIES, keeping the closest try.  Unfiltered
-    runs keep the fully vectorised draw and its RNG stream.
+    on, from another candidate of the same grid slot at the same offset), up
+    to MAX_TRIES, keeping the closest try.  A steered cycle block is therefore
+    a splice of contiguous runs: each run copies consecutive months of one
+    complete cycle, but two runs may come from different cycles (spec
+    "Block integrity").  Unfiltered runs keep the fully vectorised draw and
+    its RNG stream.
+
+    ``req.diagnostics`` only adds the per-month ``states`` / ``sources``
+    histories to the result; draws, paths, status and share are identical.
     """
     # data_fp is a process-lifetime key, not a data identity: app.py registers
     # _app_ctx._MODEL_FP once at startup, and that is "unknown" when the cwd
@@ -636,8 +647,10 @@ def simulate(req: RawRequest) -> RawResult:
 
     # regime filter: state increment per step = draw * scale[k] - off[k]
     eff = effective_checked(req.checked, req.bins)
-    steer = states = edges = None
+    diag = bool(req.diagnostics)
+    steer = states = edges = sources = None
     labels: list[str] = []
+    n_out = 0                     # states outside the checked bins, months > STEER_SKIP
     if eff is not None:
         hist, S = state_history(months, trend, req.window)
         edges = bin_edges(hist, req.bins)
@@ -645,9 +658,19 @@ def simulate(req: RawRequest) -> RawResult:
         steer = _Steer(edges, eff)
         scale = (np.ones(steps) if replay else sigma_steps) / S
         off = (mu if replay else np.zeros(steps)) / S
-        # step-major (steps + 1, sims): the loops write one contiguous row per month
-        states = np.empty((steps + 1, sims))
-        states[0] = _d0(months, trend, req.window, today, req.p0) / S
+        x = np.full(sims, _d0(months, trend, req.window, today, req.p0) / S)  # state row
+        if diag:
+            # step-major (steps + 1, sims): one contiguous row per month
+            states = np.empty((steps + 1, sims))
+            states[0] = x
+
+    def track(k1, x_new):
+        """Record the state after step ``k1`` (count it, keep it if diag)."""
+        nonlocal n_out
+        if k1 > STEER_SKIP:
+            n_out += int(np.count_nonzero(steer.outside(x_new)))
+        if states is not None:
+            states[k1] = x_new
 
     if not cycle_mode and steer is None:
         draws = pool[rng.integers(0, len(pool), size=(sims, steps))]
@@ -658,8 +681,8 @@ def simulate(req: RawRequest) -> RawResult:
             return pool[rng.integers(0, len(pool), size=(len(rows), n))], None
         for k in range(steps):
             d = pool[rng.integers(0, len(pool), size=sims)]
-            draws[k], states[k + 1], _, _ = _steered_month(
-                steer, states[k], d, scale[k], off[k], redraw)
+            draws[k], x, _, _ = _steered_month(steer, x, d, scale[k], off[k], redraw)
+            track(k + 1, x)
     else:
         wcyc, wphi = win.cycle.to_numpy(), win.phi.to_numpy()
         comp = set(complete.cycle.astype(int))
@@ -692,7 +715,8 @@ def simulate(req: RawRequest) -> RawResult:
             z_shift = e / len(k_w)
 
         draws = np.empty((sims, steps)) if steer is None else np.empty((steps, sims))
-        sources = None if steer is None else np.empty((steps, sims), dtype=np.int64)
+        sources = (np.empty((steps, sims), dtype=np.int64)
+                   if steer is not None and diag else None)
         widened = [0] * len(PHASE_TOLS)
         for c, k0, k1 in _grid(cyc, 0, steps):
             L = k1 - k0
@@ -709,7 +733,7 @@ def simulate(req: RawRequest) -> RawResult:
             # integrity then holds per contiguous run (each run copies one
             # candidate, inside one complete cycle), not per block: restricting
             # suffix redraws to the prefix's cycle broke the 5 % steering bound
-            # (review I-1, fallback ruling; measurements in task-3-report.md).
+            # (spec "Block integrity", design rev 7).
             for j in range(L):
                 k = k0 + j
 
@@ -717,22 +741,23 @@ def simulate(req: RawRequest) -> RawResult:
                     c2 = cand[rng.integers(0, len(cand), size=(len(rows), n))]
                     return pool[c2 + j] - z_shift, c2
                 d = pool[pick + j] - z_shift
-                draws[k], states[k + 1], rows, tags = _steered_month(
-                    steer, states[k], d, scale[k], off[k], redraw)
+                draws[k], x, rows, tags = _steered_month(
+                    steer, x, d, scale[k], off[k], redraw)
+                track(k + 1, x)
                 pick[rows] = tags           # later months of the block follow the redraw
-                sources[k] = pick + j
+                if sources is not None:
+                    sources[k] = pick + j
 
     if steer is not None:
         draws = draws.T                                    # (sims, steps)
-    if steer is not None and cycle_mode:
+    if sources is not None:
         sources = np.ascontiguousarray(sources.T)          # (sims, steps)
-    else:
-        sources = None
     r = draws if replay else mu + sigma_steps * draws
     share = 0.0
     if steer is not None:
-        share = float(np.mean(steer.outside(states[STEER_SKIP + 1:])))
-        states = np.ascontiguousarray(states.T)            # (sims, steps + 1)
+        share = n_out / ((steps - STEER_SKIP) * sims)
+        if states is not None:
+            states = np.ascontiguousarray(states.T)        # (sims, steps + 1)
     paths = np.empty((sims, steps + 1))
     paths[:, 0] = 0.0
     np.cumsum(r, axis=1, out=paths[:, 1:])
@@ -752,6 +777,8 @@ def simulate(req: RawRequest) -> RawResult:
     elif len(cur):
         status.append(f"Current cycle ({len(cur)} months) grows "
                       f"{_pct(12 * cur.r.mean())} vs curve {_pct(trend.g(cur.t.mean()))}")
+    elif (months.cycle == cyc_now).any():
+        status.append("Current cycle is outside the history window")
     else:
         status.append("Current cycle: no complete months yet")
     if cycle_mode:

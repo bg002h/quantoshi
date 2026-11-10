@@ -3,7 +3,7 @@ dash==4.0.0
 dash-bootstrap-components>=1.5
 diskcache
 numpy
-pandas
+pandas>=2.2          # raw_mc resample("ME") (final review I-1)
 plotly>=5.20
 PySocks>=1.7.1
 qrcode>=7.0

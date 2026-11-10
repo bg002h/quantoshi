@@ -228,8 +228,11 @@ def _add_mc_extremes(fig, paths, t_axis):
     """Add the highest- and lowest-ending paths as two dashed lines.
 
     "Highest end" / "Lowest end" are the rows of `paths` with the largest and
-    smallest price at the last column, chosen from ALL the rows (select_line_paths
-    leaves them out, so they never double an example line). They are told
+    smallest price at the last column, chosen from ALL the rows. Usually
+    select_line_paths leaves them out (its ranks stop at the 2nd / 98th
+    percentile), but not always: when n_lines >= the path count every row is an
+    example line, and the near-n fallback's centred ranks can reach the ends,
+    so an extreme may then lie on top of an example line. They are told
     apart from the solid example lines by dash pattern and a heavier width
     (colors.MC_EXTREME_WIDTH) in the same dark neutral (MC_PATH_COLOR at
     colors.MC_EXTREME_ALPHA) -- never by hue. They carry the example paths'

@@ -1,6 +1,7 @@
 """Monte Carlo simulation controls — shared across DCA, Retire, Heatmap, Supercharger tabs."""
 
 import json
+import logging
 
 import pandas as pd
 
@@ -86,10 +87,15 @@ def raw_regime_options(bins, window, trend):
     """Checklist options for the Raw trend-deviation bins. Plain "Bin 1..n"
     labels when no trend / state can be built (e.g. an exp fit failure, plan
     review M-9) or prices are not registered, so the checklist is never
-    empty."""
+    empty.  ANY failure here falls back too: this runs while the Tab-1
+    layout is built, so a Raw-only fault must never take the page down
+    (final review I-1)."""
     try:
         opts = raw_mc.regime_options(bins, window, trend)
     except RuntimeError:
+        opts = []                          # prices not registered: expected
+    except Exception:                      # noqa: BLE001 -- fail soft, see above
+        logger.exception("Raw regime options failed; using plain bin labels")
         opts = []
     return opts or [{"label": f"Bin {i + 1}", "value": i} for i in range(int(bins))]
 
@@ -101,31 +107,43 @@ def _wrap(cls, on, *children):
 
 
 _MO, _RO = "qs-mc-model-only", "qs-mc-raw-only"
+logger = logging.getLogger(__name__)
+
+# bub-mc-lines-wrap.style from bub-mc-paths.value (ONE Input): "Lines shown"
+# and "Show extremes" act only on drawn paths, so they show only with them
+# (final review M-6).  On a wrapper inside the qs-mc-raw-only Div, so the
+# inline display never fights the Raw/model class rules.
+RAW_LINES_VIS_JS = "function(v) { return (v && v.length) ? {} : {display: 'none'}; }"
 _SMALL_NOTE = {"display": "block", "fontSize": UI_FONT_SM, "color": DIM_TEXT,
                "lineHeight": "1.3", "marginBottom": "6px"}
 
 
 def _raw_lines_block(prefix):
-    """Lines shown + Show extremes, directly under Show individual price paths."""
-    return html.Div(className=_RO, children=[
-        _lbl("Lines shown (5\u2013200)"),
-        dbc.Input(id=f"{prefix}-mc-lines", type="number",
-                  value=raw_mc.RAW_LINES_DEFAULT, min=raw_mc.RAW_LINES_MIN,
-                  max=raw_mc.RAW_LINES_MAX, step=1, size="sm", debounce=True),
-        dcc.Checklist(id=f"{prefix}-mc-extremes",
-                      options=[{"label": " Show extremes", "value": "yes"}],
-                      value=[], inputStyle=_CB_MARGIN,
-                      style={"fontSize": UI_FONT_MD, "color": MUTED_TEXT,
-                             "margin": "4px 0 6px"}),
-    ])
+    """Lines shown + Show extremes, directly under Show individual price paths;
+    hidden until that box is ticked (RAW_LINES_VIS_JS).  No HTML min/max on
+    the number input: the browser would send null for an out-of-range value
+    (CLAUDE.md gotcha), so the server clamps instead and the label states the
+    range (final review M-10)."""
+    return html.Div(className=_RO, children=[html.Div(
+        id=f"{prefix}-mc-lines-wrap", style={"display": "none"}, children=[
+            _lbl(f"Lines shown ({raw_mc.RAW_LINES_MIN}\u2013{raw_mc.RAW_LINES_MAX})"),
+            dbc.Input(id=f"{prefix}-mc-lines", type="number",
+                      value=raw_mc.RAW_LINES_DEFAULT, step=1, size="sm",
+                      debounce=True),
+            dcc.Checklist(id=f"{prefix}-mc-extremes",
+                          options=[{"label": " Show extremes", "value": "yes"}],
+                          value=[], inputStyle=_CB_MARGIN,
+                          style={"fontSize": UI_FONT_MD, "color": MUTED_TEXT,
+                                 "margin": "4px 0 6px"}),
+        ])])
 
 
 def _raw_controls_block(prefix, yr_now):
     return html.Div(className=_RO, children=[
         _lbl(f"Simulations (1\u2013{raw_mc.RAW_SIMS_MAX}, free)"),
+        # no HTML min/max: the server clamps (see _raw_lines_block)
         dbc.Input(id=f"{prefix}-mc-raw-sims", type="number", value=1000,
-                  min=1, max=raw_mc.RAW_SIMS_MAX, step=1, size="sm",
-                  debounce=True),
+                  step=1, size="sm", debounce=True),
         _lbl("Years to simulate"),
         dcc.Dropdown(id=f"{prefix}-mc-raw-years", options=RAW_YEARS_OPTIONS,
                      value=40, clearable=False),
@@ -347,6 +365,7 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                     dcc.RadioItems(id=f"{prefix}-mc-raw-trend", value="power"),
                     dcc.Dropdown(id=f"{prefix}-mc-raw-bins", value=5),
                     dcc.Checklist(id=f"{prefix}-mc-raw-regime", value=list(range(5))),
+                    html.Div(id=f"{prefix}-mc-lines-wrap"),
                     dbc.Input(id=f"{prefix}-mc-lines", value=raw_mc.RAW_LINES_DEFAULT),
                     dcc.Checklist(id=f"{prefix}-mc-extremes", value=[]),
                     html.Div(id=f"{prefix}-mc-raw-status"),
@@ -402,7 +421,11 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
             # beat the class rules in assets/style.css.
             *([html.Div(className=_RO, children=html.Small(RAW_HINT, style=_SMALL_NOTE))]
               if raw else []),
-            _lbl("Model source (quantile bands)"),
+            # Raw draws no model's bands: "Source" there (final review M-6)
+            (html.Label([html.Span("Model source (quantile bands)", className=_MO),
+                         html.Span("Source", className=_RO)],
+                        className="form-label mb-0 small")
+             if raw else _lbl("Model source (quantile bands)")),
             dcc.Dropdown(id=f"{prefix}-mc-model-src",
                          options=_mc_model_src_options(include_raw=raw),
                          value="bub", clearable=False),

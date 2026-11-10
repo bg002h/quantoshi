@@ -27,6 +27,7 @@ from layout.custom_time import custom_time_panel
 from layout.mc_controls import _mc_controls
 import timemachine as tm
 from bub_ma import MA_OPTIONS
+from bub_views import DEFAULT_MODE
 
 
 # ── Axes presets (Tab 1) ─────────────────────────────────────────────────
@@ -76,16 +77,23 @@ MC_DEFAULT_SIMS = 200
 # programmatic write of bub-mc-enable carry no click, so a restored link keeps
 # the X range it was saved with.
 #
+# Only where MC is actually drawn: the Price view with Custom Time Axis off.
+# Residuals / Percentile / Occupancy cap the slider at next year, so a widen
+# there would write a value above the slider's own max. An unhydrated view
+# store (null) means the default view.
+#
 # Registered in callbacks/mc_controls.py with ONE Input (see the Dash 4.0 note
 # in callbacks/axes_presets.py). Executed under node by test_mc_autowiden.py.
 MC_AUTOWIDEN_YEARS = 10
 MC_AUTOWIDEN_CLICK_MS = 3000
 MC_AUTOWIDEN_JS = """
-function(mc, xrange, startYr) {
+function(mc, xrange, startYr, mode, cta) {
     var NU = window.dash_clientside.no_update;
     var at = window.__qsMcEnableClickAt || 0;
     window.__qsMcEnableClickAt = 0;
     if (!at || Date.now() - at > %(click_ms)s) { return NU; }
+    if (mode && mode !== "%(price)s") { return NU; }
+    if (Array.isArray(cta) && cta.indexOf("yes") >= 0) { return NU; }
     if (!Array.isArray(mc) || mc.indexOf("yes") < 0) { return NU; }
     if (!Array.isArray(xrange) || xrange.length !== 2) { return NU; }
     if (startYr === null || startYr === undefined || startYr === "") { return NU; }
@@ -96,7 +104,7 @@ function(mc, xrange, startYr) {
     return [xrange[0], want];
 }
 """ % {"xmax": XRANGE_MAX, "span": MC_AUTOWIDEN_YEARS,
-       "click_ms": MC_AUTOWIDEN_CLICK_MS}
+       "click_ms": MC_AUTOWIDEN_CLICK_MS, "price": DEFAULT_MODE}
 
 # Sets the X window to the current calendar year. Y is deliberately left alone:
 # when auto-Y is on the existing clientside recompute fits it, and when auto-Y

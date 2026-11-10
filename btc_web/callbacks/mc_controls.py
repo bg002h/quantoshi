@@ -139,6 +139,8 @@ _app_ctx.app.clientside_callback(
     Input("bub-mc-enable", "value"),
     State("bub-xrange", "value"),
     State("bub-mc-start-yr", "value"),
+    State("bub-view-mode", "data"),
+    State("cta-active", "value"),
     prevent_initial_call=True,
 )
 

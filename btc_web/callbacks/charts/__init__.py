@@ -510,8 +510,10 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, ma_sel, bubble_toggles
             # Ranking cannot change the percentiles of a cached scenario, so
             # with a regime filter on it the fan is the ALL-regimes picture:
             # draw it in the gray reference style rather than pass it off as
-            # the filtered result. A live run really was simulated under the
-            # filter, so its fan is the result and stays amber.
+            # the filtered result. A live run would have been simulated under
+            # the filter, so its fan stays amber — but that arm is unreachable
+            # today: build_bubble_figure returns (fig, None), so mc_result is
+            # always None on Tab 1 and sims > 200 draws nothing (F-15).
             fan_is_reference = bool(blocked) and is_free
             # Nothing else on this chart is sent past the visible right edge
             # (the builder masks every trace to [t_lo, t_hi]); a 40-year run

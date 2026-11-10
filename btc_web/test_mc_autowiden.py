@@ -26,6 +26,7 @@ import pytest
 # NOT import callbacks.mc_controls here: see test_axes_presets.py.
 from conftest import _app_ctx  # noqa: F401
 
+from bub_views import DEFAULT_MODE, VIEW_MODES
 from layout.bubble import (MC_AUTOWIDEN_JS, MC_AUTOWIDEN_YEARS, XRANGE_MAX,
                            XRANGE_MIN)
 
@@ -61,10 +62,13 @@ class TestRegistration:
         assert [(i["id"], i["property"]) for i in e["inputs"]] == [
             ("bub-mc-enable", "value")]
 
-    def test_reads_range_and_start_year_as_state(self):
+    def test_reads_range_start_year_view_and_cta_as_state(self):
+        # View mode + Custom Time Axis are State, not Input: they decide
+        # whether MC is on screen at all, and must never trigger a widen.
         e = _entry()
         assert [(s["id"], s["property"]) for s in e["state"]] == [
-            ("bub-xrange", "value"), ("bub-mc-start-yr", "value")]
+            ("bub-xrange", "value"), ("bub-mc-start-yr", "value"),
+            ("bub-view-mode", "data"), ("cta-active", "value")]
 
     def test_never_fires_on_page_load(self):
         # allow_duplicate + prevent_initial_call=False crashes gunicorn, and
@@ -79,7 +83,7 @@ class TestRegistration:
     def test_span_is_ten_years(self):
         assert MC_AUTOWIDEN_YEARS == 10
 
-    def test_asset_listens_in_the_capture_phase(self):
+    def test_asset_and_callback_share_the_click_stamp(self):
         src = _ASSET.read_text()
         assert "#bub-mc-enable" in src
         assert "__qsMcEnableClickAt" in src
@@ -99,7 +103,7 @@ const out = [];
 for (const c of %(cases)s) {
     if (c.clickAgoMs === null) window.__qsMcEnableClickAt = 0;
     else if (c.clickAgoMs !== undefined) window.__qsMcEnableClickAt = now - c.clickAgoMs;
-    out.push(fn(c.mc, c.xr, c.start));
+    out.push(fn(c.mc, c.xr, c.start, c.mode, c.cta));
 }
 console.log(JSON.stringify(out));
 """
@@ -169,6 +173,33 @@ class TestDecision:
     ])
     def test_malformed_values_are_a_no_op(self, mc, xr, start):
         assert _run([dict(clickAgoMs=5, mc=mc, xr=xr, start=start)]) == [NU]
+
+    @pytest.mark.parametrize(
+        "mode", sorted(m for m in VIEW_MODES if m != DEFAULT_MODE))
+    def test_other_views_are_left_alone(self, mode):
+        """MC is drawn only on the Price chart. Residuals / Percentile /
+        Occupancy also cap the slider at next year, so a widen there writes a
+        value above the slider's own max (review I-1)."""
+        assert _run([dict(clickAgoMs=5, mc=ON, xr=[2010, 2027], start=2028,
+                          mode=mode)]) == [NU]
+
+    def test_a_click_in_another_view_is_still_consumed(self):
+        assert _run([dict(clickAgoMs=5, mc=ON, xr=[2010, 2027], start=2028,
+                          mode="resid"),
+                     dict(mc=ON, xr=[2010, 2033], start=2028,
+                          mode=DEFAULT_MODE)]) == [NU, NU]
+
+    @pytest.mark.parametrize("mode", [DEFAULT_MODE, None])
+    def test_price_view_widens(self, mode):
+        # None: the view store has not hydrated, which means the default view.
+        assert _run([dict(clickAgoMs=5, mc=ON, xr=[2010, 2033], start=2028,
+                          mode=mode, cta=[])]) == [[2010, 2038]]
+
+    def test_custom_time_axis_is_left_alone(self):
+        """With CTA on, update_bubble yields the chart to the CTA callback and
+        no MC is drawn."""
+        assert _run([dict(clickAgoMs=5, mc=ON, xr=[2010, 2033], start=2028,
+                          mode=DEFAULT_MODE, cta=["yes"])]) == [NU]
 
     def test_numeric_string_start_year_is_accepted(self):
         assert _run([dict(clickAgoMs=5, mc=ON, xr=[2010, 2033], start="2031")]) \

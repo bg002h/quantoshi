@@ -46,18 +46,33 @@ def _wait_until(predicate, timeout=15.0):
     return last
 
 
+def _open(path):
+    p = sync_playwright().start()
+    browser = p.firefox.launch(headless=True)
+    ctx = browser.new_context(viewport={"width": 1280, "height": 900})
+    pg = ctx.new_page()
+    pg.goto(f"{BASE_URL}{path}", wait_until="networkidle", timeout=30000)
+    pg.wait_for_selector(_MC_BOX, state="attached", timeout=15000)
+    time.sleep(1.5)  # let the restore/first-render cascade settle
+    return p, browser, pg
+
+
 @pytest.fixture()
 def page():
-    """A fresh page per test: both tests start from MC off, default range."""
-    with sync_playwright() as p:
-        browser = p.firefox.launch(headless=True)
-        ctx = browser.new_context(viewport={"width": 1280, "height": 900})
-        pg = ctx.new_page()
-        pg.goto(f"{BASE_URL}/1", wait_until="networkidle", timeout=30000)
-        pg.wait_for_selector(_MC_BOX, state="attached", timeout=15000)
-        time.sleep(1.5)  # let the restore/first-render cascade settle
-        yield pg
-        browser.close()
+    """A fresh page per test: every test starts from MC off, default range."""
+    p, browser, pg = _open("/1")
+    yield pg
+    browser.close()
+    p.stop()
+
+
+@pytest.fixture()
+def resid_page():
+    """Tab 1 in the Residuals view (historical-only: slider capped)."""
+    p, browser, pg = _open("/1.3")
+    yield pg
+    browser.close()
+    p.stop()
 
 
 def test_a_real_tick_widens_the_right_edge_to_start_plus_ten(page):
@@ -80,4 +95,18 @@ def test_a_programmatic_enable_leaves_the_range_alone(page):
     assert _wait_until(lambda: page.locator(_MC_BOX).first.is_checked()), \
         "set_props did not enable MC — the test would pass vacuously"
     time.sleep(3.0)  # the widen (if wrongly fired) lands well inside this
+    assert _slider(page, "bub-xrange") == before
+
+
+def test_a_real_tick_in_a_historical_view_leaves_the_range_alone(resid_page):
+    """Review I-1: Residuals caps the slider at next year and draws no MC; a
+    widen there pushed the value past the slider's own max."""
+    page = resid_page
+    before = _slider(page, "bub-xrange")
+    box = page.locator(_MC_BOX).first
+    box.scroll_into_view_if_needed()
+    box.click()
+    assert _wait_until(lambda: page.locator(_MC_BOX).first.is_checked()), \
+        "the click did not tick MC — the test would pass vacuously"
+    time.sleep(3.0)
     assert _slider(page, "bub-xrange") == before

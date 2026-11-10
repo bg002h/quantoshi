@@ -501,6 +501,73 @@ drifts — which is a much smaller change than a full time-evolving model.
 
 ---
 
+### F-14 — MC paths appear ~40 s after a Tab-1 share link loads
+**Type:** page-load performance · **Owning phase:** Tab-1 MC "Phase 2" (not
+started) · **Severity:** Important (usability) · **Found:** 2026-11-09, recon
+
+Browser main-thread saturation, not server or network time: on prod the main
+thread is busy 35.7 s of a 36.8 s load, 74 % of it inside `dash_renderer`,
+while server response time sums to ~2 s. The MC figure is last in the queue
+because `restore_builder.py:99` declines MC-enabled snapshots. Evidence,
+what is ruled out, and three options:
+`docs/superpowers/reviews/2026-11-09-sharelink-mc-delay-recon.md`.
+
+**Fix sketch:** cheapest is building the cached-MC figure in the direct
+restore path; the general win is cutting callback POSTs during load (a plain
+`/1` load already costs ~22 s of main-thread time over 100 POSTs). Spec first
+— restore has four failed attempts on record.
+
+---
+
+### F-15 — Tab 1 draws nothing for a paid (sims > 200) MC run
+**Type:** dead code / missing feature · **Owning phase:** unscheduled ·
+**Severity:** Minor · **Found:** 2026-11-09, whole-diff review M-1
+
+`build_bubble_figure` returns `(fig, None)`, so `mc_result` is always `None`
+in `update_bubble` and the `elif mc_result and isinstance(mc_result, dict)`
+arm never runs. With `bub-mc-sims` above the 200 cached paths, no fan and no
+paths are drawn. Pre-existing; the comment now says so.
+
+**Fix sketch:** either have the Tab-1 builder return the live run's
+`price_paths`, or cap the Tab-1 sims field at the cached 200 and delete the arm.
+
+---
+
+### F-16 — `test_infrastructure.py` then `test_axes_presets.py` in one process fails 3 tests
+**Type:** test-order hazard · **Owning phase:** unscheduled · **Severity:**
+Minor · **Found:** 2026-11-09
+
+`btc_venv/bin/python3 -m pytest btc_web/test_infrastructure.py
+btc_web/test_axes_presets.py -n0 -p no:randomly` → 3 failures in
+`TestAxesPresetVisibility` with `TypeError: cannot use 'dict' as a set element
+(unhashable type: 'dict')`. Either file alone passes, and the default
+`-n logical` run usually separates them. Distinct from the `test_defaults.py`
+double-import of `app` fixed the same day.
+
+**Fix sketch:** find what `test_infrastructure.py` leaves in the callback
+registry (a pattern-matching dict id is the likely culprit) and make the
+`test_axes_presets.py` helper tolerate dict ids.
+
+---
+
+### F-17 — Ticking MC on Tab 1 renders the chart twice
+**Type:** ALARA · **Owning phase:** unscheduled · **Severity:** Minor ·
+**Found:** 2026-11-09
+
+A user tick fires `update_bubble` for `bub-mc-enable`, then the clientside
+auto-widen moves `bub-xrange` and fires it again: two ~100 KB (gzipped) MC
+figures for one click. Also recorded here from the same review (Nits): the
+"MC paths" legend swatch takes the first path's colour, which at 200 paths is
+4 % opacity and nearly invisible when the legend is on; and a click on the MC
+checklist that does not change its value leaves the click stamp live for 3 s.
+
+**Fix sketch:** have `update_bubble` return `no_update` when the trigger is
+`bub-mc-enable` being ticked and the range is about to widen — or move the
+widen server-side into the same callback. Give the legend entry its own
+full-opacity dummy trace.
+
+---
+
 ## Closed
 
 ### F-10 — Tab-1 view pills Percentile and Occupancy have no deep link

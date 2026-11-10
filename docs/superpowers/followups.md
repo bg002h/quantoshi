@@ -689,6 +689,18 @@ regime filter is silently changed in the shared view.
 that old links still decode: the bitmask is positional, so prepending is
 unsafe but extending the tail is fine. Add a 10-bin round-trip test per tab.
 
+### F-25 — Raising MC bins silently filters the new top bins (Tab 1, both modes)
+**Type:** surprising default · **Owning phase:** standalone, after the Raw MC
+merge (the fix touches model mode, outside Raw MC's "model mode unchanged") ·
+**Severity:** Minor · **Found:** 2026-11-10, Raw MC final review M-4
+
+When bins go from 5 to 8, `bub-mc-regime` / `bub-mc-raw-regime` stay at
+`[0..4]`, so bins 5–7 are unchecked and filtered out. Share-link restores
+depend on the value not being overwritten.
+
+**Fix sketch:** add a bins callback that fires on a real user click only (the
+click-stamp pattern). If every old bin was ticked, tick all the new bins.
+
 ---
 
 ## Closed

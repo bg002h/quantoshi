@@ -1,6 +1,8 @@
 # Tab 1 "Raw" Monte Carlo — design
 
-Status: revision 6, 2026-11-10 (folds reviews r2–r5). Rewritten after spec review round 1
+Status: revision 7, 2026-11-10 (folds reviews r2–r5; r7 amends block
+integrity and the near-n line rule per the final whole-branch review M-1).
+Rewritten after spec review round 1
 (`docs/superpowers/reviews/2026-11-10-tab1-raw-mc-spec-review.md`, 0C/5I/8M/2N)
 and a second brainstorm with the operator that added the trend-adjusted
 mechanism. Everything here is operator-approved; items marked
@@ -209,9 +211,18 @@ reproduces the histogram's frequencies) of a historical shape:
   - Mid-cycle horizons and the partial first cycle of a real "today" are
     not tested: sitting above or below trend there is the rhythm the
     variant exists to show.
-- **Block integrity:** a block's three months come from **one** complete
-  cycle (its `z` values share that cycle's standardisation); a block may
-  not straddle a halving in the history it copies (review r4 M).
+- **Block integrity:** an unsteered block copies `L` consecutive months
+  (`L` = its grid length) of one complete cycle and never straddles a
+  halving in the history it copies (review r4 M). With the regime filter
+  on, a block is accepted month by month; a redraw from violating month `j`
+  replaces months `j … L−1` with months `j … L−1` of another candidate for
+  the **same grid slot** (same phase window, same offset). A steered block
+  is therefore a splice of up to `L` contiguous runs. Each run copies
+  consecutive months of one complete cycle and never straddles a
+  historical halving, but two runs may come from different cycles.
+  Restricting the redraw to the prefix's cycle was measured to break the
+  5 % steering bound (21 of 45 cycle-mode cases, max 9.32 %), so per-run
+  integrity is the binding rule.
 
 With **Trend = None** the same draws use raw `r` instead of `z` (honest
 replay). The status line states **the simulated fan's own median pace**,
@@ -286,13 +297,16 @@ rejected subset).
   evenly spaced ranks from the 2nd to the 98th percentile by a **new
   rank selector** (not `_add_mc_spaghetti`'s stride subsampling, which is
   bypassed by passing exactly the chosen paths; review r2 N-1). If lines ≥
-  sims, all are drawn.
+  sims, all are drawn. When the 2nd–98th-percentile rank window holds fewer
+  distinct ranks than the lines requested, the lines are that many
+  consecutive ranks centred on the median, so no path is drawn twice.
 - **Show extremes** (`bub-mc-extremes`, checklist `["yes"]`, default off):
   the top- and bottom-ranked paths, dashed and slightly bolder in the same
   dark neutral (new constants in `colors.py`), legend "Highest end" /
   "Lowest end", no hover.
 - Both sit directly under **Show individual price paths** (`bub-mc-paths`,
-  shared, still the master switch, default off) and only show in Raw mode.
+  shared, still the master switch, default off) and only show in Raw mode,
+  while that box is ticked (final review M-6).
 - Lines keep today's payload treatment (`_add_mc_spaghetti`: every other
   step, 2 significant figures), trimmed at the visible right edge. Measured
   gzip: 200 lines × 12 visible years ≈ 23 KB; 202 lines × 40 visible years

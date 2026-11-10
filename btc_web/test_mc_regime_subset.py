@@ -123,8 +123,19 @@ class TestCallback(_MC):
         assert err.min() < 0.06
 
     def test_fewer_sims_than_the_subset_draws_the_best_of_it(self):
+        """sims=8 draws the 8 BEST-ranked paths, in rank order (review I-1:
+        the count alone cannot tell a best-first trim from an arbitrary one)."""
+        from figures.bubble import _mc_path_steps
         fig = self._run(mc_sims=8, mc_regime=[0, 1])
-        assert len(self._lines(fig)) == 8
+        lines = self._lines(fig)
+        assert len(lines) == 8
+        best = self._ranked([2, 3, 4])[:8]
+        steps = _mc_path_steps(best.shape[1])
+        for rank, line in enumerate(lines):
+            y = np.asarray(line.y, dtype=float)
+            # every other step, 2 significant figures: within ~5% of the path
+            err = np.abs(np.log(best[rank, steps][:len(y)] / y)).max()
+            assert err < 0.06, f"line {rank} is not the rank-{rank} path"
 
     def test_paths_off_with_a_filter_draws_the_subset_fan_alone(self):
         fig = self._run(mc_sims=8, mc_regime=[0, 1], mc_paths=[])

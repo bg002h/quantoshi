@@ -181,9 +181,11 @@ def _add_mc_fan(fig, paths, t_axis, reference=False, label_suffix=""):
     describes the whole scenario however few example lines are drawn on top
     of it. Styling is the shared MC fan (mc_overlay._mc_build_traces) with
     stronger Tab-1 fills (colors.MC_PRICE_BAND_*_ALPHA): amber,
-    or -- reference=True -- the gray "MC ref" style, used when a regime
-    filter is active on a cached scenario and the fan is therefore the
-    all-regimes reference rather than the filtered result.
+    or -- reference=True -- the gray "MC ref" style, used only when a regime
+    filter is active on a cached scenario but there is no model to rank the
+    paths against, so the fan is the all-regimes reference rather than the
+    filtered result. (With a model, the callback passes the best-matching
+    subset and a label_suffix instead.)
 
     Args:
         fig: go.Figure to mutate. Its existing traces are not touched.

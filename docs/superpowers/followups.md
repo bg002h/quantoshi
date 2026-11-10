@@ -625,6 +625,21 @@ for a tab that is not mounted).
 
 ---
 
+### F-21 — Tab-1 regime ranking costs ~0.7 s per render and is not cached
+**Type:** ALARA · **Owning phase:** F-14 (Phase 2) · **Severity:** Minor ·
+**Found:** 2026-11-10, review of `eeba0381` (M-2) · **Introduced by** the
+regime subset fan
+
+`filter_paths_by_regime` is a Python loop (481 steps x 27 `price_at` calls):
+0.68 s for `bub`, 0.54 s for `ef`, ~0.04 s for `qr`/`pl`. Before `eeba0381` it
+ran only with example lines on; now every Tab-1 render with a regime box
+unchecked pays it, paths on or off, and nothing caches it.
+
+**Fix sketch:** `lru_cache` the ranking on (model_src, start_yr, entry_q,
+years, tuple(blocked), n_bins), or vectorise the per-step `price_at` calls.
+
+---
+
 ## Closed
 
 ### F-10 — Tab-1 view pills Percentile and Occupancy have no deep link

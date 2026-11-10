@@ -121,11 +121,13 @@ def test_price_ticker_callback_is_update_price_ticker():
     percentile maths directly and never asked whether the registered
     callback still pointed at the right function.
     """
-    from dash import _callback as dash_callback
+    # Both registries: a Flask test client created earlier on this worker
+    # moves every server callback out of the global map (see _all_callbacks).
+    from test_no_orphan_callbacks import _all_callbacks
 
     import app  # noqa: F401
     target = None
-    for key, entry in dash_callback.GLOBAL_CALLBACK_MAP.items():
+    for key, entry in _all_callbacks().items():
         if key.strip(".").split("...")[0].split("@")[0] == "price-ticker.children":
             target = entry
             break
@@ -140,10 +142,10 @@ def test_price_ticker_callback_is_update_price_ticker():
 def test_price_ticker_callback_accepts_its_declared_inputs():
     """Arity check: Dash will call it with one value per Input/State."""
     import inspect
-    from dash import _callback as dash_callback
+    from test_no_orphan_callbacks import _all_callbacks
 
     import app  # noqa: F401
-    for key, entry in dash_callback.GLOBAL_CALLBACK_MAP.items():
+    for key, entry in _all_callbacks().items():
         if key.strip(".").split("...")[0].split("@")[0] != "price-ticker.children":
             continue
         n_deps = len(entry.get("inputs") or []) + len(entry.get("state") or [])

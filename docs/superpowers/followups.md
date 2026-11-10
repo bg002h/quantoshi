@@ -660,6 +660,20 @@ Spec `docs/superpowers/specs/2026-11-10-tab1-raw-mc-design.md` rev 6 is
   current cycle must borrow standardisation (e.g. from the trend at its t)
   until it has enough months. Real wrong result once every ~4 years.
 
+### F-23 — Raw MC plan r5 Minors/Nits: settle during implementation
+**Type:** plan precision · **Owning phase:** Raw MC implementation (Tasks 1–5;
+each item burns down in the task it names) · **Severity:** Minor ·
+**Found:** 2026-11-10, `docs/superpowers/reviews/2026-11-10-tab1-raw-mc-plan-review-r5.md`
+
+Plan `docs/superpowers/plans/2026-11-10-tab1-raw-mc.md` is 0C/0I; the
+implementer settles: M-1 Task 3 wires `set_prices` → `regime_options.cache_clear()`
+with a test; M-2 `raw_prices` is requested explicitly by every Raw test that
+needs it (not autouse); M-3 name the unset-registry sentinel used by test and
+fixture; M-4 add `raw_mc_testing.py` to Task 1's commit; plus the six Nits in
+the report (app.py registration in Task 5 Step 3, `_req` helper owned by
+`raw_mc_testing.py`, `p0` fallback = last value of the registered series, Raw
+branch placed before `_mc_setup`, and the rest as listed).
+
 ---
 
 ## Closed

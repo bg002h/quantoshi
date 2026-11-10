@@ -568,6 +568,39 @@ full-opacity dummy trace.
 
 ---
 
+### F-18 — MC ticked in another Tab-1 view never widens the Price range
+**Type:** usability · **Owning phase:** F-14 (Phase 2) · **Severity:** Minor ·
+**Found:** 2026-11-09, fold re-review M-1 (+ N-1, N-2)
+
+Since the I-1 fix the auto-widen acts only in the Price view. Tick MC on
+`/1.2` (Forward CAGR), then switch to Price: the range stays `[2010, 2033]`
+and the fan is a sliver at the right edge. The click was consumed in the
+other view and nothing re-arms on the switch.
+
+Also from that review: a non-empty view mode missing from `VIEW_MODES`
+suppresses the widen although the UI shows Price (unreachable today); and
+`test_mc_autowiden_e2e.py::_open` leaks the Playwright driver if setup raises.
+
+**Fix sketch:** remember "widen owed" (a window flag) when a tick lands
+outside Price and settle it on the switch to Price; guard on
+`mode in VIEW_MODES`; wrap `_open` in try/except.
+
+---
+
+### F-19 — Ticking MC on `/1` logs "nonexistent object" for other tabs' `*-mc-years`
+**Type:** ALARA · **Owning phase:** F-14 (Phase 2) · **Severity:** Minor ·
+**Found:** 2026-11-09, fold re-review (out-of-scope note) · **Pre-existing**
+
+The console names `dca-mc-years`, `ret-mc-years`, `sc-mc-years` and
+`cp-mc-years`. No diff from the MC-fan work mentions those ids, so it predates
+it. These errors are not cosmetic (`feedback_nonexistent_input_perf.md`) and
+each is client main-thread work, which is what F-14 is about.
+
+**Fix sketch:** find the callback that lists the four ids next to a Tab-1
+trigger and route it through `set_props` or split it per tab.
+
+---
+
 ## Closed
 
 ### F-10 — Tab-1 view pills Percentile and Occupancy have no deep link

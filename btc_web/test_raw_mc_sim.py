@@ -226,7 +226,7 @@ def test_exp_fit_failure_draws_nothing(raw_prices, monkeypatch):  # noqa: F811
 
 
 def test_data_fp_must_match_registry(raw_prices):  # noqa: F811
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError, match="stale data_fp"):
         simulate(_req(data_fp="stale"))
 
 

@@ -175,10 +175,16 @@ class TestCallbackWiring:
         seq = self._decorator_ids()
         params = [a.arg for a in self._fn().args.args]
         assert len(seq) == len(params), (len(seq), len(params))
-        assert seq[-1] == ("Input", "bub-mc-paths")
-        assert params[-1] == "mc_paths"
-        assert seq[-2] == ("Input", "bub-asof-slider")
-        assert params[-2] == "asof_slider"
+        # bub-mc-paths was last until Raw MC (Task 5) appended its 8 Inputs
+        # after it, in snapshot order -- nothing else may follow it.
+        raw = ["bub-mc-raw-sims", "bub-mc-raw-years", "bub-mc-raw-window",
+               "bub-mc-raw-trend", "bub-mc-raw-bins", "bub-mc-raw-regime",
+               "bub-mc-lines", "bub-mc-extremes"]
+        assert seq[-8:] == [("Input", i) for i in raw]
+        assert seq[-9] == ("Input", "bub-mc-paths")
+        assert params[-9] == "mc_paths"
+        assert seq[-10] == ("Input", "bub-asof-slider")
+        assert params[-10] == "asof_slider"
 
     def test_in_post_restore_triggers(self):
         found = None
@@ -242,7 +248,16 @@ class TestLayout:
         error on every Tab-1 render."""
         from layout import mc_controls
         monkeypatch.setattr(mc_controls._app_ctx, "_HAS_MARKOV", False)
-        hits = _find(mc_controls._mc_controls("bub", show_paths_toggle=True),
-                     "bub-mc-paths", [])
+        root = mc_controls._mc_controls("bub", show_paths_toggle=True,
+                                        include_raw_src=True)
+        hits = _find(root, "bub-mc-paths", [])
         assert len(hits) == 1
         assert hits[0].value == []
+        # Raw MC (Task 5): the 9 controls/status plus the mode-class panel.
+        for cid in ("bub-mc-raw-sims", "bub-mc-raw-years", "bub-mc-raw-window",
+                    "bub-mc-raw-trend", "bub-mc-raw-bins", "bub-mc-raw-regime",
+                    "bub-mc-lines", "bub-mc-extremes", "bub-mc-raw-status",
+                    "bub-mc-panel"):
+            assert len(_find(root, cid, [])) == 1, cid
+        for prefix in ("dca", "ret", "hm", "sc", "cp"):
+            assert _find(mc_controls._mc_controls(prefix), "bub-mc-panel", []) == []

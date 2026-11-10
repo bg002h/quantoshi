@@ -67,6 +67,8 @@ from bub_views import (VIEW_MODES, DEFAULT_MODE, SYNC_JS_MARKER,
                        historical_modes_js)
 from callbacks.coerce import _ci, _cf
 from callbacks.timemachine import _asof_frame
+from callbacks.charts._raw import add_raw_overlay
+from raw_mc import RAW_SRCS
 from callbacks.mc_helpers import (_mc_setup, _mc_finalize, _mc_status,
                                   _strip_free_paths)
 from mc_cache import (MC_BINS, MC_SIMS, MC_FREQ,
@@ -90,6 +92,8 @@ from restore_builder import _build_retire_params
     Output("mc-save-tab",         "data",     allow_duplicate=True),
     Output("bub-mc-unblocked",    "data",     allow_duplicate=True),
     Output("bub-yrange",          "value",    allow_duplicate=True),
+    # Raw MC status line (Tab 1 only; "" outside Raw so nothing lingers).
+    Output("bub-mc-raw-status",   "children"),
     Input("bubble-first-render", "data"),
     Input("bub-qs",            "value"),
     Input("bub-qs-adv",        "value"),
@@ -189,6 +193,15 @@ from restore_builder import _build_retire_params
     # Tab-1 MC "Show individual price paths" (default off). Appended LAST for
     # the same stale-client reason as the two Time Machine Inputs above.
     Input("bub-mc-paths",           "value"),
+    # Raw MC controls, appended LAST (stale-client rule) in snapshot order.
+    Input("bub-mc-raw-sims",        "value"),
+    Input("bub-mc-raw-years",       "value"),
+    Input("bub-mc-raw-window",      "value"),
+    Input("bub-mc-raw-trend",       "value"),
+    Input("bub-mc-raw-bins",        "value"),
+    Input("bub-mc-raw-regime",      "value"),
+    Input("bub-mc-lines",           "value"),
+    Input("bub-mc-extremes",        "value"),
     prevent_initial_call=True,
 )
 def update_bubble(_first_render, sel_qs, adv_qs, toggles, ma_sel, bubble_toggles,
@@ -219,14 +232,17 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, ma_sel, bubble_toggles
                   snapshot_pending=False,
                   loaded_hash=None,
                   active_chart_committed=None,
-                  tm_toggle=None, asof_slider=None, mc_paths=None):
+                  tm_toggle=None, asof_slider=None, mc_paths=None,
+                  mc_raw_sims=None, mc_raw_years=None, mc_raw_window=None,
+                  mc_raw_trend=None, mc_raw_bins=None, mc_raw_regime=None,
+                  mc_lines=None, mc_extremes=None):
     """Bubble + QR overlay chart callback -- coerce inputs, build figure."""
     import time as _time
     _t0 = _time.perf_counter()
     if snapshot_pending:
         print(f"[trace] bubble-fig SKIPPED (gate) "
               f"{(_time.perf_counter() - _t0) * 1000:.1f}ms", flush=True)
-        return (dash.no_update,) * 8
+        return (dash.no_update,) * 9
     from dash.exceptions import PreventUpdate
     _trg = getattr(ctx, 'triggered_id', None)
     # Restore short-circuit: if restore_from_url already built the
@@ -251,12 +267,15 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, ma_sel, bubble_toggles
         "bub-mc-enable", "bub-mc-bins", "bub-mc-regime", "bub-mc-sims",
         "bub-mc-years", "bub-mc-window", "bub-mc-start-yr", "bub-mc-entry-q",
         "bub-mc-model-src", "bub-mc-paths",
+        "bub-mc-raw-sims", "bub-mc-raw-years", "bub-mc-raw-window",
+        "bub-mc-raw-trend", "bub-mc-raw-bins", "bub-mc-raw-regime",
+        "bub-mc-lines", "bub-mc-extremes",
     }
     if (active_chart_committed and active_chart_committed == loaded_hash
             and _trg in _POST_RESTORE_TRIGGERS):
         print(f"[trace] bubble-fig SKIPPED (restore short-circuit) "
               f"{(_time.perf_counter() - _t0) * 1000:.1f}ms", flush=True)
-        return (dash.no_update,) * 8
+        return (dash.no_update,) * 9
     # Spurious hydration fires: Dash dispatches these Inputs on initial load
     # despite prevent_initial_call=True. Guard them so the figure isn't rebuilt.
     if _trg == "user-model-store" and user_model_store is None:
@@ -354,17 +373,24 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, ma_sel, bubble_toggles
         hyb_a_cal1d, hyb_a_cal2d,
         ep_a_nlog, ep_a_ncal, ep_a_log1d, ep_a_log2d,
         ep_a_cal1d, ep_a_cal2d)
-    mc_ok, is_free, mc_p, blocked = _mc_setup(
-        "bub", mc_enable, mc_years, mc_start_yr, mc_entry_q,
-        mc_bins, mc_sims, "Monthly",  # Tab 1 has no freq picker; default Monthly
-        mc_window, 100, 0,             # No amount/inflation on Tab 1
-        mc_cached, _cf(price_data, 0), mc_regime, mc_unblocked, pay_token,
-        mc_auth=mc_auth,
-        stack=None, amount_default=100, infl_default=0.0,
-        start_yr_default=2031,
-        mc_model_src=mc_model_src or "bub")
     # isinstance guard: a stale client once sent a bool (prod 2026-11-04).
     mc_visible = isinstance(mc_enable, (list, tuple)) and "yes" in mc_enable
+    # Raw (model-free) MC is decided HERE, above _mc_setup (F-23 N-6): Raw never
+    # reaches the payment / cache path. It draws onto the fast-path figure
+    # (mc_ok False below), so its params never enter the bubble cache key.
+    raw_mode = mc_visible and mc_model_src in RAW_SRCS
+    if raw_mode:
+        mc_ok, is_free, mc_p, blocked = False, False, {}, []
+    else:
+        mc_ok, is_free, mc_p, blocked = _mc_setup(
+            "bub", mc_enable, mc_years, mc_start_yr, mc_entry_q,
+            mc_bins, mc_sims, "Monthly",  # Tab 1 has no freq picker; default Monthly
+            mc_window, 100, 0,             # No amount/inflation on Tab 1
+            mc_cached, _cf(price_data, 0), mc_regime, mc_unblocked, pay_token,
+            mc_auth=mc_auth,
+            stack=None, amount_default=100, infl_default=0.0,
+            start_yr_default=2031,
+            mc_model_src=mc_model_src or "bub")
 
     # MC visible AND payment passed → MC-aware builder; else fast path.
     # Both branches pass the same dict shape to keep the cache-key alignment
@@ -463,6 +489,22 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, ma_sel, bubble_toggles
             config_b_keys      = sorted(_config_b_keys),
         ))
     fig, mc_result = result if isinstance(result, tuple) else (result, None)
+
+    if raw_mode:
+        fig, raw_status = add_raw_overlay(
+            fig, variant=mc_model_src, price_data=price_data, xrange=xrange,
+            stack=stack, show_stack=show_stack, mc_paths=mc_paths,
+            mc_extremes=mc_extremes, sims=mc_raw_sims, years=mc_raw_years,
+            window=mc_raw_window, trend=mc_raw_trend, bins=mc_raw_bins,
+            regime=mc_raw_regime, lines=mc_lines)
+        apply_zoom_lock(fig, "chart_zoom" in toggles)
+        print(f"[trace] bubble-fig BUILT (raw) "
+              f"{(_time.perf_counter() - _t0) * 1000:.1f}ms", flush=True)
+        # The MC stores, status, rendered key and save modal are left alone:
+        # Raw is not a cached / paid run and must not look like one.
+        return (fig, dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update, dash.no_update,
+                dash.no_update, raw_status)
 
     # MC price fan + example paths — sourced from the cache (free) or from
     # mc_result (live). Bubble chart x-axis is t_years_since_2009-07-25
@@ -580,13 +622,14 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, ma_sel, bubble_toggles
 
     print(f"[trace] bubble-fig BUILT "
           f"{(_time.perf_counter() - _t0) * 1000:.1f}ms", flush=True)
-    # 8-tuple matches Output decorator (figure, mc-results, mc-status,
-    # mc-rendered-key, mc-save-modal, mc-save-tab, mc-unblocked, yrange).
+    # 9-tuple matches Output decorator (figure, mc-results, mc-status,
+    # mc-rendered-key, mc-save-modal, mc-save-tab, mc-unblocked, yrange,
+    # raw-status).
     # bub-yrange nudge: not implemented for bubble (different axis semantics
     # vs. DCA/Retire — yrange is in log-decade space, not calendar years).
     return (fig, store_val, status, rendered_key, show_modal,
             "bub" if show_modal else dash.no_update, ub_val,
-            dash.no_update)
+            dash.no_update, "")
 
 
 # ── Price/CAGR view pill bar ─────────────────────────────────────────────────

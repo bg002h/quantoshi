@@ -472,7 +472,7 @@ def bin_labels(edges: np.ndarray) -> list[str]:
 
 
 @functools.lru_cache(maxsize=64)
-def _regime_options(bins: int, window: tuple[int, int], trend: str,
+def _regime_options_cached(bins: int, window: tuple[int, int], trend: str,
                     asof: pd.Timestamp | None, data_fp: str) -> tuple[str, ...]:
     """Bin labels for the checklist; () when no trend / state can be built.
     ``trend`` is the kind string (Trend objects are unhashable); ``data_fp``
@@ -491,12 +491,12 @@ def regime_options(bins, window, trend: str, asof=None) -> list[dict]:
     trend-deviation bins (values 0..bins-1, coldest first), from the same
     ``months_for`` series and trend fit ``simulate`` uses.  Fresh dicts per
     call; the labels are cached per ``(bins, window, trend, asof, data_fp)``."""
-    labels = _regime_options(int(bins), tuple(int(y) for y in window), str(trend),
+    labels = _regime_options_cached(int(bins), tuple(int(y) for y in window), str(trend),
                              asof, get_prices()[1])
     return [{"label": lab, "value": i} for i, lab in enumerate(labels)]
 
 
-regime_options.cache_clear = _regime_options.cache_clear
+regime_options.cache_clear = _regime_options_cached.cache_clear
 _CACHE_CLEARERS.append(regime_options.cache_clear)
 
 
@@ -572,7 +572,12 @@ def simulate(req: RawRequest) -> RawResult:
     on, same grid slot), up to MAX_TRIES, keeping the closest try.  Unfiltered
     runs keep the fully vectorised draw and its RNG stream.
     """
-    assert req.data_fp == get_prices()[1], "stale data_fp"
+    # data_fp is a process-lifetime key, not a data identity: app.py registers
+    # _app_ctx._MODEL_FP once at startup, and that is "unknown" when the cwd
+    # lacks model_data.pkl -- harmless, as registration happens once per process.
+    if req.data_fp != get_prices()[1]:
+        raise ValueError(f"stale data_fp {req.data_fp!r} (registered "
+                         f"{get_prices()[1]!r})")
     if req.variant not in RAW_SRCS or req.trend not in RAW_TRENDS:
         raise ValueError(f"bad variant/trend {req.variant!r}/{req.trend!r}")
     months = months_for(req.asof)

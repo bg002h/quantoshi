@@ -1,11 +1,14 @@
 """Monte Carlo simulation controls — shared across DCA, Retire, Heatmap, Supercharger tabs."""
 
+import json
+
 import pandas as pd
 
 from dash import dcc, html
 import dash_bootstrap_components as dbc
 
 import _app_ctx
+import raw_mc
 from mc_cache import (CACHED_START_YRS, WD_AMOUNTS,
                       ENTRY_PCT_BINS, MC_YEARS_OPTIONS, INFL_OPTIONS,
                       is_master_cached)
@@ -23,7 +26,7 @@ _QUANT_FONT = {"fontFamily": FONT_BRAND,
                "color": BLACK, "letterSpacing": "1px"}
 
 
-def _mc_model_src_options():
+def _mc_model_src_options(include_raw=False):
     """Curated master-only set for the MC quantile-bands dropdown.
 
     Mirrors the heatmap pill set (`layout.heatmap._HM_PILL_MODELS_BASE`,
@@ -34,6 +37,8 @@ def _mc_model_src_options():
 
     Models present in the precomputed MC cache (free tier) render bold;
     others require live compute (paid).
+
+    include_raw: append the model-free Raw variants (Tab 1 only).
     """
     from layout.heatmap import _HM_PILL_MODELS_BASE
     keys = list(_HM_PILL_MODELS_BASE)
@@ -51,7 +56,101 @@ def _mc_model_src_options():
         else:
             label = f" {name}"
         out.append({"label": label, "value": k})
+    if include_raw:
+        out += [{"label": f" {RAW_SRC_LABELS[k]}", "value": k}
+                for k in raw_mc.RAW_SRCS]
     return out
+
+
+# ── Tab-1 Raw (model-free) MC ───────────────────────────────────────────────
+RAW_SRC_LABELS = {"raw_iid": "Raw \u00b7 independent",
+                  "raw_cycle": "Raw \u00b7 halving cycle"}
+RAW_HINT = "Raw starts today at the current price"
+RAW_TREND_OPTIONS = [{"label": "Power law", "value": "power"},
+                     {"label": "Exponential decay", "value": "exp"},
+                     {"label": "None (honest replay)", "value": "none"}]
+RAW_YEARS_OPTIONS = [{"label": f"{v} yr", "value": v} for v in (10, 20, 30, 40)]
+RAW_BINS_OPTIONS = [{"label": str(v), "value": v} for v in range(3, 11)]
+
+# bub-mc-panel.className from bub-mc-model-src.value (ONE Input). The class
+# hides the model-only groups and shows the Raw-only ones (assets/style.css).
+RAW_MODE_CLASS_JS = """
+function(src) {
+    var RAW = %s;
+    return (RAW.indexOf(src) >= 0) ? "qs-mc-raw-mode" : "";
+}
+""" % json.dumps(list(raw_mc.RAW_SRCS))
+
+
+def raw_regime_options(bins, window, trend):
+    """Checklist options for the Raw trend-deviation bins. Plain "Bin 1..n"
+    labels when no trend / state can be built (e.g. an exp fit failure, plan
+    review M-9) or prices are not registered, so the checklist is never
+    empty."""
+    try:
+        opts = raw_mc.regime_options(bins, window, trend)
+    except RuntimeError:
+        opts = []
+    return opts or [{"label": f"Bin {i + 1}", "value": i} for i in range(int(bins))]
+
+
+def _wrap(cls, on, *children):
+    """``children`` inside one Div of class ``cls`` when ``on``, else as is
+    (the other tabs' layout is unchanged)."""
+    return [html.Div(className=cls, children=list(children))] if on else list(children)
+
+
+_MO, _RO = "qs-mc-model-only", "qs-mc-raw-only"
+_SMALL_NOTE = {"display": "block", "fontSize": UI_FONT_SM, "color": DIM_TEXT,
+               "lineHeight": "1.3", "marginBottom": "6px"}
+
+
+def _raw_lines_block(prefix):
+    """Lines shown + Show extremes, directly under Show individual price paths."""
+    return html.Div(className=_RO, children=[
+        _lbl("Lines shown (5\u2013200)"),
+        dbc.Input(id=f"{prefix}-mc-lines", type="number",
+                  value=raw_mc.RAW_LINES_DEFAULT, min=raw_mc.RAW_LINES_MIN,
+                  max=raw_mc.RAW_LINES_MAX, step=1, size="sm", debounce=True),
+        dcc.Checklist(id=f"{prefix}-mc-extremes",
+                      options=[{"label": " Show extremes", "value": "yes"}],
+                      value=[], inputStyle=_CB_MARGIN,
+                      style={"fontSize": UI_FONT_MD, "color": MUTED_TEXT,
+                             "margin": "4px 0 6px"}),
+    ])
+
+
+def _raw_controls_block(prefix, yr_now):
+    return html.Div(className=_RO, children=[
+        _lbl(f"Simulations (1\u2013{raw_mc.RAW_SIMS_MAX}, free)"),
+        dbc.Input(id=f"{prefix}-mc-raw-sims", type="number", value=1000,
+                  min=1, max=raw_mc.RAW_SIMS_MAX, step=1, size="sm",
+                  debounce=True),
+        _lbl("Years to simulate"),
+        dcc.Dropdown(id=f"{prefix}-mc-raw-years", options=RAW_YEARS_OPTIONS,
+                     value=40, clearable=False),
+        _lbl("History window (resampled months)"),
+        dcc.RangeSlider(id=f"{prefix}-mc-raw-window", min=2010, max=yr_now,
+                        value=[2010, yr_now], step=1,
+                        marks={y: str(y) for y in range(2010, yr_now + 1, 5)}),
+        _lbl("Trend"),
+        dcc.RadioItems(id=f"{prefix}-mc-raw-trend", options=RAW_TREND_OPTIONS,
+                       value="power", inputStyle=_CB_MARGIN,
+                       labelStyle={"display": "block", "fontSize": UI_FONT_MD}),
+        _lbl("Trend-deviation bins"),
+        dcc.Dropdown(id=f"{prefix}-mc-raw-bins", options=RAW_BINS_OPTIONS,
+                     value=5, clearable=False),
+        _lbl("Trend-deviation regime (price level vs trend)"),
+        dcc.Checklist(
+            id=f"{prefix}-mc-raw-regime",
+            options=raw_regime_options(5, (2010, yr_now), "power"),
+            value=list(range(5)), inputStyle=_CB_MARGIN,
+            labelStyle={"display": "block", "fontSize": UI_FONT_MD,
+                        "lineHeight": "1.6", "color": MODAL_DIVIDER_DARK},
+            style={"marginBottom": "2px"}),
+        html.Small("Unticked bins steer paths away from those levels; leave all "
+                   "ticked for no filter.", style=_SMALL_NOTE),
+    ])
 _MC_CACHED_START_YRS = set(CACHED_START_YRS)
 _MC_CACHED_ENTRY_QS = {int(v * 100) for v in ENTRY_PCT_BINS}   # {10,20,...,90}
 _MC_CACHED_YEARS    = set(MC_YEARS_OPTIONS)                      # {10,20,30,40}
@@ -158,11 +257,14 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                   default_entry_q=50, start_yr_label=None,
                   shared_controls=frozenset(), mc_enabled_default=False,
                   default_sims=200, sims_options=None,
-                  show_paths_toggle=False):
+                  show_paths_toggle=False, include_raw_src=False):
     """Monte Carlo simulation controls, reusable across tabs.
 
     show_paths_toggle: add the "{prefix}-mc-paths" checklist (Tab 1 only --
     the one tab that draws MC price paths). Default off = fan only.
+    include_raw_src: Tab 1 only -- the Raw (model-free) entries in the model
+    source dropdown, the Raw controls and status line, and the literal
+    ``bub-mc-panel`` id on the outer Div that carries the mode class.
     """
     yr_now = pd.Timestamp.today().year
     _mc_enable_val = ["yes"] if mc_enabled_default else []
@@ -208,9 +310,24 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
             _ph.append(dbc.Input(id=f"{prefix}-mc-stack", type="number", value=1.0))
         _ph.append(dcc.Dropdown(id=f"{prefix}-mc-start-yr", value=2031))
         _ph.append(dcc.Dropdown(id=f"{prefix}-mc-model-src", value="bub"))
+        if include_raw_src:
+            _ph += [dbc.Input(id=f"{prefix}-mc-raw-sims", value=1000),
+                    dcc.Dropdown(id=f"{prefix}-mc-raw-years", value=40),
+                    dcc.RangeSlider(id=f"{prefix}-mc-raw-window", min=2010,
+                                    max=yr_now, value=[2010, yr_now]),
+                    dcc.RadioItems(id=f"{prefix}-mc-raw-trend", value="power"),
+                    dcc.Dropdown(id=f"{prefix}-mc-raw-bins", value=5),
+                    dcc.Checklist(id=f"{prefix}-mc-raw-regime", value=list(range(5))),
+                    dbc.Input(id=f"{prefix}-mc-lines", value=raw_mc.RAW_LINES_DEFAULT),
+                    dcc.Checklist(id=f"{prefix}-mc-extremes", value=[]),
+                    html.Div(id=f"{prefix}-mc-raw-status"),
+                    html.Div(id="bub-mc-panel")]
         return html.Div(style=_STYLE_HIDDEN, children=_ph)
     yr_now = pd.Timestamp.today().year
-    return html.Div(style={"position": "relative"}, children=[
+    raw = include_raw_src
+    return html.Div(style={"position": "relative"},
+                    **({"id": "bub-mc-panel", "className": ""} if raw else {}),
+                    children=[
         html.Span([
             html.Span("\u2694", style={"fontSize": UI_FONT_XXL, "marginRight": "3px"}),
             html.Span("NEW", style={"position": "relative", "top": "-2px"}),
@@ -236,24 +353,34 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                 style={"fontSize": UI_FONT_MD, "color": MUTED_TEXT,
                        "marginBottom": "6px"})]
               if show_paths_toggle else []),
-            dcc.Checklist(id=f"{prefix}-mc-advanced",
+            *([_raw_lines_block(prefix)] if raw else []),
+            *_wrap(_MO, raw, dcc.Checklist(id=f"{prefix}-mc-advanced",
                           options=[{"label": " Advanced simulator options", "value": "yes"}],
                           value=[], inputStyle=_CB_MARGIN,
-                          style={"fontSize": UI_FONT_MD, "color": MUTED_TEXT, "marginBottom": "6px"}),
+                          style={"fontSize": UI_FONT_MD, "color": MUTED_TEXT, "marginBottom": "6px"})),
             html.Div(dcc.Slider(id=f"{prefix}-mc-entry-yr", value=yr_now),
                      style=_STYLE_HIDDEN),
-            _lbl((start_yr_label or "MC start year") + " (bold = cached)"),
-            dcc.Dropdown(id=f"{prefix}-mc-start-yr",
-                         options=_MC_START_YR_OPTIONS,
-                         value=2031 if show_stack else 2028, clearable=False),
-            _lbl("Entry percentile (10% steps, cache-aligned)"),
-            dcc.Dropdown(id=f"{prefix}-mc-entry-q",
-                         options=_MC_ENTRY_Q_OPTIONS,
-                         value=default_entry_q, clearable=False),
+            *_wrap(_MO, raw,
+                _lbl((start_yr_label or "MC start year") + " (bold = cached)"),
+                dcc.Dropdown(id=f"{prefix}-mc-start-yr",
+                             options=_MC_START_YR_OPTIONS,
+                             value=2031 if show_stack else 2028, clearable=False),
+                _lbl("Entry percentile (10% steps, cache-aligned)"),
+                dcc.Dropdown(id=f"{prefix}-mc-entry-q",
+                             options=_MC_ENTRY_Q_OPTIONS,
+                             value=default_entry_q, clearable=False)),
+            # Wrapped: an inline display on the classed element itself would
+            # beat the class rules in assets/style.css.
+            *([html.Div(className=_RO, children=html.Small(RAW_HINT, style=_SMALL_NOTE))]
+              if raw else []),
             _lbl("Model source (quantile bands)"),
             dcc.Dropdown(id=f"{prefix}-mc-model-src",
-                         options=_mc_model_src_options(),
+                         options=_mc_model_src_options(include_raw=raw),
                          value="bub", clearable=False),
+            *([html.Div(id=f"{prefix}-mc-raw-status", className=_RO,
+                        style={"fontSize": UI_FONT_SM, "color": DIM_TEXT,
+                               "lineHeight": "1.35", "margin": "4px 0 6px"})]
+              if raw else []),
             *([_lbl(amount_label + " (0–4,294,967,295)"),
                dbc.Input(id=f"{prefix}-mc-amount", type="number",
                          value=amount_default, min=0, max=_app_ctx.MAX_USD,
@@ -278,12 +405,14 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
             [   dbc.Input(id=f"{prefix}-mc-stack", type="number",
                           value=1.0, style=_STYLE_HIDDEN),
             ] if "stack" not in shared_controls else [])),
-            _lbl("Years to model"),
-            dcc.Dropdown(id=f"{prefix}-mc-years",
-                         options=_MC_YEARS_OPTIONS,
-                         value=40, clearable=False),
+            *_wrap(_MO, raw,
+                _lbl("Years to model"),
+                dcc.Dropdown(id=f"{prefix}-mc-years",
+                             options=_MC_YEARS_OPTIONS,
+                             value=40, clearable=False)),
+            *([_raw_controls_block(prefix, yr_now)] if raw else []),
             # Advanced controls (hidden until checkbox toggled)
-            html.Div(id=f"{prefix}-mc-adv-body", style=_STYLE_HIDDEN, children=[
+            *_wrap(_MO, raw, html.Div(id=f"{prefix}-mc-adv-body", style=_STYLE_HIDDEN, children=[
                 _lbl("Markov transition matrix dimension"),
                 dcc.Dropdown(id=f"{prefix}-mc-bins",
                              options=_bold_opts(
@@ -340,13 +469,13 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                 dcc.RangeSlider(id=f"{prefix}-mc-window", min=2010,
                                 max=yr_now, value=[2010, yr_now],
                                 marks={y: str(y) for y in range(2010, yr_now + 1, 5)}),
-            ]),
-            html.Div(id=f"{prefix}-mc-cost",
+            ])),
+            *_wrap(_MO, raw, html.Div(id=f"{prefix}-mc-cost",
                      style={"fontSize": UI_FONT_MD, "color": DIM_TEXT, "marginTop": "6px",
-                            "lineHeight": "1.4"}),
+                            "lineHeight": "1.4"})),
             dcc.Store(id=f"{prefix}-mc-price-val", storage_type="memory", data=0),
             # ── Run Simulation button (payment-gated when BTCPay active) ──
-            dbc.Button(
+            *_wrap(_MO, raw, dbc.Button(
                 [html.Span("\u26a1 ", style={"fontSize": UI_FONT_XL}), "Run MC Simulation"],
                 id={"type": "mc-run-btn", "tab": prefix}, size="sm", color="warning",
                 className="w-100 mt-2",
@@ -354,12 +483,12 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
             ),
             html.Div(id={"type": "mc-run-status", "tab": prefix},
                      style={"fontSize": UI_FONT_SM, "color": DIM_TEXT, "marginTop": "4px",
-                            "textAlign": "center"}),
+                            "textAlign": "center"})),
             dcc.Store(id=f"{prefix}-mc-rendered-key", storage_type="memory"),
             html.Div(id=f"{prefix}-mc-match",
                      style={"fontSize": UI_FONT_SM, "marginTop": "4px",
                             "textAlign": "center"}),
-            dbc.Button("\u21a9 Restore last settings",
+            *_wrap(_MO, raw, dbc.Button("\u21a9 Restore last settings",
                        id=f"{prefix}-mc-restore-btn",
                        color="warning", size="sm", outline=True,
                        className="w-100 mt-1",
@@ -384,7 +513,7 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                 ], className="g-1"),
                 html.Div(id=f"{prefix}-mc-upload-status", className="mt-1",
                          style={"fontSize": UI_FONT_SM}),
-            ),
+            )),
         ]),
         header_right=[
             dcc.Checklist(
@@ -396,7 +525,7 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
             html.Span([
                 html.Span("\u26a1", style={"fontSize": UI_FONT_LG}),
                 " Paid",
-            ], className="model-panel-paid-badge"),
+            ], className="model-panel-paid-badge" + (f" {_MO}" if raw else "")),
         ],
     ),
     ])

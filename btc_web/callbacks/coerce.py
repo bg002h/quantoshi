@@ -34,3 +34,18 @@ def _cf(val: object, default: float, lo: float | None = None, hi: float | None =
     if hi is not None and v > hi:
         v = hi
     return v
+
+
+def _ci_or(val: object, default: int, lo: int | None = None,
+           hi: int | None = None) -> int:
+    """Like ``_ci`` but anything that is not a finite number (None, "x", NaN,
+    a list from a stale client) falls back to ``default``; then clamped."""
+    try:
+        v = int(float(val))
+    except (TypeError, ValueError, OverflowError):
+        v = default
+    if lo is not None and v < lo:
+        v = lo
+    if hi is not None and v > hi:
+        v = hi
+    return v

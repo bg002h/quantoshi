@@ -136,6 +136,35 @@ for _mc_reg in ("dca", "ret", "hm", "sc", "cp", "bub"):
         prevent_initial_call=True,
     )
 
+# ── Tab 1 Raw (model-free) MC ───────────────────────────────────────────────
+# Mode class on bub-mc-panel (ancestor of the header Paid badge and the body):
+# hides model-only groups, shows Raw-only ones. ONE Input, no allow_duplicate;
+# fires on load too, so a restored raw source lands in Raw mode.
+from layout.mc_controls import RAW_MODE_CLASS_JS, raw_regime_options  # noqa: E402
+from callbacks.charts._raw import raw_bins, raw_window, raw_trend  # noqa: E402
+
+_app_ctx.app.clientside_callback(
+    RAW_MODE_CLASS_JS,
+    Output("bub-mc-panel", "className"),
+    Input("bub-mc-model-src", "value"),
+)
+
+
+@callback(
+    Output("bub-mc-raw-regime", "options"),
+    Input("bub-mc-raw-bins", "value"),
+    Input("bub-mc-raw-window", "value"),
+    Input("bub-mc-raw-trend", "value"),
+    prevent_initial_call=True,
+)
+def _update_bub_raw_regime_opts(bins, window, trend):
+    """Raw trend-deviation bin labels for (bins, window, trend): the same
+    series and fit simulate uses (raw_mc.regime_options, lru-cached on a
+    tuple window). Options only -- the value is left alone so a share-link
+    restore is not clobbered (as _REGIME_JS above)."""
+    return raw_regime_options(raw_bins(bins), raw_window(window), raw_trend(trend))
+
+
 # ── Tab 1: widen the X range when the user turns MC on ──────────────────────
 # Logic + rationale: layout/bubble.py (MC_AUTOWIDEN_JS). Exactly ONE Input:
 # allow_duplicate + several Inputs + prevent_initial_call silently never fires

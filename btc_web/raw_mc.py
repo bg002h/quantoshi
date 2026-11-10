@@ -30,6 +30,8 @@ Prices enter through one registry (``set_prices`` / ``get_prices`` /
 """
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass
 from typing import Callable
 
@@ -269,3 +271,271 @@ def months_for(asof: pd.Timestamp | None = None) -> pd.DataFrame:
     if got is None:
         got = _months_cache[key] = load_months(series, asof)
     return got
+
+
+# ── simulator ───────────────────────────────────────────────────────────────
+#
+# Spec "Generating a path" + plan "F-22 decisions".  Step k spans
+# [d_k, d_{k+1}), d_k = today + k calendar months; it belongs to the cycle
+# containing d_k and takes phi / mu at its midpoint d_k + 15 days.  sigma is
+# held per cycle at the trend's value at the cycle's midpoint t (the current
+# cycle: the midpoint of [today, next halving)).
+
+RAW_SRCS = ("raw_iid", "raw_cycle")
+RAW_TRENDS = ("power", "exp", "none")
+RAW_SIMS_MAX = 3200
+RAW_MIN_MONTHS = 36
+BLOCK = 3                     # cycle-mode block length (steps / history months)
+PHASE_TOLS = (0.04, 0.08)     # then: every complete-cycle block of that length
+_STEP_MID = pd.Timedelta(days=15)
+
+
+@dataclass(frozen=True)
+class RawRequest:
+    variant: str                       # one of RAW_SRCS
+    trend: str                         # one of RAW_TRENDS
+    window: tuple[int, int]            # month-end years, inclusive
+    bins: int
+    checked: tuple[int, ...]
+    sims: int
+    years: int
+    today: pd.Timestamp
+    p0: float                          # start price (NOT in the seed)
+    data_fp: str
+    asof: pd.Timestamp | None = None   # frozen-input hook; None in production
+
+
+@dataclass
+class RawResult:
+    ok: bool
+    reason: str
+    t_axis: np.ndarray
+    paths: np.ndarray                  # (sims, steps + 1), prices
+    status: list[str]
+    schedule: list                     # cycle mode: one dict per grid block
+    z_shift: float
+    sigma_steps: np.ndarray            # (steps,)
+    unchecked_share: float
+    bin_labels: list[str]
+    edges: np.ndarray | None
+    states: np.ndarray | None          # (sims, steps + 1), filter runs only
+    trend: Trend | None
+    fit_where: str
+
+
+def effective_checked(checked, bins: int) -> tuple[int, ...] | None:
+    """The regime filter actually in force: sorted, de-duplicated, valid bin
+    indices -- or None when there is no filter (nothing valid checked, or
+    every bin checked)."""
+    valid = sorted({int(i) for i in checked if 0 <= int(i) < bins})
+    return None if not valid or len(valid) == bins else tuple(valid)
+
+
+def seed_for(req: RawRequest) -> int:
+    """Stable RNG seed: blake2b (8 bytes) of canonical JSON of every request
+    field except ``p0``, with ``checked`` replaced by ``effective_checked``."""
+    def day(ts):
+        return None if ts is None else pd.Timestamp(ts).isoformat()
+    eff = effective_checked(req.checked, req.bins)
+    doc = dict(variant=req.variant, trend=req.trend, window=list(req.window),
+               bins=int(req.bins), checked=None if eff is None else list(eff),
+               sims=int(req.sims), years=int(req.years), today=day(req.today),
+               data_fp=req.data_fp, asof=day(req.asof))
+    blob = json.dumps(doc, sort_keys=True, separators=(",", ":")).encode()
+    return int.from_bytes(hashlib.blake2b(blob, digest_size=8).digest(), "big")
+
+
+def _step_dates(today: pd.Timestamp, n: int) -> pd.DatetimeIndex:
+    """d_0 .. d_n: today + k calendar months (day clamped to month length)."""
+    return pd.DatetimeIndex([today + pd.DateOffset(months=k) for k in range(n + 1)])
+
+
+def _grid(cyc: np.ndarray, k0: int, k1: int) -> list[tuple[int, int, int]]:
+    """Blocks (cycle, start, stop) over steps [k0, k1): runs of BLOCK steps
+    restarting at each cycle's first step; a cycle's last block may be short."""
+    out, k = [], k0
+    while k < k1:
+        stop = k + 1
+        while stop < k1 and stop - k < BLOCK and cyc[stop] == cyc[k]:
+            stop += 1
+        out.append((int(cyc[k]), k, stop))
+        k = stop
+    return out
+
+
+def _pct(g: float) -> str:
+    """Annual log growth as a signed compound %/yr."""
+    return f"{np.expm1(g) * 100:+.0f} %/yr".replace("-", "−")
+
+
+def _num(x: float) -> str:
+    return f"{x:.2f}".replace("-", "−")
+
+
+def _refuse(reason: str, status: list[str], trend=None, where="window") -> RawResult:
+    return RawResult(False, reason, np.empty(0), np.empty((0, 0)), status + [reason],
+                     [], 0.0, np.empty(0), 0.0, [], None, None, trend, where)
+
+
+def _trend_line(trend: Trend, n_fit: int, where: str) -> str:
+    p = trend.params
+    fitted = f"fitted on {n_fit} cycles ({where})"
+    if trend.kind == "power":
+        return f"Power law n = {_num(p['n'])}, vol ∝ t^{_num(-p['b'])}, {fitted}"
+    if trend.kind == "exp":
+        return (f"Exponential growth e^({_num(p['alpha'])} {_num(p['beta'])}·t), "
+                f"vol e^({_num(p['gamma'])} {_num(p['delta'])}·t), {fitted}")
+    return "No trend: honest replay of raw monthly returns"
+
+
+def simulate(req: RawRequest) -> RawResult:
+    """Bootstrap ``req.sims`` monthly paths from today for ``req.years``.
+
+    Trend power / exp: ``r = mu_m(t_mid) + sigma_cycle * (z - z_shift)``,
+    ``z`` a bootstrapped historical shape (``standardise``).  Trend none:
+    the same draws of raw ``r`` (honest replay).  Independent mode draws one
+    eligible month per step; cycle mode walks the per-cycle block grid and
+    copies runs of consecutive months from one complete cycle whose start
+    phase matches the block's.  No regime filter here (Task 3).
+    """
+    assert req.data_fp == get_prices()[1], "stale data_fp"
+    if req.variant not in RAW_SRCS or req.trend not in RAW_TRENDS:
+        raise ValueError(f"bad variant/trend {req.variant!r}/{req.trend!r}")
+    months = months_for(req.asof)
+    win = _in_window(months, req.window)
+    status: list[str] = []
+    if len(win) < RAW_MIN_MONTHS:
+        return _refuse(f"Fewer than {RAW_MIN_MONTHS} months of history in the window "
+                       f"({len(win)}): no fan drawn", status)
+
+    tab_w, tab_all = cycle_table(months, req.window), cycle_table(months, None)
+    fset, where = fit_set(tab_w, tab_all)
+    if req.trend == "none":
+        where = "window"
+    trend = fit_trend(req.trend, fset, months, req.window)
+    if trend is None:
+        name = "Exponential" if req.trend == "exp" else "Power-law"
+        return _refuse(f"{name} trend could not be fitted to these cycles", status,
+                       None, where)
+    status.append(_trend_line(trend, len(fset), where))
+
+    complete = tab_w[tab_w.complete]
+    cycle_mode = req.variant == "raw_cycle"
+    if cycle_mode and len(complete) < 2:
+        return _refuse("Halving-cycle mode needs at least 2 complete cycles in the "
+                       f"window ({len(complete)} found): no fan drawn", status,
+                       trend, where)
+
+    # ── step calendar ──
+    steps = int(req.years) * 12
+    today = pd.Timestamp(req.today)
+    epochs = list(HALVINGS) + future_halvings(today + pd.DateOffset(years=int(req.years) + 9))
+    ep = np.array(epochs, dtype="datetime64[ns]")
+    cyc_now = int(np.searchsorted(ep, today.to_datetime64(), side="right"))
+    # extend past the horizon to cover the first whole future cycle (debias)
+    first_whole_end = epochs[cyc_now + 1]
+    n_dates = max(steps, int(np.ceil((first_whole_end - today).days / 28)) + 1)
+    dates = _step_dates(today, n_dates)
+    dv = dates.values
+    cyc = np.searchsorted(ep, dv[:-1], side="right")         # cycle of d_k
+    start, end = ep[cyc - 1], ep[cyc]
+    start = np.where(cyc == cyc_now, today.to_datetime64(), start)  # current: remaining span
+    mid = dv[:-1] + _STEP_MID.to_timedelta64()
+    phi = np.clip(((mid - ep[cyc - 1]) / (end - ep[cyc - 1])).astype(float),
+                  0.0, np.nextafter(1.0, 0.0))
+    t_mid = t_of(pd.DatetimeIndex(mid))
+    sigma_all = trend.sd_m((t_of(pd.DatetimeIndex(start)) + t_of(pd.DatetimeIndex(end))) / 2)
+    mu = trend.mu_m(t_mid)[:steps]
+    sigma_steps = np.asarray(sigma_all[:steps], dtype=float)
+
+    # ── draw pool: in-window months, positional ──
+    raw = win.r.to_numpy()
+    zs = standardise(win, trend).to_numpy()
+    replay = req.trend == "none"
+    pool = raw if replay else zs
+    rng = np.random.default_rng(seed_for(req))
+    sims = int(req.sims)
+    schedule: list = []
+    z_shift = 0.0
+
+    if not cycle_mode:
+        draws = pool[rng.integers(0, len(pool), size=(sims, steps))]
+    else:
+        wcyc, wphi = win.cycle.to_numpy(), win.phi.to_numpy()
+        comp = set(complete.cycle.astype(int))
+        cands = {}
+        for L in range(1, BLOCK + 1):
+            s = np.arange(len(win) - L + 1)
+            ok = np.isin(wcyc[s], list(comp)) & (wcyc[s] == wcyc[s + L - 1])
+            s = s[ok]
+            cands[L] = (s, wphi[s], wcyc[s])
+
+        def candidates(L, ph):
+            s, sp, sc = cands[L]
+            for level, tol in enumerate(PHASE_TOLS):
+                m = np.abs(sp - ph) <= tol
+                if len(np.unique(sc[m])) >= 2:
+                    return s[m], level
+            return s, len(PHASE_TOLS)
+
+        def block_sum(cand, L):
+            return float(np.mean([zs[c:c + L].sum() for c in cand]))
+
+        # debias from the first whole future cycle's grid (F-22 N-1)
+        k_w = np.flatnonzero(cyc == cyc_now + 1)
+        assert len(k_w) == 48, len(k_w)
+        e = 0.0
+        if not replay:
+            for _, k0, k1 in _grid(cyc, k_w[0], k_w[-1] + 1):
+                cand, _ = candidates(k1 - k0, phi[k0])
+                e += block_sum(cand, k1 - k0)
+            z_shift = e / len(k_w)
+
+        draws = np.empty((sims, steps))
+        widened = [0] * len(PHASE_TOLS)
+        for c, k0, k1 in _grid(cyc, 0, steps):
+            L = k1 - k0
+            cand, lvl = candidates(L, phi[k0])
+            if lvl:
+                widened[lvl - 1] += 1
+            schedule.append(dict(cycle=c, steps=(k0, k1), cand=cand, widened=lvl))
+            pick = cand[rng.integers(0, len(cand), size=sims)]
+            draws[:, k0:k1] = pool[pick[:, None] + np.arange(L)] - z_shift
+
+    r = draws if replay else mu + sigma_steps * draws
+    paths = np.empty((sims, steps + 1))
+    paths[:, 0] = 0.0
+    np.cumsum(r, axis=1, out=paths[:, 1:])
+    paths = req.p0 * np.exp(paths)
+
+    # ── status ──
+    cur = win[win.cycle == cyc_now]
+    if replay:
+        hist_g = 12 * raw.mean()
+        if len(cur):
+            status.append(f"Current cycle ({len(cur)} months) grows "
+                          f"{_pct(12 * cur.r.mean())} vs history {_pct(hist_g)}")
+        fan_g = np.median(np.log(paths[:, -1] / req.p0)) / int(req.years)
+        status.append(f"Fan median grows {_pct(fan_g)} over {int(req.years)} years "
+                      f"(history {win.index[0].year}–{win.index[-1].year} grew "
+                      f"{_pct(hist_g)}); the fan compounds replayed history.")
+    elif len(cur):
+        status.append(f"Current cycle ({len(cur)} months) grows "
+                      f"{_pct(12 * cur.r.mean())} vs curve {_pct(trend.g(cur.t.mean()))}")
+    else:
+        status.append("Current cycle: no complete months yet")
+    if cycle_mode:
+        spans = ", ".join(f"{HALVINGS[c - 1].year}–{HALVINGS[c].year}"
+                          for c in complete.cycle.astype(int))
+        status.append(f"Halving-cycle mode replays only the complete past cycles in "
+                      f"the window: {spans}")
+        status.append(f"Phase tolerance widened on {sum(widened)} of {len(schedule)} "
+                      f"blocks (±0.08: {widened[0]}, all blocks: {widened[1]})")
+    else:
+        status.append("No memory: understates multi-month swings")
+    if sims < 100:
+        status.append("Fewer than 100 simulations: percentiles are rough below 100 "
+                      "simulations")
+
+    return RawResult(True, "", t_of(dates[:steps + 1]), paths, status, schedule,
+                     z_shift, sigma_steps, 0.0, [], None, None, trend, where)

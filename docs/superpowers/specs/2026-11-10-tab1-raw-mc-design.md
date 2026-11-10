@@ -1,6 +1,6 @@
 # Tab 1 "Raw" Monte Carlo — design
 
-Status: revision 4, 2026-11-10 (folds reviews r2 and r3). Rewritten after spec review round 1
+Status: revision 5, 2026-11-10 (folds reviews r2–r4). Rewritten after spec review round 1
 (`docs/superpowers/reviews/2026-11-10-tab1-raw-mc-spec-review.md`, 0C/5I/8M/2N)
 and a second brainstorm with the operator that added the trend-adjusted
 mechanism. Everything here is operator-approved; items marked
@@ -156,6 +156,14 @@ For each simulated month at time `t`, with **Trend ≠ None**:
 
 > `r = μ(t) + σ(t) · z`
 
+`μ(t)` is evaluated at each month's own `t`. `σ` is **held constant within
+each future cycle** at the trend's value at that cycle's midpoint `t`
+(halving to halving; the current cycle uses its remaining span's
+midpoint). Without this, vol decaying inside a cycle weights the bull
+phase's large `z` over the bear phase's and biases cycle mode upward
+(review r4 I-2: exponential trend drift +0.23…+0.36 → ≤ 0.11 in the
+prototype).
+
 where `z` is a **plain bootstrap** draw (uniform over eligible months, which
 reproduces the histogram's frequencies) of a historical shape:
 
@@ -173,22 +181,29 @@ reproduces the histogram's frequencies) of a historical shape:
   otherwise no fan is drawn and the status line says so (review r3 M-3). The
   caveat says cycle mode replays only the complete past cycles in the window
   (review r2 M-4).
-- **Drift tests (review r3 I-2).** (a) Deterministic: for each future
-  cycle, the expected sum of `z` over its blocks, computed exactly from the
-  candidate pools (mean candidate `z` per block, summed), has
-  |value| ≤ 0.5. (b) Statistical, at **whole-cycle horizons** (the projected
-  halvings 2028, 2032, 2036, …, inside the horizon): the median log price
-  of 3200 paths is within **±0.25 × the cross-sectional std of log price at
-  that date** of the trend-median path. Mid-cycle horizons are not tested:
-  sitting above or below trend there is the rhythm the variant exists to
-  show.
+- **Drift tests (review r3 I-2, r4 I-1).** Run from a **fixed start on a
+  halving** (2024-04-20 as "today", frozen price data and date via the
+  test's injectable inputs), so they never depend on the real date. Over
+  **whole future cycles only**: (a) deterministic — the expected
+  `σ`-weighted sum of `z` (mean candidate `z` per block × that cycle's
+  `σ`, summed, divided by the cycle's `σ`) has |value| ≤ **0.2** per cycle;
+  (b) statistical — at each subsequent halving inside the horizon, the
+  median log price of 3200 paths is within **±0.25 × the cross-sectional
+  std of log price at that date** of the trend-median path, for both
+  variants and both fitted trends. Mid-cycle horizons, and the partial
+  first cycle of a real "today", are not tested: sitting above or below
+  trend there is the rhythm the variant exists to show.
+- **Block integrity:** a block's three months come from **one** complete
+  cycle (its `z` values share that cycle's standardisation); a block may
+  not straddle a halving in the history it copies (review r4 M).
 
 With **Trend = None** the same draws use raw `r` instead of `z` (honest
 replay). The status line states **the simulated fan's own median pace**,
-computed from the paths, beside the window's actual pace, e.g. "Fan median
-grows +220 %/yr (history 2015–2026 grew +137 %/yr); the fan compounds
-replayed history." The two differ in cycle mode, because phase matching
-re-weights the months (review r3 I-4).
+computed from the paths over the chosen horizon, beside the window's
+actual pace, e.g. "Fan median grows +116 %/yr over 40 years (history
+2010–2026 grew +137 %/yr); the fan compounds replayed history." The two
+differ in cycle mode, because phase matching re-weights the months (review
+r3 I-4; example figures from the r4 prototype, illustrative only).
 
 **Eligible** months: inside the Raw window, and (cycle mode) all three
 months of a block inside the window.

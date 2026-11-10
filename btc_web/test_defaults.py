@@ -82,7 +82,7 @@ def test_citadel_defaults_returns_mutable_dict():
 
 def test_bubble_defaults_produce_valid_figure():
     from tab_defaults import bubble_defaults
-    from btc_web.app import app  # noqa: F401
+    from app import app  # noqa: F401
     import _app_ctx
     from figures.bubble import build_bubble_figure
     fig, _ = build_bubble_figure(_app_ctx.M, bubble_defaults())
@@ -91,7 +91,7 @@ def test_bubble_defaults_produce_valid_figure():
 
 def test_heatmap_defaults_produce_valid_figure():
     from tab_defaults import heatmap_defaults
-    from btc_web.app import app  # noqa: F401
+    from app import app  # noqa: F401
     import _app_ctx
     from figures.heatmap import build_heatmap_figure
     d = heatmap_defaults()
@@ -111,7 +111,7 @@ def test_heatmap_defaults_produce_valid_figure():
 
 def test_dca_defaults_produce_valid_figure():
     from tab_defaults import dca_defaults
-    from btc_web.app import app  # noqa: F401
+    from app import app  # noqa: F401
     import _app_ctx
     from figures.dca import build_dca_figure
     d = dca_defaults()
@@ -123,7 +123,7 @@ def test_dca_defaults_produce_valid_figure():
 
 def test_retire_defaults_produce_valid_figure():
     from tab_defaults import retire_defaults
-    from btc_web.app import app  # noqa: F401
+    from app import app  # noqa: F401
     import _app_ctx
     from figures.retire import build_retire_figure
     d = retire_defaults()
@@ -135,7 +135,7 @@ def test_retire_defaults_produce_valid_figure():
 
 def test_supercharge_defaults_produce_valid_figure():
     from tab_defaults import supercharge_defaults
-    from btc_web.app import app  # noqa: F401
+    from app import app  # noqa: F401
     import _app_ctx
     from figures.supercharge import build_supercharge_figure
     d = supercharge_defaults()
@@ -148,7 +148,7 @@ def test_supercharge_defaults_produce_valid_figure():
 
 def test_citadel_defaults_produce_valid_figure():
     from tab_defaults import citadel_defaults
-    from btc_web.app import app  # noqa: F401
+    from app import app  # noqa: F401
     import _app_ctx
     from figures.citadel import build_citadel_figure
     d = citadel_defaults()
@@ -165,7 +165,7 @@ def test_citadel_defaults_produce_valid_figure():
 def test_layout_values_match_defaults():
     """Walk the layout component tree, check value= props match defaults."""
     from tab_defaults import BUBBLE, HEATMAP, DCA, RETIRE, SUPERCHARGE, STACK, CITADEL
-    from btc_web.app import app
+    from app import app
 
     prefix_map = {
         "bub-": BUBBLE, "hm-": HEATMAP, "dca-": DCA,
@@ -326,7 +326,7 @@ def test_compute_cache_key_changes_with_params():
 # ── UserModel tests ──────────────────────────────────────────────────────────
 
 def test_user_model_from_two_points():
-    from btc_web.app import app  # noqa: F401
+    from app import app  # noqa: F401
     import _app_ctx
     from btc_core import UserModel
     M = _app_ctx.M
@@ -342,7 +342,7 @@ def test_user_model_from_two_points():
 
 
 def test_user_model_parallel_lines():
-    from btc_web.app import app  # noqa: F401
+    from app import app  # noqa: F401
     import _app_ctx
     from btc_core import UserModel
     M = _app_ctx.M
@@ -355,7 +355,7 @@ def test_user_model_parallel_lines():
 
 
 def test_user_model_colors_are_orange():
-    from btc_web.app import app  # noqa: F401
+    from app import app  # noqa: F401
     import _app_ctx
     from btc_core import UserModel
     M = _app_ctx.M
@@ -367,7 +367,7 @@ def test_user_model_colors_are_orange():
 
 
 def test_user_model_r2_reasonable():
-    from btc_web.app import app  # noqa: F401
+    from app import app  # noqa: F401
     import _app_ctx
     from btc_core import UserModel
     M = _app_ctx.M
@@ -380,7 +380,7 @@ def test_user_model_r2_reasonable():
 
 
 def test_user_model_store_roundtrip():
-    from btc_web.app import app  # noqa: F401
+    from app import app  # noqa: F401
     import _app_ctx
     from btc_core import UserModel
     M = _app_ctx.M

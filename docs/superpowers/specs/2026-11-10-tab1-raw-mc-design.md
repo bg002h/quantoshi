@@ -1,6 +1,6 @@
 # Tab 1 "Raw" Monte Carlo — design
 
-Status: revision 3, 2026-11-10 (folds review r2). Rewritten after spec review round 1
+Status: revision 4, 2026-11-10 (folds reviews r2 and r3). Rewritten after spec review round 1
 (`docs/superpowers/reviews/2026-11-10-tab1-raw-mc-spec-review.md`, 0C/5I/8M/2N)
 and a second brainstorm with the operator that added the trend-adjusted
 mechanism. Everything here is operator-approved; items marked
@@ -113,16 +113,21 @@ Month-end closes from the full price CSV → monthly log returns `r`. The
 
 ### Trend curves (fitted once per request; cheap)
 
-A cycle's months are its months **with price data**. A cycle is **full**
-when it ends at a known halving and has **≥ 24 data months** (cycle 1 has
-27, so all four completed cycles are full today). For the window rule a
-cycle counts only if ≥ 24 of its data months lie inside the Raw window. The
-current cycle is never full. If the window holds **≥ 3 full cycles**, the
-curves are fitted on those; otherwise on all full cycles. The status line
-says which. (Review r2 I-D.)
+A cycle's months are its **in-window months with price data** (review r3
+M-2). A cycle is **full** when it ends at a known halving and has **≥ 24**
+such months (cycle 1 has 27, so all four completed cycles are full at the
+default window). A full cycle is also **complete** when those months span
+cycle fraction φ < 0.05 to φ > 0.95; only complete cycles feed cycle-mode
+blocks (cycles 2–4 today; cycle 1's data cover only φ 0.41–0.97 — review r3
+I-1). The current cycle is never full. **Fit set**: the full cycles in the
+window if there are ≥ 3, otherwise every full cycle of the whole history.
+The status line says which. (Review r2 I-D.) The reference implementation
+of all of this, including the fit-set rule, is
+`tools/raw_mc_cycle_stats.py` (`cycle_table`, `fit_set`, `fits`); tests pin
+its outputs.
 
 Per full cycle c, in **annual natural-log units** (review r2 M-1):
-`t_c` = mean t of its data months, `g_c = 12 · μ_c`, `s_c = √12 · σ_c`. The
+`t_c` = mean t of its months, `g_c = 12 · μ_c`, `s_c = √12 · σ_c`. The
 simulation uses monthly `μ(t) = g(t) / 12` and `σ(t) = s(t) / √12`.
 
 | Trend | growth g(t) | volatility s(t) |
@@ -134,8 +139,11 @@ simulation uses monthly `μ(t) = g(t) / 12` and `σ(t) = s(t) / √12`.
 Exponential curves are fitted **directly in growth space, never via
 `log g_c`**, so a full cycle with negative growth (possible once the
 2024–2028 cycle completes) simply pulls the curve down instead of breaking
-the fit (operator decision, 2026-11-10). No fallback between trends.
-`scipy` is already in `btc_web/requirements.txt`.
+the fit (operator decision, 2026-11-10). No fallback between trends: if
+`curve_fit` fails to converge (or its start guess is undefined), no fan is
+drawn and the status line says "Exponential trend could not be fitted to
+these cycles" (review r3 N-2). The start guess must not take the log of a
+non-positive mean. `scipy` is already in `btc_web/requirements.txt`.
 
 ### Generating a path
 
@@ -153,21 +161,34 @@ reproduces the histogram's frequencies) of a historical shape:
 
 - **Raw · independent**: one month's `z`, independently each month.
 - **Raw · halving cycle**: the future is walked in **3-month blocks**; each
-  block copies three consecutive historical `z` values from a **full
+  block copies three consecutive historical `z` values from a **complete
   cycle** whose starting cycle fraction φ is within **±0.04** (≈ 2 months)
-  of the future block's own φ (review r1 M-6, r2 I-A: matching by fraction
-  of cycle elapsed and drawing only from full cycles keeps the median on the
-  trend; measured residual drift −0.02σ per cycle vs +1.3σ for
-  months-since-halving matching). If those candidates come from **fewer than
-  2 distinct cycles**, the tolerance widens to ±0.08, then to the whole
-  eligible pool; the status line reports how often (review r1 I-3). The
-  caveat says cycle mode replays only the 3–4 past cycles in the window
-  (review r2 M-4). A test pins the cycle-mode median within ±0.25σ (log) of
-  the trend's median path at 10 and 40 years.
+  of the future block's own φ. φ is **linear, not circular**: a block near
+  φ = 1 matches only late-cycle history (review r3 N-1). Matching by
+  fraction of cycle elapsed and drawing only from complete cycles keeps the
+  median on the trend (review r1 M-6, r2 I-A, r3 I-1). If those candidates
+  come from **fewer than 2 distinct cycles**, the tolerance widens to ±0.08,
+  then to all complete-cycle blocks; the status line reports how often
+  (review r1 I-3). Cycle mode needs **≥ 2 complete cycles in the window**;
+  otherwise no fan is drawn and the status line says so (review r3 M-3). The
+  caveat says cycle mode replays only the complete past cycles in the window
+  (review r2 M-4).
+- **Drift tests (review r3 I-2).** (a) Deterministic: for each future
+  cycle, the expected sum of `z` over its blocks, computed exactly from the
+  candidate pools (mean candidate `z` per block, summed), has
+  |value| ≤ 0.5. (b) Statistical, at **whole-cycle horizons** (the projected
+  halvings 2028, 2032, 2036, …, inside the horizon): the median log price
+  of 3200 paths is within **±0.25 × the cross-sectional std of log price at
+  that date** of the trend-median path. Mid-cycle horizons are not tested:
+  sitting above or below trend there is the rhythm the variant exists to
+  show.
 
 With **Trend = None** the same draws use raw `r` instead of `z` (honest
-replay), and the status line states the window's compounded pace, e.g.
-"History 2015–2026 grew +59 %/yr on average; the fan compounds that."
+replay). The status line states **the simulated fan's own median pace**,
+computed from the paths, beside the window's actual pace, e.g. "Fan median
+grows +220 %/yr (history 2015–2026 grew +137 %/yr); the fan compounds
+replayed history." The two differ in cycle mode, because phase matching
+re-weights the months (review r3 I-4).
 
 **Eligible** months: inside the Raw window, and (cycle mode) all three
 months of a block inside the window.
@@ -175,18 +196,20 @@ months of a block inside the window.
 ### Regime filter (Raw) — level relative to trend (operator decision, r2 I-C)
 
 - **State** of a path at a month: how far its **price level** sits above or
-  below the trend, in standard deviations. With a trend: the deviation
-  `D` = log price − log trend-median price, where the trend-median path is
-  the price compounded by μ(t) from a fixed anchor, divided by the trend's
-  long-run dispersion of `D` measured on history (the std of historical `D`
-  over the window, using the same anchor) **(controller's call; anchor and
-  normalisation are pinned by tests, exact formula is the builder's)**. With
-  Trend = None the trend median is the window's constant pace. The state is
-  bounded: it reverts like the model-mode bands do.
+  below the trend, in standard deviations (review r3 M-1 pins the formula):
+  - historical: `D_k = log P_k − Σ_{j≤k} μ(t_j) − C`, summing from the
+    first eligible month, with the constant `C` chosen so the **mean of
+    historical `D` over eligible months is 0**;
+  - simulated: `D_{k+1} = D_k + r_k − μ(t_k)`, starting from today's
+    historical `D` (the same anchored curve continued);
+  - state = `D / S`, `S` = std of historical `D` over eligible months.
+  - With Trend = None, μ is the window's constant mean monthly log return.
 - **Bins**: `bub-mc-raw-bins` equal-count bins of the historical state over
-  eligible months (pre-window months are used where a statistic needs a
-  lookback, so eligibility does not change — review r2 M-7), coldest first.
-  Labels show each bin's range, e.g. "−1.2σ to −0.4σ below trend".
+  eligible months, coldest first. The **outer bins are closed** at the
+  historical minimum and maximum state (review r3 I-3): a draw that would
+  take the state beyond them counts as entering an unchecked region and is
+  steered like any other. Labels show each bin's range, e.g. "−1.5σ to
+  −0.8σ vs trend".
 - **Steering**: a draw (a month; in cycle mode the block is accepted month by
   month up to its first violating month and redrawn from there) that would
   put the state into an unchecked bin is rejected and redrawn, up to 20
@@ -195,8 +218,9 @@ months of a block inside the window.
   bins from there (review r2 I-B).
 - A test pins, for every single-bin and two-bin selection in both variants
   at 5 bins, the share of simulated months in unchecked bins **≤ 5 %**
-  excluding the first 12 months, and the 40-year median within the range
-  of the checked bins' historical levels (bounded, review r2 I-C).
+  excluding the first 12 months (prototype: 0–0.8 %), and the 40-year
+  median state within the checked bins' closed range ± 0.5 (bounded,
+  review r2 I-C, r3 I-3), for all three trends.
 - The note states the measured share: "Raw: paths are steered away from
   unchecked bins (N % of months still fall in them)."
 - Same server rule as model mode: applies only when 0 < checked < bins.

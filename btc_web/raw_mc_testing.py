@@ -12,6 +12,7 @@ import pandas as pd
 import pytest
 
 import raw_mc
+from raw_mc import RawRequest
 
 _CSV = pathlib.Path(__file__).resolve().parent.parent / "BitcoinPricesDaily.csv"
 
@@ -24,6 +25,24 @@ def _read_prices() -> pd.Series:
 
 PRICES = _read_prices()
 FROZEN = pd.Timestamp("2026-11-08")     # "today" for statistical tests on the real series
+RAW_FP = "csv"                          # data_fp the ``raw_prices`` fixture registers
+
+# Simulator / regime-filter frozen inputs (spec "Tests"): prices truncated at
+# the 2024-04-20 halving, which is also "today"; start price that day's close.
+SIM_TODAY = pd.Timestamp("2024-04-20")
+SIM_P0 = float(PRICES[SIM_TODAY])
+SIM_WINDOW = (2010, 2024)
+
+
+def _req(variant="raw_cycle", trend="power", **kw) -> RawRequest:
+    """A RawRequest on the simulator's frozen inputs (today = asof =
+    SIM_TODAY, data_fp = RAW_FP); keywords override any field.  Tests that
+    simulate must also request the ``raw_prices`` fixture (F-23 M-2)."""
+    base = dict(variant=variant, trend=trend, window=SIM_WINDOW, bins=5,
+                checked=(), sims=400, years=40, today=SIM_TODAY, p0=SIM_P0,
+                data_fp=RAW_FP, asof=SIM_TODAY)
+    base.update(kw)
+    return RawRequest(**base)
 
 
 @contextlib.contextmanager
@@ -43,5 +62,5 @@ def raw_prices():
     was registered before, so registry tests never leak across tests that
     share an xdist worker."""
     with registry_restored():
-        raw_mc.set_prices(PRICES, "csv")
+        raw_mc.set_prices(PRICES, RAW_FP)
         yield PRICES

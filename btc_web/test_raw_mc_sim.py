@@ -11,22 +11,13 @@ import pandas as pd
 import pytest
 
 import raw_mc
-from raw_mc import (RAW_SIMS_MAX, RAW_SRCS, RawRequest, cycle_table,
+from raw_mc import (RAW_SIMS_MAX, RAW_SRCS, cycle_table,
                     effective_checked, future_halvings, seed_for, simulate,
                     standardise, t_of)
-from raw_mc_testing import PRICES, raw_prices  # noqa: F401
-
-TODAY = pd.Timestamp("2024-04-20")
-P0 = float(PRICES[TODAY])
-WINDOW = (2010, 2024)
-
-
-def _req(**kw):
-    base = dict(variant="raw_cycle", trend="power", window=WINDOW, bins=5,
-                checked=(), sims=400, years=40, today=TODAY, p0=P0,
-                data_fp="csv", asof=TODAY)
-    base.update(kw)
-    return RawRequest(**base)
+from raw_mc_testing import PRICES, _req, raw_prices  # noqa: F401
+from raw_mc_testing import SIM_P0 as P0
+from raw_mc_testing import SIM_TODAY as TODAY
+from raw_mc_testing import SIM_WINDOW as WINDOW
 
 
 def _whole_cycles(res):
@@ -81,6 +72,15 @@ def test_seed_is_process_stable():
 
 
 SEED_LITERAL = 781618610631287260
+
+
+def test_today_time_of_day_is_ignored(raw_prices):  # noqa: F811
+    later = TODAY + pd.Timedelta(hours=3)
+    assert seed_for(_req(today=later)) == seed_for(_req())
+    for v in RAW_SRCS:
+        a, b = simulate(_req(variant=v)), simulate(_req(variant=v, today=later))
+        assert np.array_equal(a.paths, b.paths)
+        assert np.array_equal(a.t_axis, b.t_axis)
 
 
 # ── shapes, sigma, debias ───────────────────────────────────────────────────

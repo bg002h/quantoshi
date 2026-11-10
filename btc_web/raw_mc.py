@@ -30,6 +30,7 @@ Prices enter through one registry (``set_prices`` / ``get_prices`` /
 """
 from __future__ import annotations
 
+import functools
 import hashlib
 import json
 from dataclasses import dataclass
@@ -339,7 +340,8 @@ def seed_for(req: RawRequest) -> int:
     eff = effective_checked(req.checked, req.bins)
     doc = dict(variant=req.variant, trend=req.trend, window=list(req.window),
                bins=int(req.bins), checked=None if eff is None else list(eff),
-               sims=int(req.sims), years=int(req.years), today=day(req.today),
+               sims=int(req.sims), years=int(req.years),
+               today=day(pd.Timestamp(req.today).normalize()),
                data_fp=req.data_fp, asof=day(req.asof))
     blob = json.dumps(doc, sort_keys=True, separators=(",", ":")).encode()
     return int.from_bytes(hashlib.blake2b(blob, digest_size=8).digest(), "big")
@@ -388,6 +390,168 @@ def _trend_line(trend: Trend, n_fit: int, where: str) -> str:
     return "No trend: honest replay of raw monthly returns"
 
 
+def _fit_for(months: pd.DataFrame, window, kind: str):
+    """(trend or None, fit set, where): the trend ``simulate`` uses for
+    ``kind`` on ``window`` -- shared with the regime labels so both see the
+    same curve."""
+    tab_w, tab_all = cycle_table(months, window), cycle_table(months, None)
+    fset, where = fit_set(tab_w, tab_all)
+    if kind == "none":
+        where = "window"
+    return fit_trend(kind, fset, months, window), fset, where
+
+
+# ── regime filter: level relative to trend ──────────────────────────────────
+#
+# Spec "Regime filter (Raw)".  Historical D_k = log P_k - sum_{j<=k} mu(t_j) - C
+# over the eligible (in-window) months, C making mean(D) = 0; state = D / S,
+# S = std(D).  Simulated D_{k+1} = D_k + r_{k+1} - mu(t_{k+1}) from D_0 (plan
+# F-22 N-3).  Bins are equal-count over the historical state, outer edges the
+# historical min / max, all bins CLOSED: a state outside every checked bin's
+# closed range is "unchecked".
+
+MAX_TRIES = 20               # draws per steered month (first + 19 redraws)
+STEER_SKIP = 12              # months excluded from ``unchecked_share``
+
+
+def _d_series(months: pd.DataFrame, trend: Trend, window) -> tuple[np.ndarray, int]:
+    """Uncentred D (cumsum of r - mu) from the first eligible month through the
+    LAST month of ``months`` (the curve continued past the window), and the
+    number of eligible (in-window) months at its head."""
+    win = _in_window(months, window)
+    pos0 = months.index.get_loc(win.index[0])
+    tail = months.iloc[pos0:]
+    assert tail.index[len(win) - 1] == win.index[-1]          # window is contiguous
+    return np.cumsum(tail.r.to_numpy() - trend.mu_m(tail.t.to_numpy())), len(win)
+
+
+def state_history(months: pd.DataFrame, trend: Trend, window) -> tuple[np.ndarray, float]:
+    """Historical state (D / S) of each eligible month, and S."""
+    d, n = _d_series(months, trend, window)
+    d = d[:n] - d[:n].mean()
+    S = float(d.std())
+    return d / S, S
+
+
+def _d0(months: pd.DataFrame, trend: Trend, window, today: pd.Timestamp,
+        p0: float) -> float:
+    """F-22 N-3: D_0 = D_lastME + log(P_today / P_lastME) - mu(t_today) * f,
+    f = days since the last month-end / days in today's month (the fraction of
+    the current month elapsed)."""
+    d, n = _d_series(months, trend, window)
+    d_last = d[-1] - d[:n].mean()
+    last_me = months.index[-1]
+    series = get_prices()[0]
+    p_last = float(series[series.index <= last_me].iloc[-1])
+    f = (today - last_me).days / today.days_in_month
+    return float(d_last + np.log(p0 / p_last) - trend.mu_m(t_of(today)) * f)
+
+
+def bin_edges(states: np.ndarray, bins: int) -> np.ndarray:
+    """``bins + 1`` equal-count edges; the outer two are the historical
+    min and max state exactly."""
+    edges = np.quantile(states, np.linspace(0.0, 1.0, int(bins) + 1))
+    edges[0], edges[-1] = states.min(), states.max()
+    return edges
+
+
+def _sigma(x: float) -> str:
+    x = round(float(x), 1)
+    if x == 0:
+        return "0.0σ"
+    return f"{x:+.1f}σ".replace("-", "−")
+
+
+def bin_labels(edges: np.ndarray) -> list[str]:
+    """One label per bin, coldest first, e.g. ``"−1.5σ to −0.8σ vs trend"``."""
+    return [f"{_sigma(a)} to {_sigma(b)} vs trend" for a, b in zip(edges[:-1], edges[1:])]
+
+
+@functools.lru_cache(maxsize=64)
+def _regime_options(bins: int, window: tuple[int, int], trend: str,
+                    asof: pd.Timestamp | None, data_fp: str) -> tuple[str, ...]:
+    """Bin labels for the checklist; () when no trend / state can be built.
+    ``trend`` is the kind string (Trend objects are unhashable); ``data_fp``
+    is in the key only so a new series never hits a stale entry."""
+    months = months_for(asof)
+    if len(_in_window(months, window)) < RAW_MIN_MONTHS:
+        return ()
+    tr, _, _ = _fit_for(months, window, trend)
+    if tr is None:
+        return ()
+    return tuple(bin_labels(bin_edges(state_history(months, tr, window)[0], bins)))
+
+
+def regime_options(bins, window, trend: str, asof=None) -> list[dict]:
+    """Dash checklist options ``{"label", "value"}`` for the ``bins``
+    trend-deviation bins (values 0..bins-1, coldest first), from the same
+    ``months_for`` series and trend fit ``simulate`` uses.  Fresh dicts per
+    call; the labels are cached per ``(bins, window, trend, asof, data_fp)``."""
+    labels = _regime_options(int(bins), tuple(int(y) for y in window), str(trend),
+                             asof, get_prices()[1])
+    return [{"label": lab, "value": i} for i, lab in enumerate(labels)]
+
+
+regime_options.cache_clear = _regime_options.cache_clear
+_CACHE_CLEARERS.append(regime_options.cache_clear)
+
+
+class _Steer:
+    """Distance of a state to the union of the checked bins' closed ranges
+    (adjacent checked bins merged into one interval)."""
+
+    def __init__(self, edges: np.ndarray, checked: tuple[int, ...]):
+        runs: list[list[int]] = []
+        for i in checked:                       # sorted (effective_checked)
+            if runs and runs[-1][1] == i:
+                runs[-1][1] = i + 1
+            else:
+                runs.append([i, i + 1])
+        self.lo = np.array([edges[a] for a, _ in runs])
+        self.hi = np.array([edges[b] for _, b in runs])
+
+    def outside(self, x: np.ndarray) -> np.ndarray:
+        """True where ``x`` is in no checked bin (dist > 0)."""
+        out = np.ones(x.shape, bool)
+        for lo, hi in zip(self.lo, self.hi):
+            out &= (x < lo) | (x > hi)
+        return out
+
+    def dist(self, x: np.ndarray) -> np.ndarray:
+        out = np.full(x.shape, np.inf)
+        for lo, hi in zip(self.lo, self.hi):
+            np.minimum(out, np.maximum(np.maximum(lo - x, x - hi), 0.0), out=out)
+        return out
+
+
+def _steered_month(steer: _Steer, x_prev: np.ndarray, d: np.ndarray, scale: float,
+                   off: float, redraw: Callable[[np.ndarray, int], tuple]) -> tuple:
+    """Steer one month for all paths.  ``d`` holds the first try's draw (shape
+    (sims,)); the state moves by ``d * scale - off``.  Rows landing outside the
+    checked bins get the other MAX_TRIES - 1 tries in one batch:
+    ``redraw(rows, n)`` returns ``(draws, tags)``, each ``(len(rows), n)``,
+    ``tags`` (or None) travelling with each try (the block candidate in cycle
+    mode).  A row keeps its first accepted try, else its closest one -- the
+    same choice as redrawing one try at a time.  Returns
+    ``(d, x_new, rows, tags)``: the rows whose kept draw is a redraw, and that
+    redraw's tag (tags None when ``redraw`` gives none)."""
+    x = x_prev + d * scale - off
+    dist = steer.dist(x)
+    bad = np.flatnonzero(dist > 0)
+    if not len(bad):
+        return d, x, bad, bad              # nothing redrawn: empty rows and tags
+    d2, tag = redraw(bad, MAX_TRIES - 1)
+    x2 = x_prev[bad, None] + d2 * scale - off
+    dd = steer.dist(x2)
+    hit = dd == 0
+    best = np.where(hit.any(axis=1), hit.argmax(axis=1), dd.argmin(axis=1))
+    ar = np.arange(len(bad))
+    take = dd[ar, best] < dist[bad]
+    rows, best = bad[take], best[take]
+    d[rows], x[rows] = d2[ar[take], best], x2[ar[take], best]
+    return d, x, rows, None if tag is None else tag[ar[take], best]
+
+
 def simulate(req: RawRequest) -> RawResult:
     """Bootstrap ``req.sims`` monthly paths from today for ``req.years``.
 
@@ -396,7 +560,13 @@ def simulate(req: RawRequest) -> RawResult:
     the same draws of raw ``r`` (honest replay).  Independent mode draws one
     eligible month per step; cycle mode walks the per-cycle block grid and
     copies runs of consecutive months from one complete cycle whose start
-    phase matches the block's.  No regime filter here (Task 3).
+    phase matches the block's.
+
+    Regime filter (``effective_checked`` not None): each path's level-vs-trend
+    state is carried month by month and a draw that would leave the checked
+    bins is redrawn (independent: that month; cycle: the block from that month
+    on, same grid slot), up to MAX_TRIES, keeping the closest try.  Unfiltered
+    runs keep the fully vectorised draw and its RNG stream.
     """
     assert req.data_fp == get_prices()[1], "stale data_fp"
     if req.variant not in RAW_SRCS or req.trend not in RAW_TRENDS:
@@ -408,17 +578,14 @@ def simulate(req: RawRequest) -> RawResult:
         return _refuse(f"Fewer than {RAW_MIN_MONTHS} months of history in the window "
                        f"({len(win)}): no fan drawn", status)
 
-    tab_w, tab_all = cycle_table(months, req.window), cycle_table(months, None)
-    fset, where = fit_set(tab_w, tab_all)
-    if req.trend == "none":
-        where = "window"
-    trend = fit_trend(req.trend, fset, months, req.window)
+    trend, fset, where = _fit_for(months, req.window, req.trend)
     if trend is None:
         name = "Exponential" if req.trend == "exp" else "Power-law"
         return _refuse(f"{name} trend could not be fitted to these cycles", status,
                        None, where)
     status.append(_trend_line(trend, len(fset), where))
 
+    tab_w = cycle_table(months, req.window)
     complete = tab_w[tab_w.complete]
     cycle_mode = req.variant == "raw_cycle"
     if cycle_mode and len(complete) < 2:
@@ -428,7 +595,7 @@ def simulate(req: RawRequest) -> RawResult:
 
     # ── step calendar ──
     steps = int(req.years) * 12
-    today = pd.Timestamp(req.today)
+    today = pd.Timestamp(req.today).normalize()
     epochs = list(HALVINGS) + future_halvings(today + pd.DateOffset(years=int(req.years) + 9))
     ep = np.array(epochs, dtype="datetime64[ns]")
     cyc_now = int(np.searchsorted(ep, today.to_datetime64(), side="right"))
@@ -458,8 +625,32 @@ def simulate(req: RawRequest) -> RawResult:
     schedule: list = []
     z_shift = 0.0
 
-    if not cycle_mode:
+    # regime filter: state increment per step = draw * scale[k] - off[k]
+    eff = effective_checked(req.checked, req.bins)
+    steer = states = edges = None
+    labels: list[str] = []
+    if eff is not None:
+        hist, S = state_history(months, trend, req.window)
+        edges = bin_edges(hist, req.bins)
+        labels = bin_labels(edges)
+        steer = _Steer(edges, eff)
+        scale = (np.ones(steps) if replay else sigma_steps) / S
+        off = (mu if replay else np.zeros(steps)) / S
+        # step-major (steps + 1, sims): the loops write one contiguous row per month
+        states = np.empty((steps + 1, sims))
+        states[0] = _d0(months, trend, req.window, today, req.p0) / S
+
+    if not cycle_mode and steer is None:
         draws = pool[rng.integers(0, len(pool), size=(sims, steps))]
+    elif not cycle_mode:
+        draws = np.empty((steps, sims))
+
+        def redraw(rows, n):
+            return pool[rng.integers(0, len(pool), size=(len(rows), n))], None
+        for k in range(steps):
+            d = pool[rng.integers(0, len(pool), size=sims)]
+            draws[k], states[k + 1], _, _ = _steered_month(
+                steer, states[k], d, scale[k], off[k], redraw)
     else:
         wcyc, wphi = win.cycle.to_numpy(), win.phi.to_numpy()
         comp = set(complete.cycle.astype(int))
@@ -491,7 +682,7 @@ def simulate(req: RawRequest) -> RawResult:
                 e += block_sum(cand, k1 - k0)
             z_shift = e / len(k_w)
 
-        draws = np.empty((sims, steps))
+        draws = np.empty((sims, steps)) if steer is None else np.empty((steps, sims))
         widened = [0] * len(PHASE_TOLS)
         for c, k0, k1 in _grid(cyc, 0, steps):
             L = k1 - k0
@@ -500,9 +691,28 @@ def simulate(req: RawRequest) -> RawResult:
                 widened[lvl - 1] += 1
             schedule.append(dict(cycle=c, steps=(k0, k1), cand=cand, widened=lvl))
             pick = cand[rng.integers(0, len(cand), size=sims)]
-            draws[:, k0:k1] = pool[pick[:, None] + np.arange(L)] - z_shift
+            if steer is None:
+                draws[:, k0:k1] = pool[pick[:, None] + np.arange(L)] - z_shift
+                continue
+            # month by month; a violation redraws the block from that month on
+            for j in range(L):
+                k = k0 + j
 
+                def redraw(rows, n, j=j, cand=cand):
+                    c2 = cand[rng.integers(0, len(cand), size=(len(rows), n))]
+                    return pool[c2 + j] - z_shift, c2
+                d = pool[pick + j] - z_shift
+                draws[k], states[k + 1], rows, tags = _steered_month(
+                    steer, states[k], d, scale[k], off[k], redraw)
+                pick[rows] = tags           # later months of the block follow the redraw
+
+    if steer is not None:
+        draws = draws.T                                    # (sims, steps)
     r = draws if replay else mu + sigma_steps * draws
+    share = 0.0
+    if steer is not None:
+        share = float(np.mean(steer.outside(states[STEER_SKIP + 1:])))
+        states = np.ascontiguousarray(states.T)            # (sims, steps + 1)
     paths = np.empty((sims, steps + 1))
     paths[:, 0] = 0.0
     np.cumsum(r, axis=1, out=paths[:, 1:])
@@ -533,9 +743,12 @@ def simulate(req: RawRequest) -> RawResult:
                       f"blocks (±0.08: {widened[0]}, all blocks: {widened[1]})")
     else:
         status.append("No memory: understates multi-month swings")
+    if steer is not None:
+        status.append(f"Raw: paths are steered away from unchecked bins "
+                      f"({share * 100:.1f} % of months still fall in them).")
     if sims < 100:
         status.append("Fewer than 100 simulations: percentiles are rough below 100 "
                       "simulations")
 
     return RawResult(True, "", t_of(dates[:steps + 1]), paths, status, schedule,
-                     z_shift, sigma_steps, 0.0, [], None, None, trend, where)
+                     z_shift, sigma_steps, share, labels, edges, states, trend, where)

@@ -247,6 +247,15 @@ body {
     white-space: nowrap;
 }
 
+/* Tab-1 Raw (model-free) MC: bub-mc-panel carries qs-mc-raw-mode while the
+   model source is raw_iid / raw_cycle (RAW_MODE_CLASS_JS in
+   layout/mc_controls.py). Model-only groups (start year, entry percentile,
+   Markov settings, Run / cost / Saved Simulation, the Paid badge) hide; the
+   Raw controls and status line show. */
+.qs-mc-raw-mode .qs-mc-model-only { display: none; }
+.qs-mc-raw-only { display: none; }
+.qs-mc-raw-mode .qs-mc-raw-only { display: block; }
+
 /* ── #9: Export row polish ─────────────────────────────────────────────────── */
 .export-row-polished {
     background: var(--qs-sidebar-bg);

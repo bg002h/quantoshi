@@ -674,6 +674,33 @@ the report (app.py registration in Task 5 Step 3, `_req` helper owned by
 `raw_mc_testing.py`, `p0` fallback = last value of the registered series, Raw
 branch placed before `_mc_setup`, and the rest as listed).
 
+### F-24 — Share links drop regime bins ≥ 5 on Tabs 2–6
+**Type:** wrong result (pre-existing) · **Owning phase:** standalone fix after
+the Raw MC merge (out of scope there: "Tab 1 only") · **Severity:** Important ·
+**Found:** 2026-11-10, Raw MC Task 7 implementer
+
+`_CHECKLIST_OPTIONS` in `btc_web/snapshot.py` (~line 576) gives
+`dca-`, `ret-`, `hm-`, `sc-` and `cp-mc-regime` a 5-wide option list
+`[0, 1, 2, 3, 4]`, but their bins controls go up to 10. A v4 round trip of a
+DCA state with 10 bins and `dca-mc-regime = [0, 5, 9]` restores `[0]`. The
+regime filter is silently changed in the shared view.
+
+**Fix sketch:** widen each list to `range(10)`, as `bub-mc-raw-regime` does. Check
+that old links still decode: the bitmask is positional, so prepending is
+unsafe but extending the tail is fine. Add a 10-bin round-trip test per tab.
+
+### F-25 — Raising MC bins silently filters the new top bins (Tab 1, both modes)
+**Type:** surprising default · **Owning phase:** standalone, after the Raw MC
+merge (the fix touches model mode, outside Raw MC's "model mode unchanged") ·
+**Severity:** Minor · **Found:** 2026-11-10, Raw MC final review M-4
+
+When bins go from 5 to 8, `bub-mc-regime` / `bub-mc-raw-regime` stay at
+`[0..4]`, so bins 5–7 are unchecked and filtered out. Share-link restores
+depend on the value not being overwritten.
+
+**Fix sketch:** add a bins callback that fires on a real user click only (the
+click-stamp pattern). If every old bin was ticked, tick all the new bins.
+
 ---
 
 ## Closed

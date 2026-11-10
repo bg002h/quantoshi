@@ -420,6 +420,20 @@ _SNAPSHOT_CONTROLS = [
     # test_mc_paths_toggle.py pins this at index 339. Links made before this
     # field existed: see _PREDATING_LINK_VALUES.
     ("bub-mc-paths", "value"),     # [] | ["yes"]  (bitmask)
+    # ── Tab-1 Raw MC (model-free Monte Carlo, appended 2026-11-10) ──
+    # APPEND-ONLY at the true tail -- same index-stability rule as above;
+    # test_raw_mc_snapshot.py pins these as indices 340-347, in this order.
+    # Links made before they existed carry no value for them, so every one
+    # restores at its layout default (they are never in _PREDATING_LINK_VALUES:
+    # Raw is a new mode, nothing was on screen that has to be preserved).
+    ("bub-mc-raw-sims",   "value"),   # int 1-3200
+    ("bub-mc-raw-years",  "value"),   # 10 | 20 | 30 | 40
+    ("bub-mc-raw-window", "value"),   # [first_year, last_year]
+    ("bub-mc-raw-trend",  "value"),   # "power" | "exp" | "none"
+    ("bub-mc-raw-bins",   "value"),   # 3..10
+    ("bub-mc-raw-regime", "value"),   # bin indices 0..9  (bitmask)
+    ("bub-mc-lines",      "value"),   # int 5-200
+    ("bub-mc-extremes",   "value"),   # [] | ["yes"]  (bitmask)
 ]
 
 _SNAP_PREFIX_V4 = "q4:"   # current format (v4: sparse diff against fingerprint)
@@ -482,6 +496,13 @@ _CHECKLIST_OPTIONS = {
     # test_bub_moving_avg.py asserts the two stay equal.
     "bub-ma":             ["ma200w", "ma52w", "ma30d", "ma7d"],
     "bub-mc-paths":       ["yes"],
+    # Raw MC (appended 2026-11-10). The regime checklist holds one bit per
+    # trend-deviation bin and the bins control runs 3-10, so the table must
+    # reach index 9 or a ticked bin above the table's end is dropped by
+    # _list_to_mask (which skips values it does not know). Same silent failure
+    # as the "show_ucl" note above. Positional: only ever append.
+    "bub-mc-raw-regime":  list(range(10)),
+    "bub-mc-extremes":    ["yes"],
     "bub-show-stack":     ["yes"],
     "bub-use-lots":       ["yes"],
     "hm-toggles":         ["colorbar", "chart_zoom"],

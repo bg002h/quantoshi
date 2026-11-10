@@ -81,6 +81,9 @@ MC_DEFAULT_SIMS = 200
 # programmatic write of bub-mc-enable carry no click, so a restored link keeps
 # the X range it was saved with.
 #
+# Raw MC (bub-mc-model-src "raw_iid" / "raw_cycle") always starts today, so in
+# Raw the start year is the current year and bub-mc-start-yr is ignored.
+#
 # Only where MC is actually drawn: the Price view with Custom Time Axis off.
 # Residuals / Percentile / Occupancy cap the slider at next year, so a widen
 # there would write a value above the slider's own max. An unhydrated view
@@ -91,7 +94,7 @@ MC_DEFAULT_SIMS = 200
 MC_AUTOWIDEN_YEARS = 10
 MC_AUTOWIDEN_CLICK_MS = 3000
 MC_AUTOWIDEN_JS = """
-function(mc, xrange, startYr, mode, cta) {
+function(mc, xrange, startYr, mode, cta, src) {
     var NU = window.dash_clientside.no_update;
     var now = Date.now();
     var at = window.__qsMcEnableClickAt || 0;
@@ -102,11 +105,17 @@ function(mc, xrange, startYr, mode, cta) {
     if (!Array.isArray(mc) || mc.indexOf("yes") < 0) { return NU; }
     if (!Array.isArray(xrange) || xrange.length !== 2) { return NU; }
     if (typeof xrange[0] !== "number" || typeof xrange[1] !== "number") { return NU; }
-    if (startYr === null || startYr === undefined || startYr === "") { return NU; }
-    var start = Number(startYr);
-    if (!isFinite(start)) { return NU; }
+    var thisYr = new Date(now).getFullYear();
+    var start;
+    if (typeof src === "string" && src.indexOf("raw") === 0) {
+        start = thisYr;
+    } else {
+        if (startYr === null || startYr === undefined || startYr === "") { return NU; }
+        start = Number(startYr);
+        if (!isFinite(start)) { return NU; }
+    }
     var hi = Math.max(xrange[1], Math.min(%(xmax)s, start + %(span)s));
-    var lo = Math.max(%(xmin)s, new Date(now).getFullYear());
+    var lo = Math.max(%(xmin)s, thisYr);
     if (!(lo < hi)) { lo = xrange[0]; }
     if (lo === xrange[0] && hi === xrange[1]) { return NU; }
     return [lo, hi];
@@ -459,6 +468,7 @@ def _bubble_controls():
             amount_default=100,
             mc_enabled_default=False,
             show_paths_toggle=True,
+            include_raw_src=True,   # Raw (model-free) MC: Tab 1 only
             # "sims" = how many example paths are drawn over the fan.
             # Default: every path of a cached scenario, faint enough
             # (figures.bubble._mc_path_alpha) to read as a density cloud.

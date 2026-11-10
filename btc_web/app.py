@@ -68,6 +68,15 @@ _boot_mark("imports + MC load done")
 M = load_model_data()
 _boot_mark("load_model_data done")
 
+# Tab-1 Raw MC reads its daily closes from raw_mc's registry -- the only price
+# path (simulate, regime_options and the layout's initial regime labels). Once
+# per process, before the layout is built.
+import pandas as _pd_raw
+import raw_mc
+raw_mc.set_prices(_pd_raw.Series(M.price_prices, index=_pd_raw.to_datetime(M.price_dates),
+                                 dtype=float),
+                  _app_ctx._MODEL_FP)
+
 # ── Background callback manager (diskcache) ─────────────────────────────────
 try:
     from dash import DiskcacheManager

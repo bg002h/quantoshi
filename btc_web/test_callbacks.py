@@ -1138,8 +1138,8 @@ class TestUpdateBubbleCallback:
                 palette_key="default",
             )
         # Task 11: 8-tuple (fig, mc_results, mc_status, rendered_key,
-        # mc_modal, mc_tab, unblocked, yrange).
-        assert len(result) == 8
+        # mc_modal, mc_tab, unblocked, yrange) + raw-mc Task 5's raw-status.
+        assert len(result) == 9
         assert isinstance(result[0], go.Figure)
 
     @pytest.mark.parametrize("bad_enable", [True, False, "yes", 1])
@@ -1198,7 +1198,7 @@ class TestUpdateBubbleCallback:
                 lots_data=[],
                 palette_key="default",
             )
-        assert len(result) == 8
+        assert len(result) == 9
         assert isinstance(result[0], go.Figure)
 
     def test_with_stack(self):
@@ -1227,7 +1227,7 @@ class TestUpdateBubbleCallback:
                 lots_data=[],
                 palette_key="default",
             )
-        assert len(result) == 8
+        assert len(result) == 9
         assert isinstance(result[0], go.Figure)
 
 
@@ -1293,9 +1293,9 @@ class TestUpdateBubbleCallbackMC:
                 mc_paths=["yes"],
             )
 
-        # 8-tuple expected (Task 11 changed return shape)
-        assert len(result) == 8, (
-            f"expected 8-tuple, got {len(result)}-tuple")
+        # 9-tuple expected (Task 11 shape + Raw MC status, raw-mc Task 5)
+        assert len(result) == 9, (
+            f"expected 9-tuple, got {len(result)}-tuple")
         fig = result[0]
         # On dev (no MC cache loaded): no spaghetti, but figure builds cleanly.
         # On a cache-loaded env: ≥50 spaghetti traces should appear.

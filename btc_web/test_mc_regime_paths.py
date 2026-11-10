@@ -34,21 +34,25 @@ needs_node = pytest.mark.skipif(_NODE is None, reason="node not installed")
 def _entry():
     hits = [e for e in _APP._callback_list
             if "bub-mc-paths.value" in str(e["output"])
-            and [i.get("id") for i in e["inputs"]] == ["bub-mc-regime"]]
+            and [i.get("id") for i in e["inputs"]]
+            == ["bub-mc-regime", "bub-mc-raw-regime"]]
     assert len(hits) == 1, f"expected one regime -> paths callback, got {len(hits)}"
     return hits[0]
 
 
 class TestRegistration:
-    def test_single_input_is_the_regime_checklist(self):
-        # Multiple Inputs + allow_duplicate + prevent_initial_call silently
-        # no-ops in Dash 4.0 (callbacks/plot_appearance.py:22-28).
+    def test_inputs_are_the_model_and_raw_regime_checklists(self):
+        # Two Inputs are allowed here only because the Output is NOT
+        # allow_duplicate: allow_duplicate + several Inputs +
+        # prevent_initial_call silently no-ops in Dash 4.0
+        # (callbacks/plot_appearance.py:22-28). Raw MC Task 6.
         assert [(i["id"], i["property"]) for i in _entry()["inputs"]] == [
-            ("bub-mc-regime", "value")]
+            ("bub-mc-regime", "value"), ("bub-mc-raw-regime", "value")]
 
     def test_bins_and_current_paths_are_state(self):
         assert [(s["id"], s["property"]) for s in _entry()["state"]] == [
-            ("bub-mc-bins", "value"), ("bub-mc-paths", "value")]
+            ("bub-mc-bins", "value"), ("bub-mc-raw-bins", "value"),
+            ("bub-mc-paths", "value")]
 
     def test_paths_output_is_not_allow_duplicate(self):
         """Review I-2: an allow_duplicate Output makes Dash fire update_bubble
@@ -82,10 +86,15 @@ globalThis.window = {dash_clientside: {no_update: NU}};
 const fn = (%(fn)s);
 const out = [];
 for (const c of %(cases)s) {
-    if (c.reset) { delete window.__qsRegimeK; window.__qsMcRegimeClickAt = 0; }
+    if (c.reset) {
+        delete window.__qsRegimeK; window.__qsMcRegimeClickAt = 0;
+        delete window.__qsRawRegimeK; window.__qsMcRawRegimeClickAt = 0;
+    }
     if (c.clickAgoMs === null) window.__qsMcRegimeClickAt = 0;
     else if (c.clickAgoMs !== undefined) window.__qsMcRegimeClickAt = now - c.clickAgoMs;
-    out.push(fn(c.checked, c.bins, c.paths));
+    if (c.rawClickAgoMs === null) window.__qsMcRawRegimeClickAt = 0;
+    else if (c.rawClickAgoMs !== undefined) window.__qsMcRawRegimeClickAt = now - c.rawClickAgoMs;
+    out.push(fn(c.checked, c.rawChecked, c.bins, c.rawBins, c.paths));
 }
 console.log(JSON.stringify(out));
 """
@@ -105,7 +114,9 @@ def _run(cases):
 
 
 def _c(checked, paths=OFF, bins=5, click=5, reset=False):
-    d = dict(checked=checked, bins=bins, paths=paths, reset=reset)
+    # The Raw checklist sits at its default (all 5 ticked: no filter).
+    d = dict(checked=checked, bins=bins, paths=paths, reset=reset,
+             rawChecked=ALL5, rawBins=5)
     if click is not None:
         d["clickAgoMs"] = click
     return d

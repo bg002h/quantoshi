@@ -136,6 +136,35 @@ for _mc_reg in ("dca", "ret", "hm", "sc", "cp", "bub"):
         prevent_initial_call=True,
     )
 
+# ── Tab 1 Raw (model-free) MC ───────────────────────────────────────────────
+# Mode class on bub-mc-panel (ancestor of the header Paid badge and the body):
+# hides model-only groups, shows Raw-only ones. ONE Input, no allow_duplicate;
+# fires on load too, so a restored raw source lands in Raw mode.
+from layout.mc_controls import RAW_MODE_CLASS_JS, raw_regime_options  # noqa: E402
+from callbacks.charts._raw import raw_bins, raw_window, raw_trend  # noqa: E402
+
+_app_ctx.app.clientside_callback(
+    RAW_MODE_CLASS_JS,
+    Output("bub-mc-panel", "className"),
+    Input("bub-mc-model-src", "value"),
+)
+
+
+@callback(
+    Output("bub-mc-raw-regime", "options"),
+    Input("bub-mc-raw-bins", "value"),
+    Input("bub-mc-raw-window", "value"),
+    Input("bub-mc-raw-trend", "value"),
+    prevent_initial_call=True,
+)
+def _update_bub_raw_regime_opts(bins, window, trend):
+    """Raw trend-deviation bin labels for (bins, window, trend): the same
+    series and fit simulate uses (raw_mc.regime_options, lru-cached on a
+    tuple window). Options only -- the value is left alone so a share-link
+    restore is not clobbered (as _REGIME_JS above)."""
+    return raw_regime_options(raw_bins(bins), raw_window(window), raw_trend(trend))
+
+
 # ── Tab 1: widen the X range when the user turns MC on ──────────────────────
 # Logic + rationale: layout/bubble.py (MC_AUTOWIDEN_JS). Exactly ONE Input:
 # allow_duplicate + several Inputs + prevent_initial_call silently never fires
@@ -151,23 +180,39 @@ _app_ctx.app.clientside_callback(
     State("bub-mc-start-yr", "value"),
     State("bub-view-mode", "data"),
     State("cta-active", "value"),
+    State("bub-mc-model-src", "value"),
     prevent_initial_call=True,
 )
 
 # ── Tab 1: applying a regime filter ticks "Show individual price paths" ─────
-# Logic + rationale: layout/mc_controls.py (MC_REGIME_PATHS_JS). ONE Input (see
-# there). All three ids exist in the layout without the Markov engine too
-# (hidden placeholders), so the callback always resolves.
-# No allow_duplicate on the Output: see the I-2 note there.
+# Logic + rationale: layout/mc_controls.py (MC_REGIME_PATHS_JS). Two Inputs (the
+# model and the Raw regime checklists) are fine because the Output is NOT
+# allow_duplicate -- the Dash 4.0 no-op needs allow_duplicate + several Inputs
+# + prevent_initial_call. Every id exists in the layout without the Markov
+# engine too (hidden placeholders), so the callback always resolves.
+# No allow_duplicate on the Output, and no second writer: see the I-2 note there.
 from layout.mc_controls import MC_REGIME_PATHS_JS  # noqa: E402
 
 _app_ctx.app.clientside_callback(
     MC_REGIME_PATHS_JS,
     Output("bub-mc-paths", "value"),
     Input("bub-mc-regime", "value"),
+    Input("bub-mc-raw-regime", "value"),
     State("bub-mc-bins", "value"),
+    State("bub-mc-raw-bins", "value"),
     State("bub-mc-paths", "value"),
     prevent_initial_call=True,
+)
+
+# ── Tab 1 Raw: "Lines shown" + "Show extremes" only while paths are drawn ────
+# One Input, no allow_duplicate; bub-mc-lines-wrap exists in the layout without
+# the Markov engine too, like the other Raw ids (final review M-6).
+from layout.mc_controls import RAW_LINES_VIS_JS  # noqa: E402
+
+_app_ctx.app.clientside_callback(
+    RAW_LINES_VIS_JS,
+    Output("bub-mc-lines-wrap", "style"),
+    Input("bub-mc-paths", "value"),
 )
 
 # ── Frequency unlock toggle + modal ──────────────────────────────────────────
@@ -233,6 +278,9 @@ function(mc_enable, mc_years, mc_start_yr, mc_entry_q, mc_model_src, rendered_ke
     var noPremium = "{base_cls}";
     var premium = "{base_cls}{sep}mc-premium-chart";
     if (!mc_enable || !mc_enable.length) return ["", hide, hide, noPremium, hide, hide];
+    /* Raw (Tab 1, model-free) is free: neutral whatever key a past model
+       run left behind -- no text, premium class, badge, warning or restore. */
+    if (String(mc_model_src || "").indexOf("raw") === 0) return ["", hide, hide, noPremium, hide, hide];
     if (!rendered_key) return [
         "⚠ Chart does not include MC overlay",
         Object.assign({{}}, base, {{color: "{live_clr}"}}),

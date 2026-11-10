@@ -322,6 +322,8 @@ class RawResult:
     states: np.ndarray | None          # (sims, steps + 1), filter runs only
     trend: Trend | None
     fit_where: str
+    # filtered cycle runs: (sims, steps) in-window month index each step copied
+    sources: np.ndarray | None = None
 
 
 def effective_checked(checked, bins: int) -> tuple[int, ...] | None:
@@ -341,7 +343,8 @@ def seed_for(req: RawRequest) -> int:
     doc = dict(variant=req.variant, trend=req.trend, window=list(req.window),
                bins=int(req.bins), checked=None if eff is None else list(eff),
                sims=int(req.sims), years=int(req.years),
-               today=day(pd.Timestamp(req.today).normalize()),
+               today=day(None if req.today is None
+                         else pd.Timestamp(req.today).normalize()),
                data_fp=req.data_fp, asof=day(req.asof))
     blob = json.dumps(doc, sort_keys=True, separators=(",", ":")).encode()
     return int.from_bytes(hashlib.blake2b(blob, digest_size=8).digest(), "big")
@@ -683,6 +686,7 @@ def simulate(req: RawRequest) -> RawResult:
             z_shift = e / len(k_w)
 
         draws = np.empty((sims, steps)) if steer is None else np.empty((steps, sims))
+        sources = None if steer is None else np.empty((steps, sims), dtype=np.int64)
         widened = [0] * len(PHASE_TOLS)
         for c, k0, k1 in _grid(cyc, 0, steps):
             L = k1 - k0
@@ -694,7 +698,12 @@ def simulate(req: RawRequest) -> RawResult:
             if steer is None:
                 draws[:, k0:k1] = pool[pick[:, None] + np.arange(L)] - z_shift
                 continue
-            # month by month; a violation redraws the block from that month on
+            # Month by month; a violation redraws the block from that month on,
+            # from this slot's whole candidate set at the same offset.  Block
+            # integrity then holds per contiguous run (each run copies one
+            # candidate, inside one complete cycle), not per block: restricting
+            # suffix redraws to the prefix's cycle broke the 5 % steering bound
+            # (review I-1, fallback ruling; measurements in task-3-report.md).
             for j in range(L):
                 k = k0 + j
 
@@ -705,9 +714,14 @@ def simulate(req: RawRequest) -> RawResult:
                 draws[k], states[k + 1], rows, tags = _steered_month(
                     steer, states[k], d, scale[k], off[k], redraw)
                 pick[rows] = tags           # later months of the block follow the redraw
+                sources[k] = pick + j
 
     if steer is not None:
         draws = draws.T                                    # (sims, steps)
+    if steer is not None and cycle_mode:
+        sources = np.ascontiguousarray(sources.T)          # (sims, steps)
+    else:
+        sources = None
     r = draws if replay else mu + sigma_steps * draws
     share = 0.0
     if steer is not None:
@@ -751,4 +765,5 @@ def simulate(req: RawRequest) -> RawResult:
                       "simulations")
 
     return RawResult(True, "", t_of(dates[:steps + 1]), paths, status, schedule,
-                     z_shift, sigma_steps, share, labels, edges, states, trend, where)
+                     z_shift, sigma_steps, share, labels, edges, states, trend, where,
+                     sources)

@@ -256,11 +256,13 @@ def test_status_line_contents(raw_prices):  # noqa: F811
 
 def test_performance(raw_prices):  # noqa: F811
     for v in RAW_SRCS:
-        best = np.inf
+        cpu = wall = np.inf
         for _ in range(3):
-            t0 = time.perf_counter()
+            c0, w0 = time.process_time(), time.perf_counter()
             res = simulate(_req(variant=v, sims=RAW_SIMS_MAX, years=40))
-            best = min(best, time.perf_counter() - t0)
+            cpu = min(cpu, time.process_time() - c0)
+            wall = min(wall, time.perf_counter() - w0)
         assert res.ok
-        print(f"\n{v}: best of 3 = {best * 1000:.0f} ms (target 200 ms)")
-        assert best < 0.6
+        print(f"\n{v}: best of 3 cpu {cpu * 1000:.0f} ms, wall {wall * 1000:.0f} ms "
+              f"(target 200 ms, hard bound 600 ms cpu)")
+        assert cpu < 0.6        # CPU, not wall: immune to xdist / host load (review I-3)

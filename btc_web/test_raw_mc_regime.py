@@ -173,27 +173,52 @@ def test_note_reports_measured_share(raw_prices, variant):  # noqa: F811
     assert f"{res.unchecked_share * 100:.1f} % of months" in note[0]
 
 
-def test_cycle_block_redraw_keeps_slot(raw_prices):  # noqa: F811
-    base = simulate(_req(sims=200))
-    res = simulate(_req(checked=(0,), sims=200))
+@pytest.mark.parametrize("checked", [(0,), (2,), (1, 3)])
+def test_cycle_block_redraw_keeps_slot(raw_prices, checked):  # noqa: F811
+    """Every steered month copies pool[c + j] for a candidate c of ITS block's
+    slot at ITS offset j, and each contiguous run of a block copied from one
+    candidate lies in one complete cycle (block integrity per contiguous run:
+    review I-1 fallback ruling).  The month's z is rebuilt from the paths, so
+    a draw that disagrees with ``sources`` fails too (review I-2)."""
+    res = simulate(_req(checked=checked, sims=300))
+    assert res.ok and res.sources is not None
+    win = raw_mc._in_window(raw_mc.months_for(SIM_TODAY), (2010, 2024))
+    pool = raw_mc.standardise(win, res.trend).to_numpy()
+    wcyc = win.cycle.to_numpy()
+    dates = [SIM_TODAY + pd.DateOffset(months=k) for k in range(481)]
+    mu = res.trend.mu_m(t_of(pd.DatetimeIndex(dates[:-1]) + pd.Timedelta(days=15)))
+    z = (np.diff(np.log(res.paths), axis=1) - mu) / res.sigma_steps + res.z_shift
+    np.testing.assert_allclose(z, pool[res.sources], atol=1e-8)
+    redrawn = 0
+    for b in res.schedule:
+        k0, k1 = b["steps"]
+        src = res.sources[:, k0:k1]
+        start = src - np.arange(k1 - k0)                  # implied candidate per month
+        assert np.isin(start, b["cand"]).all(), b["steps"]
+        same_run = start[:, 1:] == start[:, :-1]           # month j continues j-1's copy
+        assert (wcyc[src[:, 1:]][same_run] == wcyc[src[:, :-1]][same_run]).all()
+        redrawn += int(np.sum(np.any(start != start[:, :1], axis=1)))
+    assert redrawn > 0                                    # suffix redraws happened
+    base = simulate(_req(sims=300))
     assert [b["steps"] for b in res.schedule] == [b["steps"] for b in base.schedule]
-    assert [b["cycle"] for b in res.schedule] == [b["cycle"] for b in base.schedule]
-    # steering actually redrew something: the filtered fan sits lower
-    assert np.median(res.paths[:, -1]) < np.median(base.paths[:, -1])
+    assert base.sources is None
 
 
 # ── performance ─────────────────────────────────────────────────────────────
 
 @pytest.mark.parametrize("variant", RAW_SRCS)
 def test_performance_filtered(raw_prices, variant):  # noqa: F811
-    for checked in [(0,), (4,)]:
-        best = np.inf
+    """Hard bound on CPU time (process_time), so xdist / host load cannot
+    flake it; wall time is printed alongside (review I-3)."""
+    for checked in [(0,), (4,), (2,), (1, 3)]:
+        cpu = wall = np.inf
         for _ in range(3):
-            t0 = time.perf_counter()
+            c0, w0 = time.process_time(), time.perf_counter()
             res = simulate(_req(variant, "power", checked=checked,
                                 sims=RAW_SIMS_MAX, years=40))
-            best = min(best, time.perf_counter() - t0)
+            cpu = min(cpu, time.process_time() - c0)
+            wall = min(wall, time.perf_counter() - w0)
         assert res.ok and res.states is not None
-        print(f"\n{variant} {checked}: best of 3 = {best * 1000:.0f} ms "
-              f"(target 200 ms, hard bound 600 ms)")
-        assert best < 0.6
+        print(f"\n{variant} {checked}: best of 3 cpu {cpu * 1000:.0f} ms, wall "
+              f"{wall * 1000:.0f} ms (target 200 ms, hard bound 600 ms cpu)")
+        assert cpu < 0.6

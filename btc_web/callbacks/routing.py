@@ -178,6 +178,10 @@ _TAB_CONTROLS = {
                     "bub-mc-model-src","bub-mc-paths","bub-mc-regime","bub-mc-rendered-key",
                     "bub-mc-results","bub-mc-sims","bub-mc-start-yr","bub-mc-stack",
                     "bub-mc-unblocked","bub-mc-window","bub-mc-years",
+                    # Raw MC (model-free Monte Carlo, added 2026-11-10)
+                    "bub-mc-raw-sims","bub-mc-raw-years","bub-mc-raw-window",
+                    "bub-mc-raw-trend","bub-mc-raw-bins","bub-mc-raw-regime",
+                    "bub-mc-lines","bub-mc-extremes",
                     # User Model P1/P2 anchor points (added 2026-04-26)
                     "um-p1-year","um-p1-price","um-p2-year","um-p2-price",
                     # Time Machine (as-of date, added 2026-08-10)

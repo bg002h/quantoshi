@@ -48,11 +48,22 @@ SNAPSHOT_DEFAULTS: dict[str, Any] = {
     'bub-mc-bins:value': 5,
     'bub-mc-enable:value': [],
     'bub-mc-entry-q:value': 10,
+    'bub-mc-extremes:value': [],
     'bub-mc-freq:value': 'Monthly',
     'bub-mc-infl:value': 0,
+    'bub-mc-lines:value': 20,
     'bub-mc-loaded:data': 0,
     'bub-mc-model-src:value': 'bub',
     'bub-mc-paths:value': [],
+    # Raw MC (model-free Monte Carlo, appended 2026-11-10). The window is a
+    # static literal like bub-mc-window: the layout's slider max is the
+    # current year, the default value is not re-derived from it.
+    'bub-mc-raw-bins:value': 5,
+    'bub-mc-raw-regime:value': [0, 1, 2, 3, 4],
+    'bub-mc-raw-sims:value': 1000,
+    'bub-mc-raw-trend:value': 'power',
+    'bub-mc-raw-window:value': [2010, 2026],
+    'bub-mc-raw-years:value': 40,
     'bub-mc-regime:value': [0, 1, 2, 3, 4],
     'bub-mc-rendered-key:data': None,
     'bub-mc-results:data': None,

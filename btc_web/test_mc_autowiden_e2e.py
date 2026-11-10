@@ -1,5 +1,5 @@
-"""End-to-end: a real tick of Tab 1's MC "Activate" widens the X range; a
-programmatic enable does not.
+"""End-to-end: a real tick of Tab 1's MC "Activate" re-frames the X range on
+the simulation (current year -> start + 10); a programmatic enable does not.
 
 The unit half (test_mc_autowiden.py) runs the JS under node. This is the
 browser wiring: does a real click reach the clientside callback, and does a
@@ -11,6 +11,7 @@ Run:      cd /scratch/code/bitcoinprojections && btc_venv/bin/python3 \
               -m pytest btc_web/test_mc_autowiden_e2e.py -v -n0 -p no:randomly
           (dev server must be running on :8050)
 """
+import datetime
 import time
 
 import pytest
@@ -75,7 +76,7 @@ def resid_page():
     p.stop()
 
 
-def test_a_real_tick_widens_the_right_edge_to_start_plus_ten(page):
+def test_a_real_tick_frames_current_year_to_start_plus_ten(page):
     lo, hi = _slider(page, "bub-xrange")
     box = page.locator(_MC_BOX).first
     box.scroll_into_view_if_needed()
@@ -84,7 +85,7 @@ def test_a_real_tick_widens_the_right_edge_to_start_plus_ten(page):
         _slider(page, "bub-xrange")))
     assert got, f"X range never widened from [{lo}, {hi}]"
     # Cached start years are 2028 / 2031 / 2035; the default is the first.
-    assert got[0] == lo
+    assert got[0] == datetime.date.today().year
     assert got[1] in {y + MC_AUTOWIDEN_YEARS for y in (2028, 2031, 2035)}, got
 
 

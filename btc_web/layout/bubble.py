@@ -65,11 +65,15 @@ XRANGE_MAX = 2080
 # 200 per scenario). Mirrored by snapshot_defaults 'bub-mc-sims:value'.
 MC_DEFAULT_SIMS = 200
 
-# ── MC auto-widen ────────────────────────────────────────────────────────
-# A cached MC run starts in 2028/2031/2035 and the default X window ends 2033,
-# so a freshly enabled fan would be a sliver at the right edge. When the USER
-# ticks bub-mc-enable, the right edge moves out to start year + this many
-# years. Never shrinks a wider window, never moves the left edge.
+# ── MC auto-range ("auto-widen") ─────────────────────────────────────────
+# A cached MC run starts in 2028/2031/2035 and the default X window is
+# 2010-2033 on a log axis, so a freshly enabled fan would be a sliver at the
+# right edge. When the USER ticks bub-mc-enable the window becomes
+#   [current year, max(right edge, start year + MC_AUTOWIDEN_YEARS)]
+# i.e. the left edge goes to this year (whichever side of it it was on) and
+# the right edge only ever moves out. Unticking MC does not put the old
+# window back. If this year is not left of the new right edge (the cached
+# start years are long past), the left edge is left alone.
 #
 # "The user ticked it" is the whole guard: assets/mc_autowiden.js timestamps a
 # real click on the checklist, and this callback acts only on a fresh stamp,
@@ -89,21 +93,25 @@ MC_AUTOWIDEN_CLICK_MS = 3000
 MC_AUTOWIDEN_JS = """
 function(mc, xrange, startYr, mode, cta) {
     var NU = window.dash_clientside.no_update;
+    var now = Date.now();
     var at = window.__qsMcEnableClickAt || 0;
     window.__qsMcEnableClickAt = 0;
-    if (!at || Date.now() - at > %(click_ms)s) { return NU; }
+    if (!at || now - at > %(click_ms)s) { return NU; }
     if (mode && mode !== "%(price)s") { return NU; }
     if (Array.isArray(cta) && cta.indexOf("yes") >= 0) { return NU; }
     if (!Array.isArray(mc) || mc.indexOf("yes") < 0) { return NU; }
     if (!Array.isArray(xrange) || xrange.length !== 2) { return NU; }
+    if (typeof xrange[0] !== "number" || typeof xrange[1] !== "number") { return NU; }
     if (startYr === null || startYr === undefined || startYr === "") { return NU; }
     var start = Number(startYr);
     if (!isFinite(start)) { return NU; }
-    var want = Math.min(%(xmax)s, start + %(span)s);
-    if (!(xrange[1] < want)) { return NU; }
-    return [xrange[0], want];
+    var hi = Math.max(xrange[1], Math.min(%(xmax)s, start + %(span)s));
+    var lo = Math.max(%(xmin)s, new Date(now).getFullYear());
+    if (!(lo < hi)) { lo = xrange[0]; }
+    if (lo === xrange[0] && hi === xrange[1]) { return NU; }
+    return [lo, hi];
 }
-""" % {"xmax": XRANGE_MAX, "span": MC_AUTOWIDEN_YEARS,
+""" % {"xmin": XRANGE_MIN, "xmax": XRANGE_MAX, "span": MC_AUTOWIDEN_YEARS,
        "click_ms": MC_AUTOWIDEN_CLICK_MS, "price": DEFAULT_MODE}
 
 # Sets the X window to the current calendar year. Y is deliberately left alone:

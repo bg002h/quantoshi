@@ -1,8 +1,10 @@
-"""Tab 1: turning MC on widens the X range so the simulation is visible.
+"""Tab 1: turning MC on re-frames the X range on the simulation.
 
-A cached MC run starts in 2028/2031/2035 and the default X range ends 2033, so
-without this the fan occupies a sliver at the right edge. When the USER ticks
-"Activate", the right edge moves out to start year + MC_AUTOWIDEN_YEARS.
+A cached MC run starts in 2028/2031/2035 and the default X range is 2010-2033
+on a log axis, so without this the fan occupies a sliver at the right edge.
+When the USER ticks "Activate", the range becomes
+[current year, start year + MC_AUTOWIDEN_YEARS] (the right edge only ever
+moves out).
 
 Two halves, both tested here:
   * assets/mc_autowiden.js — capture-phase click listener that timestamps a
@@ -15,6 +17,7 @@ Two halves, both tested here:
 The JS is executed under node. Browser wiring (does a real tick reach the
 callback?) is covered by test_mc_autowiden_e2e.py.
 """
+import datetime
 import json
 import pathlib
 import shutil
@@ -92,15 +95,24 @@ class TestRegistration:
 
 # ── the decision logic, executed ────────────────────────────────────────────
 
+def _ms(year):
+    """Mid-June of `year`, in ms: far from a year boundary in any timezone."""
+    return int(datetime.datetime(
+        year, 6, 15, 12, tzinfo=datetime.timezone.utc).timestamp() * 1000)
+
+
+_YEAR = 2026            # "today" inside the harness
+
 _HARNESS = r"""
 const NU = '__NU__';
-let now = 1000000;
+let now = %(now)d;
 Date.now = () => now;
 const window = {dash_clientside: {no_update: NU}};
 globalThis.window = window;
 const fn = (%(fn)s);
 const out = [];
 for (const c of %(cases)s) {
+    if (c.nowMs !== undefined) now = c.nowMs;
     if (c.clickAgoMs === null) window.__qsMcEnableClickAt = 0;
     else if (c.clickAgoMs !== undefined) window.__qsMcEnableClickAt = now - c.clickAgoMs;
     out.push(fn(c.mc, c.xr, c.start, c.mode, c.cta));
@@ -110,7 +122,8 @@ console.log(JSON.stringify(out));
 
 
 def _run(cases):
-    script = _HARNESS % {"fn": MC_AUTOWIDEN_JS, "cases": json.dumps(cases)}
+    script = _HARNESS % {"fn": MC_AUTOWIDEN_JS, "cases": json.dumps(cases),
+                         "now": _ms(_YEAR)}
     res = subprocess.run([_NODE, "-e", script], capture_output=True,
                          text=True, timeout=30)
     assert res.returncode == 0, res.stderr
@@ -123,23 +136,49 @@ ON, OFF = ["yes"], []
 
 @needs_node
 class TestDecision:
-    def test_user_tick_widens_right_edge_to_start_plus_ten(self):
+    def test_user_tick_frames_current_year_to_start_plus_ten(self):
         assert _run([dict(clickAgoMs=5, mc=ON, xr=[2010, 2033], start=2028)]) \
-            == [[2010, 2038]]
+            == [[_YEAR, 2038]]
 
-    def test_left_edge_is_never_moved(self):
-        assert _run([dict(clickAgoMs=5, mc=ON, xr=[2024, 2030], start=2031)]) \
-            == [[2024, 2041]]
+    @pytest.mark.parametrize("xr,start,want", [
+        ([2010, 2033], 2028, [_YEAR, 2038]),   # the default view
+        ([2024, 2030], 2031, [_YEAR, 2041]),   # left edge below this year
+        ([2030, 2032], 2031, [_YEAR, 2041]),   # ... and above it
+    ])
+    def test_left_edge_moves_to_the_current_year(self, xr, start, want):
+        assert _run([dict(clickAgoMs=5, mc=ON, xr=xr, start=start)]) == [want]
 
-    def test_a_wider_range_is_never_shrunk(self):
-        assert _run([dict(clickAgoMs=5, mc=ON, xr=[2010, 2060], start=2028),
-                     dict(clickAgoMs=5, mc=ON, xr=[2010, 2038], start=2028)]) \
+    def test_left_edge_follows_the_clock(self):
+        assert _run([dict(nowMs=_ms(2031), clickAgoMs=5, mc=ON,
+                          xr=[2010, 2033], start=2035)]) == [[2031, 2045]]
+
+    def test_right_edge_is_never_pulled_in(self):
+        assert _run([dict(clickAgoMs=5, mc=ON, xr=[2010, 2060], start=2028)]) \
+            == [[_YEAR, 2060]]
+
+    def test_a_range_already_framed_is_a_no_op(self):
+        assert _run([dict(clickAgoMs=5, mc=ON, xr=[_YEAR, 2038], start=2028),
+                     dict(clickAgoMs=5, mc=ON, xr=[_YEAR, 2060], start=2028)]) \
             == [NU, NU]
 
     def test_clamped_to_the_slider_maximum(self):
         start = XRANGE_MAX - 3
         assert _run([dict(clickAgoMs=5, mc=ON, xr=[XRANGE_MIN, 2033], start=start)]) \
-            == [[XRANGE_MIN, XRANGE_MAX]]
+            == [[_YEAR, XRANGE_MAX]]
+
+    def test_left_edge_stays_put_when_this_year_is_not_left_of_the_right_edge(self):
+        """Years from now the cached start years are in the past. Never emit
+        an empty or inverted range: fall back to moving the right edge only."""
+        assert _run([dict(nowMs=_ms(2045), clickAgoMs=5, mc=ON,
+                          xr=[2010, 2033], start=2028),
+                     dict(nowMs=_ms(2038), clickAgoMs=5, mc=ON,
+                          xr=[2010, 2033], start=2028)]) \
+            == [[2010, 2038], [2010, 2038]]
+
+    def test_left_edge_never_goes_below_the_slider_minimum(self):
+        assert _run([dict(nowMs=_ms(XRANGE_MIN - 5), clickAgoMs=5, mc=ON,
+                          xr=[2015, 2033], start=2028)]) \
+            == [[XRANGE_MIN, 2038]]
 
     def test_write_without_a_click_is_ignored(self):
         """Share-link restore / Time Machine / any programmatic write: the
@@ -156,7 +195,7 @@ class TestDecision:
         real click inside the window cannot ride on it."""
         assert _run([dict(clickAgoMs=5, mc=ON, xr=[2010, 2033], start=2028),
                      dict(mc=ON, xr=[2010, 2033], start=2028)]) \
-            == [[2010, 2038], NU]
+            == [[_YEAR, 2038], NU]
 
     def test_unticking_does_nothing_and_still_consumes_the_click(self):
         assert _run([dict(clickAgoMs=5, mc=OFF, xr=[2010, 2033], start=2028),
@@ -193,7 +232,7 @@ class TestDecision:
     def test_price_view_widens(self, mode):
         # None: the view store has not hydrated, which means the default view.
         assert _run([dict(clickAgoMs=5, mc=ON, xr=[2010, 2033], start=2028,
-                          mode=mode, cta=[])]) == [[2010, 2038]]
+                          mode=mode, cta=[])]) == [[_YEAR, 2038]]
 
     def test_custom_time_axis_is_left_alone(self):
         """With CTA on, update_bubble yields the chart to the CTA callback and
@@ -203,7 +242,7 @@ class TestDecision:
 
     def test_numeric_string_start_year_is_accepted(self):
         assert _run([dict(clickAgoMs=5, mc=ON, xr=[2010, 2033], start="2031")]) \
-            == [[2010, 2041]]
+            == [[_YEAR, 2041]]
 
 
 _LISTENER_HARNESS = r"""

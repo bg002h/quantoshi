@@ -1,5 +1,6 @@
 """Figure builders, fuzz tests, financial math."""
 import plotly.graph_objects as go
+import pytest
 from btc_core import BubbleModel
 from figures import (_apply_watermark, _FREQ_STEP_DAYS,
                      build_bubble_figure, build_heatmap_figure,
@@ -1248,26 +1249,124 @@ def test_add_mc_spaghetti_returns_n_traces():
         f"expected 100 new traces, got {n_final - n_initial}"
 
 
-def test_add_mc_spaghetti_color_gradient_terminal_order():
-    """RdYlGn cmap: lowest terminal = red, highest terminal = green."""
+def test_add_mc_spaghetti_single_neutral_color():
+    """Every example path is drawn in ONE dark neutral (colors.MC_PATH_COLOR).
+
+    Was an RdYlGn gradient keyed on the terminal value; the pale-yellow middle
+    of that scale vanished on the cream plot background and red/green is the
+    axis a deuteranomalous reader cannot separate.
+    """
     from figures.bubble import _add_mc_spaghetti
+    from colors import MC_PATH_COLOR, _hex_to_rgb
     import numpy as np
     import plotly.graph_objects as go
 
     fig = go.Figure()
     paths = np.array([
-        [0, 0, 0, 0],   # lowest final
-        [0, 1, 2, 3],
-        [0, 2, 4, 6],   # highest final
+        [1.0, 1.0, 1.0, 1.0],   # lowest final
+        [1.0, 2.0, 3.0, 4.0],
+        [1.0, 3.0, 5.0, 7.0],   # highest final
     ])
-    t_axis = np.arange(4)
+    _add_mc_spaghetti(fig, paths, np.arange(4), n_display=3)
+    colors = {t.line.color for t in fig.data}
+    assert len(fig.data) == 3
+    assert len(colors) == 1, f"expected one shared colour, got {colors}"
+    r, g, b = _hex_to_rgb(MC_PATH_COLOR)
+    assert colors.pop().startswith(f"rgba({r},{g},{b},"), \
+        "example paths must use colors.MC_PATH_COLOR"
+    # dark + neutral: low luminance, no hue (r == g == b within a few counts)
+    assert max(r, g, b) <= 0x60, "MC_PATH_COLOR must be dark"
+    assert max(r, g, b) - min(r, g, b) <= 8, "MC_PATH_COLOR must be neutral"
+
+
+def test_add_mc_spaghetti_paths_stay_thin():
+    """Example paths are hairlines flagged to KEEP their width.
+
+    assets/chart_responsive.js restyles every line trace to the user's trace
+    width (3.75 px on desktop). Applied to the example paths that buries the
+    fan under a black slab, so each path carries meta.qs_keep_width and the
+    script leaves it alone (test_chart_responsive.py covers the JS half).
+    """
+    from figures.bubble import _add_mc_spaghetti
+    from colors import MC_PATH_WIDTH, TRACE_WIDTH
+    import plotly.graph_objects as go
+    import numpy as np
+
+    fig = go.Figure()
+    _add_mc_spaghetti(fig, np.ones((5, 4)), np.arange(4), n_display=5)
+
+    assert len(fig.data) == 5
+    assert 0 < MC_PATH_WIDTH <= TRACE_WIDTH / 2
+    for t in fig.data:
+        assert t.line.width == MC_PATH_WIDTH
+        assert t.meta == {"qs_keep_width": True}
+
+
+def _path_alpha(trace):
+    return float(trace.line.color.rstrip(")").split(",")[-1])
+
+
+def test_mc_path_alpha_fades_as_lines_are_added():
+    """A few example paths are distinct lines; 200 of them are a density cloud.
+
+    At a fixed alpha 200 paths paint a black slab over the fan. The summed
+    alpha is capped at colors.MC_PATH_ALPHA_BUDGET instead, so the fan's amber
+    shows through however many paths are drawn.
+    """
+    from figures.bubble import _mc_path_alpha
+    from colors import MC_PATH_ALPHA, MC_PATH_ALPHA_BUDGET
+
+    assert _mc_path_alpha(1) == MC_PATH_ALPHA
+    assert _mc_path_alpha(8) == MC_PATH_ALPHA
+    assert _mc_path_alpha(200) == pytest.approx(0.04)
+    counts = (1, 8, 16, 32, 64, 128, 200, 400, 800, 1600, 3200)
+    alphas = [_mc_path_alpha(n) for n in counts]
+    assert alphas == sorted(alphas, reverse=True)
+    assert all(a > 0 for a in alphas)
+    for n, a in zip(counts, alphas):
+        assert n * a <= MC_PATH_ALPHA_BUDGET + 1e-9
+
+
+def test_add_mc_spaghetti_uses_the_count_dependent_alpha():
+    from figures.bubble import _add_mc_spaghetti, _mc_path_alpha
+    import numpy as np
+    import plotly.graph_objects as go
+
+    for n in (8, 200):
+        fig = go.Figure()
+        _add_mc_spaghetti(fig, np.ones((200, 4)), np.arange(4), n_display=n)
+        assert len(fig.data) == n
+        alphas = {_path_alpha(t) for t in fig.data}
+        assert len(alphas) == 1
+        assert alphas.pop() == pytest.approx(_mc_path_alpha(n), abs=5e-4)
+
+
+def test_add_mc_spaghetti_ships_float32():
+    """200 paths are the bulk of the Tab-1 MC payload; Dash sends numpy arrays
+    as base64 of the raw bytes, so float32 halves it (rounding would not)."""
+    from figures.bubble import _add_mc_spaghetti
+    import numpy as np
+    import plotly.graph_objects as go
+
+    fig = go.Figure()
+    paths = 50_000.0 * np.exp(np.linspace(0, 3, 12)).reshape(3, 4)
+    t_axis = np.linspace(18.5, 22.5, 4)
     _add_mc_spaghetti(fig, paths, t_axis, n_display=3)
-    colors = [t.line.color for t in fig.data]
-    assert len(colors) == 3
-    def red(s):
-        return int(s.split("(")[1].split(",")[0])
-    assert red(colors[0]) > red(colors[-1]), \
-        f"first trace should be redder than last: {colors}"
+    for t, row in zip(fig.data, paths):
+        assert t.x.dtype == np.float32 and t.y.dtype == np.float32
+        np.testing.assert_allclose(t.y, row, rtol=1e-6)
+        np.testing.assert_allclose(t.x, t_axis, rtol=1e-6)
+
+
+def test_tab1_default_sims_is_the_whole_cached_scenario():
+    """Tab 1 opens on the density-cloud look: all 200 cached paths."""
+    from snapshot_defaults import SNAPSHOT_DEFAULTS
+    from tab_defaults import bubble_defaults
+    from layout.bubble import MC_DEFAULT_SIMS
+
+    assert MC_DEFAULT_SIMS == 200
+    assert SNAPSHOT_DEFAULTS["bub-mc-sims:value"] == MC_DEFAULT_SIMS
+    assert bubble_defaults()["mc_sims"] == MC_DEFAULT_SIMS
 
 
 def test_add_mc_spaghetti_handles_empty_paths():
@@ -1279,5 +1378,181 @@ def test_add_mc_spaghetti_handles_empty_paths():
     fig = go.Figure()
     _add_mc_spaghetti(fig, None, np.arange(5))
     _add_mc_spaghetti(fig, np.array([]).reshape(0, 5), np.arange(5))
+    assert len(fig.data) == 0
+
+
+# ── MC price fan on Tab 1 (_add_mc_fan) ──────────────────────────────────────
+
+def _fan_fixture(n_sims=200, n_steps=48, seed=3):
+    import numpy as np
+    rng = np.random.default_rng(seed)
+    paths = 50_000.0 * np.exp(
+        np.cumsum(rng.normal(0.01, 0.08, size=(n_sims, n_steps)), axis=1))
+    t_axis = np.linspace(18.5, 22.5, n_steps)   # years since genesis
+    return paths, t_axis
+
+
+def _by_name(fig):
+    return {t.name: t for t in fig.data if t.name}
+
+
+def test_add_mc_fan_draws_bands_and_median_from_all_paths():
+    """5–95% and 25–75% bands plus a median, each the per-step percentile of
+    EVERY path handed in (not of a display subsample)."""
+    from figures.bubble import _add_mc_fan
+    import numpy as np
+    import plotly.graph_objects as go
+
+    paths, t_axis = _fan_fixture()
+    fig = go.Figure()
+    _add_mc_fan(fig, paths, t_axis)
+    named = _by_name(fig)
+    assert set(named) == {"MC 5\u201395%", "MC 25\u201375%", "MC median"}
+    np.testing.assert_allclose(
+        np.asarray(named["MC median"].y, dtype=float),
+        np.percentile(paths, 50, axis=0), rtol=1e-6)
+    # each band = an unnamed upper edge followed by the named lower edge
+    # filled up to it
+    data = list(fig.data)
+    for name, lo, hi in (("MC 5\u201395%", 5, 95), ("MC 25\u201375%", 25, 75)):
+        i = data.index(named[name])
+        assert data[i].fill == "tonexty"
+        np.testing.assert_allclose(np.asarray(data[i].y, dtype=float),
+                                   np.percentile(paths, lo, axis=0), rtol=1e-6)
+        np.testing.assert_allclose(np.asarray(data[i - 1].y, dtype=float),
+                                   np.percentile(paths, hi, axis=0), rtol=1e-6)
+    for t in fig.data:
+        np.testing.assert_allclose(np.asarray(t.x, dtype=float), t_axis)
+
+
+def test_add_mc_fan_is_amber_with_tab1_strength_fills():
+    """Same amber and dotted median as the MC fan on the other tabs, but the
+    fills use the Tab-1 alphas: at Tab 1's zoom (8 decades of price in one
+    graph) the shared 0.08 / 0.15 fills on a 14-px band are invisible."""
+    from figures.bubble import _add_mc_fan
+    from colors import (MC_AMBER, MC_PRICE_BAND_OUTER_ALPHA,
+                        MC_PRICE_BAND_INNER_ALPHA, MC_MEDIAN_ALPHA, _hex_alpha)
+    import plotly.graph_objects as go
+
+    paths, t_axis = _fan_fixture()
+    fig = go.Figure()
+    _add_mc_fan(fig, paths, t_axis)
+    named = _by_name(fig)
+    assert named["MC 5\u201395%"].fillcolor == _hex_alpha(MC_AMBER, MC_PRICE_BAND_OUTER_ALPHA)
+    assert named["MC 25\u201375%"].fillcolor == _hex_alpha(MC_AMBER, MC_PRICE_BAND_INNER_ALPHA)
+    assert named["MC median"].line.color == _hex_alpha(MC_AMBER, MC_MEDIAN_ALPHA)
+    assert named["MC median"].line.dash == "dot"
+    assert all(t.showlegend for t in named.values())
+
+
+def test_tab1_fan_fills_are_stronger_than_the_shared_ones_and_graduated():
+    from colors import (MC_BAND_OUTER_ALPHA, MC_BAND_INNER_ALPHA,
+                        MC_PRICE_BAND_OUTER_ALPHA, MC_PRICE_BAND_INNER_ALPHA)
+    assert MC_PRICE_BAND_OUTER_ALPHA >= 2 * MC_BAND_OUTER_ALPHA
+    assert MC_PRICE_BAND_INNER_ALPHA >= 2 * MC_BAND_INNER_ALPHA
+    assert MC_PRICE_BAND_OUTER_ALPHA < MC_PRICE_BAND_INNER_ALPHA < 0.5, \
+        "outer lighter than inner, and the price line stays readable through it"
+
+
+def test_tab1_fan_does_not_restyle_the_shared_band_lists():
+    """The Tab-1 alphas are passed per call; the fan on the other tabs
+    (mc_overlay._MC_BANDS / _GHOST_BANDS) keeps its deliberate 0.08 / 0.15."""
+    from figures.bubble import _add_mc_fan
+    import mc_overlay
+    from colors import (MC_AMBER, MC_GHOST_GRAY, MC_BAND_OUTER_ALPHA,
+                        MC_BAND_INNER_ALPHA, MC_GHOST_OUTER_ALPHA,
+                        MC_GHOST_INNER_ALPHA, _hex_alpha)
+    import plotly.graph_objects as go
+
+    paths, t_axis = _fan_fixture()
+    _add_mc_fan(go.Figure(), paths, t_axis)
+    _add_mc_fan(go.Figure(), paths, t_axis, reference=True)
+    assert [b[2] for b in mc_overlay._MC_BANDS] == [
+        _hex_alpha(MC_AMBER, MC_BAND_OUTER_ALPHA),
+        _hex_alpha(MC_AMBER, MC_BAND_INNER_ALPHA)]
+    assert [b[2] for b in mc_overlay._GHOST_BANDS] == [
+        _hex_alpha(MC_GHOST_GRAY, MC_GHOST_OUTER_ALPHA),
+        _hex_alpha(MC_GHOST_GRAY, MC_GHOST_INNER_ALPHA)]
+
+
+def test_add_mc_fan_reference_mode_is_gray_and_labelled():
+    """reference=True (regime filter on a cached scenario): the fan is the
+    all-regimes reference, drawn gray and NAMED in the legend so the reader
+    can tell it is not the filtered result."""
+    from figures.bubble import _add_mc_fan
+    from colors import (MC_GHOST_GRAY, MC_PRICE_BAND_OUTER_ALPHA,
+                        MC_PRICE_BAND_INNER_ALPHA, MC_GHOST_MEDIAN_ALPHA,
+                        _hex_alpha)
+    import plotly.graph_objects as go
+
+    paths, t_axis = _fan_fixture()
+    fig = go.Figure()
+    _add_mc_fan(fig, paths, t_axis, reference=True)
+    named = _by_name(fig)
+    assert set(named) == {"MC ref 5\u201395%", "MC ref 25\u201375%", "MC ref median"}
+    assert named["MC ref 5\u201395%"].fillcolor == _hex_alpha(MC_GHOST_GRAY, MC_PRICE_BAND_OUTER_ALPHA)
+    assert named["MC ref 25\u201375%"].fillcolor == _hex_alpha(MC_GHOST_GRAY, MC_PRICE_BAND_INNER_ALPHA)
+    assert named["MC ref median"].line.color == _hex_alpha(MC_GHOST_GRAY, MC_GHOST_MEDIAN_ALPHA)
+    assert all(t.showlegend for t in named.values()), \
+        "the reference fan must appear in the legend on Tab 1"
+
+
+def test_add_mc_fan_band_edges_are_explicitly_transparent():
+    """width=0 edge lines need an explicit transparent colour, or mobile
+    browsers paint phantom hairlines in the default colour cycle."""
+    from figures.bubble import _add_mc_fan
+    from colors import BLACK_A0
+    import plotly.graph_objects as go
+
+    paths, t_axis = _fan_fixture()
+    fig = go.Figure()
+    _add_mc_fan(fig, paths, t_axis)
+    edges = [t for t in fig.data if t.line.width == 0]
+    assert len(edges) == 4
+    assert all(t.line.color == BLACK_A0 for t in edges)
+    assert all(t.hoverinfo == "skip" for t in edges)
+
+
+def test_add_mc_fan_median_hover_names_the_calendar_date():
+    """The chart's x is years-since-genesis; the median's hover must show a
+    date, like every other line on Tab 1."""
+    from figures.bubble import _add_mc_fan
+    from figures.common import _HOVER_FMT_USD
+    import plotly.graph_objects as go
+
+    paths, t_axis = _fan_fixture()
+    fig = go.Figure()
+    _add_mc_fan(fig, paths, t_axis)
+    med = _by_name(fig)["MC median"]
+    assert med.hovertemplate == _HOVER_FMT_USD
+    assert len(med.customdata) == len(t_axis)
+    first = med.customdata[0]
+    first = first if isinstance(first, str) else first[0]
+    assert "2028" in first, f"t=18.5 is early 2028; got {first!r}"
+
+
+def test_add_mc_fan_leaves_existing_traces_untouched():
+    """Only the fan's own traces get hover data — never the chart's."""
+    from figures.bubble import _add_mc_fan
+    import plotly.graph_objects as go
+
+    paths, t_axis = _fan_fixture()
+    fig = go.Figure(go.Scatter(x=[18.6, 19.0], y=[1.0, 2.0], name="pre"))
+    _add_mc_fan(fig, paths, t_axis)
+    assert fig.data[0].name == "pre"
+    assert fig.data[0].customdata is None
+    assert fig.data[0].hovertemplate is None
+    assert len(fig.data) == 1 + 5
+
+
+def test_add_mc_fan_handles_empty_paths():
+    """None / zero-row input is a no-op, never an exception."""
+    from figures.bubble import _add_mc_fan
+    import plotly.graph_objects as go
+    import numpy as np
+
+    fig = go.Figure()
+    _add_mc_fan(fig, None, np.arange(5))
+    _add_mc_fan(fig, np.array([]).reshape(0, 5), np.arange(5))
     assert len(fig.data) == 0
 

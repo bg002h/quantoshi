@@ -85,6 +85,12 @@
                 s.grid_minor_width, s.grid_minor_color, s.pt_color].join("|");
     }
 
+    /* A trace opts out of the trace-width override with meta.qs_keep_width
+       (Tab-1 MC example paths: hairlines, or they bury the fan). */
+    function keepsWidth(t) {
+        return !!(t && t.meta && typeof t.meta === 'object' && t.meta.qs_keep_width);
+    }
+
     function needsApply(g, id, fp) {
         if (!g || !g.data || g.data.length === 0) return false;
         var last = _applied[id];
@@ -93,6 +99,7 @@
         /* If Dash replaced the figure, line widths drop back to server-side
            values and won't match our target. Re-apply once. */
         for (var i = 0; i < g.data.length; i++) {
+            if (keepsWidth(g.data[i])) continue;
             if (g.data[i].line && g.data[i].line.width != null) {
                 if (Math.abs(g.data[i].line.width - last.targetTraceWidth) > 0.1) return true;
                 return false;
@@ -110,7 +117,7 @@
         /* ── Trace restyling ──────────────────────────────────────────── */
         var li=[], lw=[], ptIdx=[], ptColors=[];
         g.data.forEach(function(t, i) {
-            if (t.line && t.line.width != null) {
+            if (t.line && t.line.width != null && !keepsWidth(t)) {
                 li.push(i);
                 lw.push(targetTraceWidth);
             }

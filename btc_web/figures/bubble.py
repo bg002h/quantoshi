@@ -6,7 +6,6 @@ import math
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from plotly.colors import sample_colorscale as _plotly_sample_colorscale
 from typing import Any
 
 import _app_ctx
@@ -21,6 +20,9 @@ from colors import (
     MC_LEGEND_BG_ALPHA, LOG_MINOR_GRID_GRAY, ANNOT_TEXT_ALPHA,
     HALVING_LINE_COLOR, HALVING_PAST_OPACITY, HALVING_FUTURE_OPACITY,
     TRACE_WIDTH_HALVING, MA_LINE_COLOR, TRACE_WIDTH_MA,
+    MC_PATH_COLOR, MC_PATH_ALPHA, MC_PATH_ALPHA_BUDGET, MC_PATH_WIDTH, BLACK_A0,
+    MC_PRICE_BAND_OUTER_ALPHA, MC_PRICE_BAND_INNER_ALPHA,
+    MC_AMBER, MC_GHOST_GRAY,
 )
 from bub_ma import MA_WINDOWS, rolling_mean
 
@@ -66,14 +68,29 @@ def _r2_all_suffix(mdl):
     return f"  \u00b7 all={r2:.2f}" if r2 > -9.99 else "  \u00b7 all\u226a0"
 
 
+def _mc_path_alpha(n):
+    """Alpha of each of `n` example paths.
+
+    colors.MC_PATH_ALPHA while the paths are few enough to read as separate
+    lines; beyond that the summed alpha is held at MC_PATH_ALPHA_BUDGET, so
+    200 paths overlap into a density cloud instead of a black slab.
+    """
+    return min(MC_PATH_ALPHA, MC_PATH_ALPHA_BUDGET / max(int(n), 1))
+
+
 def _add_mc_spaghetti(fig, paths, t_axis, n_display=100):
     """Add up to n_display sample paths from a (n_sims, n_steps) array.
 
-    Subsamples deterministically (stride-based) for reproducibility, then
-    color-grades each path by its terminal value using the RdYlGn cmap
-    (lowest = red, highest = green). Each trace has line.width=0.6 and
-    hoverinfo='skip' so the underlying price scatter remains the
-    authoritative hover target.
+    Subsamples deterministically (stride-based) for reproducibility. Every
+    path is drawn in one dark neutral (colors.MC_PATH_COLOR) whose alpha
+    falls with the number drawn (_mc_path_alpha): the paths are
+    interchangeable examples, and the spread they used to encode by colour is
+    carried by the fan (_add_mc_fan). Arrays ship as float32 -- 200 paths are
+    the bulk of the MC payload. Each trace is a hairline
+    (colors.MC_PATH_WIDTH) flagged meta.qs_keep_width so
+    assets/chart_responsive.js does not fatten it to the user's trace width
+    and bury the fan, and has hoverinfo='skip' so the underlying price
+    scatter remains the authoritative hover target.
 
     Args:
         fig: go.Figure to mutate.
@@ -87,25 +104,72 @@ def _add_mc_spaghetti(fig, paths, t_axis, n_display=100):
         return
     stride = max(1, paths.shape[0] // n_display)
     sample = paths[::stride][:n_display]
-    finals = sample[:, -1]
-    span = max(np.ptp(finals), 1e-12)
-    norm = (finals - finals.min()) / span
-    # Use Plotly's built-in RdYlGn colorscale (matplotlib not installed on prod).
-    # sample_colorscale returns ['rgb(r, g, b)']; we splice in alpha=0.45.
-    for i, path in enumerate(sample):
-        rgb_str = _plotly_sample_colorscale("RdYlGn", float(norm[i]))[0]
-        # rgb_str is "rgb(r, g, b)"; convert to rgba(r, g, b, 0.45)
-        inner = rgb_str[rgb_str.find("(") + 1 : rgb_str.find(")")]
-        color = f"rgba({inner}, 0.45)"
+    color = _hex_alpha(MC_PATH_COLOR, round(_mc_path_alpha(len(sample)), 4))
+    x32 = np.asarray(t_axis, dtype=np.float32)
+    for i, path in enumerate(np.asarray(sample, dtype=np.float32)):
         fig.add_trace(go.Scatter(
-            x=t_axis, y=path,
+            x=x32, y=path,
             mode="lines",
-            line=dict(color=color, width=0.6),
+            line=dict(color=color, width=MC_PATH_WIDTH),
+            meta={"qs_keep_width": True},
             showlegend=(i == 0),
             name=("MC paths" if i == 0 else None),
             hoverinfo="skip",
             legendgroup="mc-spaghetti",
         ))
+
+
+_MC_FAN_PCTS = (0.05, 0.25, 0.50, 0.75, 0.95)
+
+
+def _add_mc_fan(fig, paths, t_axis, reference=False):
+    """Add the MC price fan: 5-95% and 25-75% bands plus the median.
+
+    Each edge is the per-step percentile of EVERY row of `paths`, so the fan
+    describes the whole scenario however few example lines are drawn on top
+    of it. Styling is the shared MC fan (mc_overlay._mc_build_traces) with
+    stronger Tab-1 fills (colors.MC_PRICE_BAND_*_ALPHA): amber,
+    or -- reference=True -- the gray "MC ref" style, used when a regime
+    filter is active on a cached scenario and the fan is therefore the
+    all-regimes reference rather than the filtered result.
+
+    Args:
+        fig: go.Figure to mutate. Its existing traces are not touched.
+        paths: np.ndarray (n_sims, n_steps), or None / 0-row -> no-op.
+        t_axis: np.ndarray (n_steps,) -- years since genesis.
+        reference: draw the gray all-regimes reference style.
+    """
+    if paths is None:
+        return
+    if not hasattr(paths, "shape") or paths.size == 0 or paths.shape[0] == 0:
+        return
+    from mc_overlay import _mc_build_traces, _MC_BANDS, _GHOST_BANDS
+    edges = np.percentile(paths, [100 * q for q in _MC_FAN_PCTS], axis=0)
+    fan = dict(zip(_MC_FAN_PCTS, edges))
+    # Same bands and labels as the shared fan, at Tab-1 strength: here the
+    # whole fan is a ~14-px ribbon, and the shared 0.08 / 0.15 fills vanish.
+    hue = MC_GHOST_GRAY if reference else MC_AMBER
+    alphas = (MC_PRICE_BAND_OUTER_ALPHA, MC_PRICE_BAND_INNER_ALPHA)
+    bands = [(lo, hi, _hex_alpha(hue, a), label)
+             for (lo, hi, _fill, label), a
+             in zip(_GHOST_BANDS if reference else _MC_BANDS, alphas)]
+    traces = _mc_build_traces(t_axis, fan, bands=bands,
+                              suppress_legend=reference)
+    for tr in traces:
+        if tr.line.width == 0:
+            # width=0 alone leaves the colour to the default cycle, which
+            # mobile browsers paint as a phantom hairline.
+            tr.line.color = BLACK_A0
+        if reference and tr.name:
+            # _mc_build_traces hides the reference fan from the legend (on
+            # the other tabs it sits behind a labelled live fan). Here it is
+            # the only fan, so it must say what it is.
+            tr.showlegend = True
+    # The chart's own traces already carry their date hover; give the fan's
+    # median the same, on a scratch figure so nothing else is re-stamped.
+    scratch = go.Figure(traces)
+    _add_date_hover(scratch, _app_ctx.M.genesis, fmt=_HOVER_FMT_USD)
+    fig.add_traces(list(scratch.data))
 
 
 # Opacity for the realized-price "reveal" segment (points AFTER the as-of

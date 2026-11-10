@@ -490,6 +490,7 @@ CTX_MENU_BG          = "#1E1E28"   # rgba(30,30,40,*)   — context menu / toolt
 DANGER_HIGHLIGHT     = "#FF6464"   # rgba(255,100,100,*)— table row danger highlight (FAQ)
 MC_AMBER             = "#DC7800"   # rgba(220,120,0,*)  — MC overlay amber bands / median line
 MC_GHOST_GRAY        = "#969696"   # rgba(150,150,150,*)— MC ghost/reference fan bands
+MC_PATH_COLOR        = "#303030"   # rgba(48,48,48,*)   — Tab-1 MC example paths (one dark neutral, CB-safe)
 BADGE_GLOW_RED       = "#8B0000"   # rgba(139,0,0,*)    — "NEW" badge text-shadow glow (dark red)
 
 # ════════════════════════════════════════════════════════════════════
@@ -694,6 +695,8 @@ TRACE_WIDTH_SUPPORT     = 1.5       # bubble support line
 TRACE_WIDTH_TODAY       = 2.0       # vertical "today" line
 TRACE_WIDTH_HALVING     = 1.4       # vertical halving lines
 TRACE_WIDTH_MA          = 1.6       # Tab-1 moving averages (bub-ma)
+MC_PATH_WIDTH           = 1.0       # Tab-1 MC example paths — hairlines; exempt from the
+                                    # chart_responsive.js width override (meta.qs_keep_width)
 TODAY_GLOW_WIDTH        = 6         # glow halo around today line
 GRID_MAJOR_WIDTH        = 1.0
 GRID_MINOR_WIDTH        = 0.8
@@ -728,10 +731,15 @@ RESIDUAL_LINE_OPACITY = 0.8    # residual overlay line
 # ── MC overlay opacities ──
 MC_BAND_OUTER_ALPHA   = 0.08   # MC 5-95% fan band fill
 MC_BAND_INNER_ALPHA   = 0.15   # MC 25-75% fan band fill
+MC_PRICE_BAND_OUTER_ALPHA = 0.22  # Tab-1 MC price fan 5-95% fill (amber, or gray reference) —
+MC_PRICE_BAND_INNER_ALPHA = 0.38  # Tab-1 25-75% fill; stronger: the band is ~14 px tall at Tab 1's zoom
 MC_GHOST_OUTER_ALPHA  = 0.06   # MC ghost ref 5-95% band
 MC_GHOST_INNER_ALPHA  = 0.12   # MC ghost ref 25-75% band
 MC_GHOST_MEDIAN_ALPHA = 0.4    # MC ghost median line
 MC_MEDIAN_ALPHA       = 0.9    # MC active median line
+MC_PATH_ALPHA         = 0.45   # Tab-1 MC example path lines — a few distinct lines
+MC_PATH_ALPHA_BUDGET  = 8.0    # cap on the SUM of path alphas: 200 paths -> 0.04 each, a density
+                               # cloud the fan shows through (0.45 x 200 is a black slab)
 MC_LEGEND_BG_ALPHA    = 0.7    # MC legend repositioned bg
 
 # ── Supercharge / Citadel band fills ──

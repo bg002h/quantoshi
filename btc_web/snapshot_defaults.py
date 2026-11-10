@@ -55,7 +55,7 @@ SNAPSHOT_DEFAULTS: dict[str, Any] = {
     'bub-mc-regime:value': [0, 1, 2, 3, 4],
     'bub-mc-rendered-key:data': None,
     'bub-mc-results:data': None,
-    'bub-mc-sims:value': 8,
+    'bub-mc-sims:value': 200,
     'bub-mc-start-yr:value': 2028,
     'bub-mc-stack:value': 1.0,
     'bub-mc-unblocked:data': None,

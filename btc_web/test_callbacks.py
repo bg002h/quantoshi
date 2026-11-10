@@ -1242,57 +1242,55 @@ class TestUpdateBubbleCallbackMC:
         the figure gains ≥50 spaghetti line traces in legendgroup
         'mc-spaghetti'. On dev (no MC cache), is_cached returns False and
         the test asserts only that update_bubble doesn't error."""
-        try:
-            with _patch_ctx("bub-qs"):
-                result = update_bubble(
-                    _first_render=1,
-                    sel_qs=[0.5], adv_qs=[], toggles=["shade", "show_data"],
-                    bubble_toggles=["show_comp"], xscale="log", yscale="log",
-                    xrange=[2010, 2033], yrange=[-1.5, 6.05], n_future=3,
-                    ptsize=3, ptalpha=0.3, stack=0, show_stack=[], use_lots=[],
-                    legend_pos="top-left", model_show=["bub"],
-                    lppl_n_freqs=[3], lppl_weighted=[], lppl_no_13=[],
-                    hyb_a_nlog=1, hyb_a_ncal=1,
-                    hyb_a_log1d="d", hyb_a_log2d="d",
-                    hyb_a_cal1d="u", hyb_a_cal2d="u",
-                    hyb_b_enabled=[], hyb_b_nlog=0, hyb_b_ncal=0,
-                    hyb_b_log1d="d", hyb_b_log2d="d",
-                    hyb_b_cal1d="u", hyb_b_cal2d="u",
-                    ep_a_nlog=1, ep_a_ncal=1,
-                    ep_a_log1d="d", ep_a_log2d="d",
-                    ep_a_cal1d="u", ep_a_cal2d="u",
-                    ep_b_enabled=[], ep_b_nlog=0, ep_b_ncal=0,
-                    ep_b_log1d="d", ep_b_log2d="d",
-                    ep_b_cal1d="u", ep_b_cal2d="u",
-                    decomp_model="", decomp_components=[],
-                    decomp_mode="individual",
-                    lots_data=[],
-                    palette_key="default",
-                    user_model_store=None,
-                    _redraw_tick=0,
-                    _hybppl_commit=0, _eppl_commit=0, _bm_commit=0,
-                    # MC params
-                    mc_enable=["yes"], mc_bins=5,
-                    mc_regime=[0, 1, 2, 3, 4],
-                    mc_sims=200, mc_years=40,
-                    mc_window=[2010, 2026],
-                    mc_start_yr=2031, mc_entry_q=10,
-                    _mc_loaded=None, mc_model_src="bub",
-                    pay_trigger=1, price_data=70000,
-                    mc_cached=None, pay_token=None,
-                    mc_unblocked=None, mc_auth=None,
-                    cta_active=[], qs_mode=[],
-                    scan_active=[], scan_q_val=None,
-                    sigma_mode="resqr",
-                    snapshot_pending=False,
-                    loaded_hash=None,
-                    active_chart_committed=None,
-                )
-        except TypeError as e:
-            # Signature mismatch — likely an unexpected keyword that doesn't
-            # exist on update_bubble. Adjust kwargs to match actual signature.
-            pytest.skip(f"update_bubble signature mismatch: {e}")
-            return
+        # No try/except around this call: it used to turn a signature
+        # mismatch into pytest.skip, which hid this test for months after
+        # `ma_sel` joined update_bubble. A mismatch must be a failure.
+        with _patch_ctx("bub-qs"):
+            result = update_bubble(
+                _first_render=1,
+                sel_qs=[0.5], adv_qs=[], toggles=["shade", "show_data"],
+                ma_sel=[],
+                bubble_toggles=["show_comp"], xscale="log", yscale="log",
+                xrange=[2010, 2033], yrange=[-1.5, 6.05], n_future=3,
+                ptsize=3, ptalpha=0.3, stack=0, show_stack=[], use_lots=[],
+                legend_pos="top-left", model_show=["bub"],
+                lppl_n_freqs=[3], lppl_weighted=[], lppl_no_13=[],
+                hyb_a_nlog=1, hyb_a_ncal=1,
+                hyb_a_log1d="d", hyb_a_log2d="d",
+                hyb_a_cal1d="u", hyb_a_cal2d="u",
+                hyb_b_enabled=[], hyb_b_nlog=0, hyb_b_ncal=0,
+                hyb_b_log1d="d", hyb_b_log2d="d",
+                hyb_b_cal1d="u", hyb_b_cal2d="u",
+                ep_a_nlog=1, ep_a_ncal=1,
+                ep_a_log1d="d", ep_a_log2d="d",
+                ep_a_cal1d="u", ep_a_cal2d="u",
+                ep_b_enabled=[], ep_b_nlog=0, ep_b_ncal=0,
+                ep_b_log1d="d", ep_b_log2d="d",
+                ep_b_cal1d="u", ep_b_cal2d="u",
+                decomp_model="", decomp_components=[],
+                decomp_mode="individual",
+                lots_data=[],
+                palette_key="default",
+                user_model_store=None,
+                _redraw_tick=0,
+                _hybppl_commit=0, _eppl_commit=0, _bm_commit=0,
+                # MC params
+                mc_enable=["yes"], mc_bins=5,
+                mc_regime=[0, 1, 2, 3, 4],
+                mc_sims=200, mc_years=40,
+                mc_window=[2010, 2026],
+                mc_start_yr=2031, mc_entry_q=10,
+                _mc_loaded=None, mc_model_src="bub",
+                pay_trigger=1, price_data=70000,
+                mc_cached=None, pay_token=None,
+                mc_unblocked=None, mc_auth=None,
+                cta_active=[], qs_mode=[],
+                scan_active=[], scan_q_val=None,
+                sigma_mode="resqr",
+                snapshot_pending=False,
+                loaded_hash=None,
+                active_chart_committed=None,
+            )
 
         # 8-tuple expected (Task 11 changed return shape)
         assert len(result) == 8, (
@@ -1306,6 +1304,142 @@ class TestUpdateBubbleCallbackMC:
             assert len(spaghetti) >= 50, (
                 f"expected ≥50 spaghetti traces with cached MC; "
                 f"got {len(spaghetti)}")
+
+    # ── MC price fan (bands + median from ALL paths of the scenario) ─────────
+
+    _START_YR, _ENTRY_Q, _YEARS = 2028, 10, 40
+
+    def _run(self, **over):
+        """update_bubble with MC on for a cached scenario; returns the figure.
+
+        Skips (never silently passes) when the MC cache is not loaded.
+        """
+        if not is_cached("bub", self._START_YR, float(self._ENTRY_Q), self._YEARS):
+            pytest.skip("MC cache not loaded")
+        kw = dict(
+            _first_render=1,
+            sel_qs=[0.5], adv_qs=[], toggles=["shade", "show_data"],
+            ma_sel=[],
+            bubble_toggles=["show_comp"], xscale="log", yscale="log",
+            xrange=[2010, 2040], yrange=[-1.5, 7.0], n_future=3,
+            ptsize=3, ptalpha=0.3, stack=0, show_stack=[], use_lots=[],
+            legend_pos="top-left", model_show=["bub"],
+            lppl_n_freqs=[3], lppl_weighted=[], lppl_no_13=[],
+            hyb_a_nlog=1, hyb_a_ncal=1,
+            hyb_a_log1d="d", hyb_a_log2d="d",
+            hyb_a_cal1d="u", hyb_a_cal2d="u",
+            hyb_b_enabled=[], hyb_b_nlog=0, hyb_b_ncal=0,
+            hyb_b_log1d="d", hyb_b_log2d="d",
+            hyb_b_cal1d="u", hyb_b_cal2d="u",
+            ep_a_nlog=1, ep_a_ncal=1,
+            ep_a_log1d="d", ep_a_log2d="d",
+            ep_a_cal1d="u", ep_a_cal2d="u",
+            ep_b_enabled=[], ep_b_nlog=0, ep_b_ncal=0,
+            ep_b_log1d="d", ep_b_log2d="d",
+            ep_b_cal1d="u", ep_b_cal2d="u",
+            decomp_model="", decomp_components=[],
+            decomp_mode="individual",
+            lots_data=[], palette_key="default", user_model_store=None,
+            _redraw_tick=0, _hybppl_commit=0, _eppl_commit=0, _bm_commit=0,
+            mc_enable=["yes"], mc_bins=5, mc_regime=[0, 1, 2, 3, 4],
+            mc_sims=8, mc_years=self._YEARS, mc_window=[2010, 2026],
+            mc_start_yr=self._START_YR, mc_entry_q=self._ENTRY_Q,
+            _mc_loaded=None, mc_model_src="bub",
+            pay_trigger=1, price_data=70000,
+            mc_cached=None, pay_token=None, mc_unblocked=None, mc_auth=None,
+            cta_active=[], qs_mode=[], scan_active=[], scan_q_val=None,
+            sigma_mode="resqr", snapshot_pending=False, loaded_hash=None,
+            active_chart_committed=None,
+        )
+        kw.update(over)
+        with _patch_ctx("bub-qs"):
+            return update_bubble(**kw)[0]
+
+    def _all_cached(self):
+        from mc_cache import get_cached_paths
+        paths = get_cached_paths("bub", self._START_YR, self._ENTRY_Q / 100.0,
+                                 self._YEARS)
+        assert paths.shape[0] >= 100, "fixture: expected the full cached set"
+        return np.asarray(paths, dtype=float)
+
+    @staticmethod
+    def _named(fig, name):
+        hits = [t for t in fig.data if t.name == name]
+        assert len(hits) == 1, f"expected exactly one {name!r}, got {len(hits)}"
+        return hits[0]
+
+    @staticmethod
+    def _lines(fig):
+        return [t for t in fig.data if t.legendgroup == "mc-spaghetti"]
+
+    def test_fan_is_computed_from_every_cached_path_not_the_displayed_few(self):
+        """sims=8 draws 8 example lines, but the fan is the percentile of all
+        200 cached paths for the scenario."""
+        fig = self._run(mc_sims=8)
+        assert len(self._lines(fig)) == 8
+        allp = self._all_cached()
+        for name, pct in (("MC median", 50), ("MC 5\u201395%", 5),
+                          ("MC 25\u201375%", 25)):
+            y = np.asarray(self._named(fig, name).y, dtype=float)
+            np.testing.assert_allclose(
+                y, np.percentile(allp, pct, axis=0)[:len(y)], rtol=1e-5)
+        # and NOT the percentile of only the 8 drawn lines
+        med = np.asarray(self._named(fig, "MC median").y, dtype=float)
+        drawn = np.array([np.asarray(t.y, dtype=float) for t in self._lines(fig)])
+        assert not np.allclose(med, np.percentile(drawn, 50, axis=0), rtol=1e-3)
+
+    def test_example_lines_are_drawn_on_top_of_the_fan(self):
+        fig = self._run(mc_sims=8)
+        data = list(fig.data)
+        last_fan = data.index(self._named(fig, "MC median"))
+        first_line = data.index(self._lines(fig)[0])
+        assert last_fan < first_line
+
+    def test_regime_filter_on_cached_scenario_draws_gray_all_regime_reference(self):
+        """Cached paths are only RANKED by the regime filter, never truly
+        filtered, so the fan stays the all-regimes one — in the gray 'MC ref'
+        style — while the ranked example lines sit on top."""
+        fig = self._run(mc_sims=8, mc_regime=[0, 1])
+        names = {t.name for t in fig.data if t.name}
+        assert {"MC ref 5\u201395%", "MC ref 25\u201375%", "MC ref median"} <= names
+        assert not {"MC 5\u201395%", "MC 25\u201375%", "MC median"} & names
+        assert len(self._lines(fig)) == 8
+        y = np.asarray(self._named(fig, "MC ref median").y, dtype=float)
+        np.testing.assert_allclose(
+            y, np.percentile(self._all_cached(), 50, axis=0)[:len(y)], rtol=1e-5)
+
+    def test_fan_scales_with_stack_like_the_example_lines(self):
+        base = self._run(mc_sims=8)
+        stacked = self._run(mc_sims=8, stack=2.5, show_stack=["yes"])
+        for name in ("MC median", "MC 5\u201395%"):
+            np.testing.assert_allclose(
+                np.asarray(self._named(stacked, name).y, dtype=float),
+                2.5 * np.asarray(self._named(base, name).y, dtype=float),
+                rtol=1e-5)
+        np.testing.assert_allclose(
+            np.asarray(self._lines(stacked)[0].y, dtype=float),
+            2.5 * np.asarray(self._lines(base)[0].y, dtype=float), rtol=1e-5)
+
+    def test_mc_traces_stop_at_the_visible_right_edge(self):
+        """Nothing else on Tab 1 is sent past the x-range; a 40-year MC run
+        on a chart ending 2033 must not ship 35 invisible years."""
+        from btc_core import yr_to_t
+        fig = self._run(mc_sims=8, xrange=[2010, 2033])
+        t_hi = yr_to_t(2033, _app_ctx.M.genesis)
+        step = 1.0 / 12
+        mc = [self._named(fig, "MC median")] + self._lines(fig)
+        for t in mc:
+            x = np.asarray(t.x, dtype=float)
+            assert len(x) >= 2
+            assert x[-1] <= t_hi + step + 1e-9, "sent past the visible edge"
+            assert x[-1] >= t_hi - 1e-9, "must still reach the edge"
+
+    def test_repeat_render_does_not_accumulate_mc_traces(self):
+        """The figure comes from a shared cache; MC traces go on a clone."""
+        first = self._run(mc_sims=8)
+        second = self._run(mc_sims=8)
+        assert len(second.data) == len(first.data)
+        assert len(self._lines(second)) == 8
 
 
 @pytest.mark.skipif(_q3 is None, reason="app.py import failed")

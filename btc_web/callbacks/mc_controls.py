@@ -126,6 +126,22 @@ for _mc_reg in ("dca", "ret", "hm", "sc", "cp", "bub"):
         prevent_initial_call=True,
     )
 
+# ── Tab 1: widen the X range when the user turns MC on ──────────────────────
+# Logic + rationale: layout/bubble.py (MC_AUTOWIDEN_JS). Exactly ONE Input:
+# allow_duplicate + several Inputs + prevent_initial_call silently never fires
+# in Dash 4.0. bub-mc-enable exists in the layout even without the Markov
+# engine (hidden placeholder checklist), so the Input always resolves.
+from layout.bubble import MC_AUTOWIDEN_JS  # noqa: E402
+
+_app_ctx.app.clientside_callback(
+    MC_AUTOWIDEN_JS,
+    Output("bub-xrange", "value", allow_duplicate=True),
+    Input("bub-mc-enable", "value"),
+    State("bub-xrange", "value"),
+    State("bub-mc-start-yr", "value"),
+    prevent_initial_call=True,
+)
+
 # ── Frequency unlock toggle + modal ──────────────────────────────────────────
 for _fp in ("dca", "ret", "sc"):
     _app_ctx.app.clientside_callback(

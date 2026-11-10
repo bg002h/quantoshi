@@ -461,31 +461,26 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, ma_sel, bubble_toggles
         ))
     fig, mc_result = result if isinstance(result, tuple) else (result, None)
 
-    # MC spaghetti fan — paths sourced from mc_p (cached) or mc_result (live).
-    # Bubble chart x-axis is t_years_since_2009-07-25 (numeric), NOT calendar
-    # year. yr_to_t() converts. Without conversion, paths plot at calendar-yr
-    # x-values (e.g. 2031) which is far outside the bubble chart's t-range
-    # (~0.1 to 28 yr) → invisible.
+    # MC price fan + example paths — sourced from the cache (free) or from
+    # mc_result (live). Bubble chart x-axis is t_years_since_2009-07-25
+    # (numeric), NOT calendar year. yr_to_t() converts. Without conversion,
+    # paths plot at calendar-yr x-values (e.g. 2031) which is far outside the
+    # bubble chart's t-range (~0.1 to 28 yr) → invisible.
     if mc_visible and mc_ok:
-        from figures.bubble import _add_mc_spaghetti
+        from figures.bubble import _add_mc_fan, _add_mc_spaghetti
         from mc_cache import get_cached_paths
         from mc_overlay import filter_paths_by_regime
-        # User-requested sim count for DISPLAY only. We pull all available
-        # cached paths first, sort by regime alignment, then trim — so a
-        # sims=1 + "only Bargain" picks the one path most aligned with
-        # Bargain regime (not just the first cached path).
+        # "sims" is the number of EXAMPLE LINES drawn. The fan underneath is
+        # always the percentiles of every path of the scenario, so it reads
+        # the same at sims=1 as at sims=200.
         display_sims = int(mc_p.get("mc_sims") or 100)
         blocked = mc_p.get("mc_blocked_bins") or []
-        # Pull full cache when we need to rank; cap at display_sims when
-        # there's no regime filter (saves array slicing for the common case).
-        cache_pull_max = None if blocked else display_sims
         paths = None
         if is_free:
             paths = get_cached_paths(
                 mc_p["mc_model_src"], mc_p["mc_start_yr"],
                 _ci(mc_p["mc_entry_q"], 10) / 100.0,  # pct_bin: fraction
-                mc_p["mc_years"],
-                max_sims=cache_pull_max)
+                mc_p["mc_years"])
         elif mc_result and isinstance(mc_result, dict):
             paths = mc_result.get("price_paths")
         if paths is not None and getattr(paths, "size", 0) > 0:
@@ -495,6 +490,7 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, ma_sel, bubble_toggles
             t_start = yr_to_t(mc_start_yr_int, _app_ctx.M.genesis)
             t_end = yr_to_t(mc_end_yr_int, _app_ctx.M.genesis)
             t_axis = np.linspace(t_start, t_end, n_steps)
+            fan_paths = line_paths = paths
             # Rank paths by regime alignment (best-aligned first), then
             # trim to display_sims. For free-tier cached paths the
             # transition matrix wasn't bin-masked at sim time so every
@@ -505,28 +501,49 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, ma_sel, bubble_toggles
             if blocked:
                 regime_model = _app_ctx.PRICE_MODELS.get(mc_p.get("mc_model_src"))
                 if regime_model is not None:
-                    paths = filter_paths_by_regime(
+                    line_paths = filter_paths_by_regime(
                         paths, t_axis, regime_model, blocked,
                         n_bins=int(mc_p.get("mc_bins") or 5))
                 # Trim ranked paths to user's display count
-                if paths is not None and paths.shape[0] > display_sims:
-                    paths = paths[:display_sims]
-            if paths is not None and getattr(paths, "size", 0) > 0:
-                # Apply stack-scaling: when "Show Stack" is on and stack > 0,
-                # the rest of the chart's traces are multiplied by stack
-                # (figures/bubble.py:141 etc.). Spaghetti paths must follow
-                # or they'll plot in price-space while QR bands are in USD-
-                # value space, mismatching the y-axis.
-                stack_f = _cf(stack, 0)
-                if "yes" in (show_stack or []) and stack_f > 0:
-                    paths = paths * stack_f
-                # Clone the figure so we don't mutate the L1/L2 cached object —
-                # _add_mc_spaghetti appends traces in-place; without this, every
-                # subsequent render that hits the same cache key accumulates
-                # another bundle of N paths (200 → 300 → 400 → ...).
-                import plotly.graph_objects as _go
-                fig = _go.Figure(fig)
-                _add_mc_spaghetti(fig, paths, t_axis, n_display=display_sims)
+                if line_paths is not None and line_paths.shape[0] > display_sims:
+                    line_paths = line_paths[:display_sims]
+            # Ranking cannot change the percentiles of a cached scenario, so
+            # with a regime filter on it the fan is the ALL-regimes picture:
+            # draw it in the gray reference style rather than pass it off as
+            # the filtered result. A live run really was simulated under the
+            # filter, so its fan is the result and stays amber.
+            fan_is_reference = bool(blocked) and is_free
+            # Nothing else on this chart is sent past the visible right edge
+            # (the builder masks every trace to [t_lo, t_hi]); a 40-year run
+            # on a chart ending 2033 would otherwise ship 35 unseen years per
+            # path. Keep one step past the edge so lines reach it. Done after
+            # ranking, which scores the whole path.
+            t_hi = yr_to_t(int(xrange[1]), _app_ctx.M.genesis)
+            keep = int(np.searchsorted(t_axis, t_hi, side="left")) + 1
+            keep = min(n_steps, max(keep, 2))
+            t_axis = t_axis[:keep]
+            fan_paths = fan_paths[:, :keep]
+            if line_paths is not None:
+                line_paths = line_paths[:, :keep]
+            # Apply stack-scaling: when "Show Stack" is on and stack > 0,
+            # the rest of the chart's traces are multiplied by stack
+            # (figures/bubble.py:141 etc.). MC traces must follow or they'll
+            # plot in price-space while QR bands are in USD-value space,
+            # mismatching the y-axis.
+            stack_f = _cf(stack, 0)
+            if "yes" in (show_stack or []) and stack_f > 0:
+                fan_paths = fan_paths * stack_f
+                if line_paths is not None:
+                    line_paths = line_paths * stack_f
+            # Clone the figure so we don't mutate the L1/L2 cached object —
+            # the helpers append traces in-place; without this, every
+            # subsequent render that hits the same cache key accumulates
+            # another bundle of traces (200 → 300 → 400 → ...).
+            import plotly.graph_objects as _go
+            fig = _go.Figure(fig)
+            # Fan first, example lines on top of it.
+            _add_mc_fan(fig, fan_paths, t_axis, reference=fan_is_reference)
+            _add_mc_spaghetti(fig, line_paths, t_axis, n_display=display_sims)
 
     apply_zoom_lock(fig, "chart_zoom" in toggles)
 

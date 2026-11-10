@@ -60,6 +60,44 @@ CAGR_DEFAULT_XRANGE = [2025, 2050]
 XRANGE_MIN = 2010
 XRANGE_MAX = 2080
 
+# Tab-1 MC "sims" default: every path of a cached scenario (mc_cache holds
+# 200 per scenario). Mirrored by snapshot_defaults 'bub-mc-sims:value'.
+MC_DEFAULT_SIMS = 200
+
+# ── MC auto-widen ────────────────────────────────────────────────────────
+# A cached MC run starts in 2028/2031/2035 and the default X window ends 2033,
+# so a freshly enabled fan would be a sliver at the right edge. When the USER
+# ticks bub-mc-enable, the right edge moves out to start year + this many
+# years. Never shrinks a wider window, never moves the left edge.
+#
+# "The user ticked it" is the whole guard: assets/mc_autowiden.js timestamps a
+# real click on the checklist, and this callback acts only on a fresh stamp,
+# consuming it. Share-link restore, Time Machine's force-off and every other
+# programmatic write of bub-mc-enable carry no click, so a restored link keeps
+# the X range it was saved with.
+#
+# Registered in callbacks/mc_controls.py with ONE Input (see the Dash 4.0 note
+# in callbacks/axes_presets.py). Executed under node by test_mc_autowiden.py.
+MC_AUTOWIDEN_YEARS = 10
+MC_AUTOWIDEN_CLICK_MS = 3000
+MC_AUTOWIDEN_JS = """
+function(mc, xrange, startYr) {
+    var NU = window.dash_clientside.no_update;
+    var at = window.__qsMcEnableClickAt || 0;
+    window.__qsMcEnableClickAt = 0;
+    if (!at || Date.now() - at > %(click_ms)s) { return NU; }
+    if (!Array.isArray(mc) || mc.indexOf("yes") < 0) { return NU; }
+    if (!Array.isArray(xrange) || xrange.length !== 2) { return NU; }
+    if (startYr === null || startYr === undefined || startYr === "") { return NU; }
+    var start = Number(startYr);
+    if (!isFinite(start)) { return NU; }
+    var want = Math.min(%(xmax)s, start + %(span)s);
+    if (!(xrange[1] < want)) { return NU; }
+    return [xrange[0], want];
+}
+""" % {"xmax": XRANGE_MAX, "span": MC_AUTOWIDEN_YEARS,
+       "click_ms": MC_AUTOWIDEN_CLICK_MS}
+
 # Sets the X window to the current calendar year. Y is deliberately left alone:
 # when auto-Y is on the existing clientside recompute fits it, and when auto-Y
 # is off the user has taken manual control (spec D2).
@@ -404,11 +442,12 @@ def _bubble_controls():
             default_entry_q=10,
             amount_default=100,
             mc_enabled_default=False,
-            # Tab 1 spaghetti reads sims directly — small defaults
-            # are visually clearer + still free (cache holds 200).
+            # "sims" = how many example paths are drawn over the fan.
+            # Default: every path of a cached scenario, faint enough
+            # (figures.bubble._mc_path_alpha) to read as a density cloud.
             # User can type any integer 1-3200 in the input; datalist
             # shows these presets as autocomplete suggestions.
-            default_sims=8,
+            default_sims=MC_DEFAULT_SIMS,
             sims_options=[8, 16, 32, 64, 128, 200, 400, 800, 1600, 3200])),
         sigma_mode_section(),
         # Wrapped so Time Machine can hide the WHOLE CTA block (Task 10, #6).

@@ -1,6 +1,6 @@
 # Tab 1 "Raw" Monte Carlo — design
 
-Status: revision 5, 2026-11-10 (folds reviews r2–r4). Rewritten after spec review round 1
+Status: revision 6, 2026-11-10 (folds reviews r2–r5). Rewritten after spec review round 1
 (`docs/superpowers/reviews/2026-11-10-tab1-raw-mc-spec-review.md`, 0C/5I/8M/2N)
 and a second brainstorm with the operator that added the trend-adjusted
 mechanism. Everything here is operator-approved; items marked
@@ -105,7 +105,7 @@ Month-end closes from the full price CSV → monthly log returns `r`. The
   to the cycle containing its **month-end date**, so the month containing a
   halving belongs to the new cycle only if the halving precedes its month-end
   (review r2 M-5; `tools/raw_mc_cycle_stats.py` is the reference);
-- **cycle fraction** `φ ∈ [0, 1)`: days elapsed since the cycle's start
+- **cycle fraction** `φ ≈ [0, 1)` (a month can read −0.01 when its month-end and midpoint straddle a halving; clip to [0, 1) — review r4/r5 N-1): days elapsed since the cycle's start
   epoch at the month's midpoint ÷ that cycle's length in days (future
   cycles: `_HALVING_EPOCHS`) (review r2 I-A);
 - its cycle's sample mean `μ_c` and std `σ_c` (monthly), and its **shape**
@@ -161,8 +161,7 @@ each future cycle** at the trend's value at that cycle's midpoint `t`
 (halving to halving; the current cycle uses its remaining span's
 midpoint). Without this, vol decaying inside a cycle weights the bull
 phase's large `z` over the bear phase's and biases cycle mode upward
-(review r4 I-2: exponential trend drift +0.23…+0.36 → ≤ 0.11 in the
-prototype).
+(review r4 I-2).
 
 where `z` is a **plain bootstrap** draw (uniform over eligible months, which
 reproduces the histogram's frequencies) of a historical shape:
@@ -181,18 +180,35 @@ reproduces the histogram's frequencies) of a historical shape:
   otherwise no fan is drawn and the status line says so (review r3 M-3). The
   caveat says cycle mode replays only the complete past cycles in the window
   (review r2 M-4).
-- **Drift tests (review r3 I-2, r4 I-1).** Run from a **fixed start on a
-  halving** (2024-04-20 as "today", frozen price data and date via the
-  test's injectable inputs), so they never depend on the real date. Over
-  **whole future cycles only**: (a) deterministic — the expected
-  `σ`-weighted sum of `z` (mean candidate `z` per block × that cycle's
-  `σ`, summed, divided by the cycle's `σ`) has |value| ≤ **0.2** per cycle;
-  (b) statistical — at each subsequent halving inside the horizon, the
-  median log price of 3200 paths is within **±0.25 × the cross-sectional
-  std of log price at that date** of the trend-median path, for both
-  variants and both fitted trends. Mid-cycle horizons, and the partial
-  first cycle of a real "today", are not tested: sitting above or below
-  trend there is the rhythm the variant exists to show.
+- **Block grid and debias (review r5 I-1).** The future block grid
+  **restarts at each projected halving**: blocks run in 3s from the
+  halving, and the last block before the next halving may be 1–2 months.
+  The current cycle's grid runs from today to the next halving the same
+  way. Because the ±0.04 phase windows weight historical blocks unevenly,
+  the expected `z` over a whole future cycle is not exactly 0 (+0.41 per
+  cycle at the fixed start below). So per request, cycle mode computes
+  `E` = Σ over one whole cycle's grid blocks of the pool-mean block
+  `z`-sum, and draws `z − E/48` (about 0.009 per month, imperceptible as
+  shape). Trend = None stays raw.
+- **Tests (review r3 I-2, r4 I-1, r5 M-1/M-2, N-4).** Every statistical
+  Raw test runs on **frozen inputs**: price data truncated at a fixed start
+  on a halving (2024-04-20 as "today", start price the 2024-04-20 close),
+  injected, so no test depends on the real date or on growing data.
+  - (a) Deterministic: after the debias, the expected `z`-sum over each
+    whole future cycle's grid is **|E′| ≤ 1e-9**.
+  - (b) Statistical: at the month ending on each subsequent halving
+    **≤ the horizon** (2028, 2032, … 2064 for 40 years), the median log
+    price of 3200 paths is within **±0.25 × the cross-sectional std of log
+    price at that date** of the trend-median path, for both variants and
+    both fitted trends (prototype worst 0.07 across 20 seeds).
+  - (c) The generator's `σ` is identical across all months of each future
+    cycle, steps only at projected halvings, equals the trend's value at
+    that cycle's midpoint `t`, and the current cycle uses its remaining
+    span's midpoint.
+  - The regime-filter tests (below) use the same frozen inputs.
+  - Mid-cycle horizons and the partial first cycle of a real "today" are
+    not tested: sitting above or below trend there is the rhythm the
+    variant exists to show.
 - **Block integrity:** a block's three months come from **one** complete
   cycle (its `z` values share that cycle's standardisation); a block may
   not straddle a halving in the history it copies (review r4 M).
@@ -200,7 +216,7 @@ reproduces the histogram's frequencies) of a historical shape:
 With **Trend = None** the same draws use raw `r` instead of `z` (honest
 replay). The status line states **the simulated fan's own median pace**,
 computed from the paths over the chosen horizon, beside the window's
-actual pace, e.g. "Fan median grows +116 %/yr over 40 years (history
+actual pace, e.g. "Fan median grows +120 %/yr over 40 years (history
 2010–2026 grew +137 %/yr); the fan compounds replayed history." The two
 differ in cycle mode, because phase matching re-weights the months (review
 r3 I-4; example figures from the r4 prototype, illustrative only).
@@ -215,8 +231,9 @@ months of a block inside the window.
   - historical: `D_k = log P_k − Σ_{j≤k} μ(t_j) − C`, summing from the
     first eligible month, with the constant `C` chosen so the **mean of
     historical `D` over eligible months is 0**;
-  - simulated: `D_{k+1} = D_k + r_k − μ(t_k)`, starting from today's
-    historical `D` (the same anchored curve continued);
+  - simulated: `D_{k+1} = D_k + r_{k+1} − μ(t_{k+1})`, starting from
+    `D_0` = the last month-end's historical `D` + log(P_today / P_last
+    month-end) (the same anchored curve continued; review r4/r5 N-2);
   - state = `D / S`, `S` = std of historical `D` over eligible months.
   - With Trend = None, μ is the window's constant mean monthly log return.
 - **Bins**: `bub-mc-raw-bins` equal-count bins of the historical state over
@@ -233,7 +250,7 @@ months of a block inside the window.
   bins from there (review r2 I-B).
 - A test pins, for every single-bin and two-bin selection in both variants
   at 5 bins, the share of simulated months in unchecked bins **≤ 5 %**
-  excluding the first 12 months (prototype: 0–0.8 %), and the 40-year
+  excluding the first 12 months (prototype: ≤ 1.57 %, frozen inputs), and the 40-year
   median state within the checked bins' closed range ± 0.5 (bounded,
   review r2 I-C, r3 I-3), for all three trends.
 - The note states the measured share: "Raw: paths are steered away from

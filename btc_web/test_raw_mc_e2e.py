@@ -20,6 +20,7 @@ import time
 import pytest
 
 try:
+    from playwright.sync_api import TimeoutError as PlaywrightTimeout
     from playwright.sync_api import sync_playwright
     HAS_PLAYWRIGHT = True
 except ImportError:
@@ -83,7 +84,7 @@ def _open():
     pg = browser.new_context(viewport={"width": 1280, "height": 900}).new_page()
     pg.goto(f"{BASE_URL}/1", wait_until="networkidle", timeout=30000)
     pg.wait_for_selector(_MC_BOX, state="attached", timeout=15000)
-    time.sleep(1.5)                  # let the restore / first-render cascade settle
+    pg.wait_for_timeout(1500)        # let the restore / first-render cascade settle
     return p, browser, _Env(pg)
 
 
@@ -124,13 +125,24 @@ def _choose_src(page, label):
 
     The option list lives in a popup whose id is the trigger's aria-controls;
     scoping to it keeps "Bubble Model" from matching the model-show checklist
-    and the other tabs' source dropdowns.
+    and the other tabs' source dropdowns. The trigger carries aria-controls
+    even while closed, so a click that missed (the chart was still settling)
+    or toggled an open popup shut leaves the option absent: check
+    aria-expanded and reopen, up to three times, before failing.
     """
     trigger = page.locator("#bub-mc-model-src")
     trigger.scroll_into_view_if_needed()
-    trigger.click()
-    popup = page.locator(f'[id="{trigger.get_attribute("aria-controls")}"]')
-    popup.get_by_role("option", name=label, exact=True).click()
+    for attempt in range(3):
+        if trigger.get_attribute("aria-expanded") != "true":
+            trigger.click()
+        popup = page.locator(f'[id="{trigger.get_attribute("aria-controls")}"]')
+        try:
+            popup.get_by_role("option", name=label, exact=True).click(timeout=5000)
+            return
+        except PlaywrightTimeout:
+            if attempt == 2:
+                raise
+            page.keyboard.press("Escape")      # close it so the next pass reopens
 
 
 def _panel_in_raw_mode(page):
@@ -172,7 +184,7 @@ def raw_on(mc_on):
     _choose_src(mc_on.page, _RAW_CYCLE)
     assert _wait_until(lambda: _has_trace(mc_on.page, "MC median · raw cycle")), \
         f"Raw fan never drew; traces: {_names(mc_on.page)}"
-    time.sleep(1.0)                  # let any in-flight duplicate settle
+    mc_on.page.wait_for_timeout(1000)  # let any in-flight duplicate settle
     return mc_on
 
 
@@ -268,7 +280,10 @@ def test_a_raw_regime_click_costs_exactly_one_update_bubble_post(raw_on):
     assert _wait_until(lambda: page.locator(_PATHS).first.is_checked()), \
         "paths box did not tick, so the click path under test never ran"
     assert _wait_until(lambda: _line_count(page, "mc-spaghetti") == _DEFAULT_LINES)
-    time.sleep(4.0)                  # a duplicate POST (review I-2) lands well inside this
+    # wait_for_timeout, NOT time.sleep: the sync API delivers page.on("request")
+    # events only while a Playwright call is pumping, so a sleep would never
+    # count a late duplicate POST (review I-2 shape).
+    page.wait_for_timeout(4000)
     assert len(raw_on.bubble_posts) == 1, \
         f"{len(raw_on.bubble_posts)} update_bubble POSTs for one regime click"
 
@@ -279,7 +294,7 @@ def test_a_programmatic_raw_regime_write_leaves_paths_alone(raw_on):
         'window.dash_clientside.set_props("bub-mc-raw-regime", {value: [0, 1, 2, 3]})')
     assert _wait_until(lambda: not page.locator(_RAW_REGIME).nth(4).is_checked()), \
         "set_props did not change the regime: the test would pass vacuously"
-    time.sleep(3.0)
+    page.wait_for_timeout(3000)
     assert not page.locator(_PATHS).first.is_checked()
 
 

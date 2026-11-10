@@ -1,6 +1,6 @@
 # Tab 1 "Raw" Monte Carlo — design
 
-Status: revision 2, 2026-11-10. Rewritten after spec review round 1
+Status: revision 3, 2026-11-10 (folds review r2). Rewritten after spec review round 1
 (`docs/superpowers/reviews/2026-11-10-tab1-raw-mc-spec-review.md`, 0C/5I/8M/2N)
 and a second brainstorm with the operator that added the trend-adjusted
 mechanism. Everything here is operator-approved; items marked
@@ -24,27 +24,32 @@ standard deviation follow curves fitted across halving cycles — and each path
 is a bootstrap walk through those extrapolated histograms. A **Trend**
 selector lets a sceptic pick the curve shape, or none (honest replay).
 
-### Measured (ad hoc, `BitcoinPricesDaily.csv`, 2026-11-10)
+### Measured (`tools/raw_mc_cycle_stats.py`, data to 2026-11-08)
 
-Per halving cycle (t = cycle midpoint, years since 2009-07-25; monthly log
-returns; vol annualised):
+Per halving cycle, using this spec's definitions (Data and Trend curves
+below; t = mean t of the cycle's data months, years since 2009-07-25;
+growth = 12 × mean monthly log return, shown as %/yr; "g × t" in natural-log
+annual units; vol = √12 × std of monthly log returns):
 
-| Cycle | t | growth/yr | growth × t (log) | monthly vol |
-|---|---|---|---|---|
-| 2010-07 → 2012-11 | 2.2 | +924 % | 5.0 | 157 % |
-| 2012-11 → 2016-07 | 5.2 | +201 % | 5.7 | 127 % |
-| 2016-07 → 2020-05 | 8.9 | +97 % | 6.0 | 82 % |
-| 2020-05 → 2024-04 | 12.8 | +66 % | 6.5 | 69 % |
-| 2024-04 → now (partial) | 16.0 | +6 % | 0.9 | 43 % |
+| Cycle | data months | t | growth/yr | g × t | vol |
+|---|---|---|---|---|---|
+| 1: 2010-08 → 2012-10 | 27 | 2.14 | +895 % | 4.92 | 160 % |
+| 2: 2012-11 → 2016-06 | 44 | 5.10 | +205 % | 5.69 | 127 % |
+| 3: 2016-07 → 2020-04 | 46 | 8.85 | +98 % | 6.02 | 82 % |
+| 4: 2020-05 → 2024-03 | 47 | 12.72 | +70 % | 6.74 | 69 % |
+| 5: 2024-04 → 2026-10 (partial) | 31 | 15.97 | +4 % | 0.57 | 44 % |
 
-- Growth: `g = n/t` fits the four full cycles best (rms 0.18 vs exponential
-  0.21, linear 0.31); n ≈ 6 — the power-law slope, found without fitting
-  price.
-- Vol: power law `σ ∝ t^−0.48` (rms 0.08) or exponential (rms 0.06); they
-  diverge far out (2050: 41 % vs 7 %).
+**Default fit (all history, 4 full cycles):** power law n = 5.12 (rms
+0.110), vol = 2.46 · t^−0.49; exponential growth exp(1.18 − 0.179 t)
+(rms 0.142), vol exp(0.66 − 0.087 t). Implied growth / vol: 2030 power
++28 %/yr, 56 % · exp +8 %/yr, 31 %; 2050 power +13 %/yr, 40 % · exp +0 %/yr,
+6 %. Window from 2013 (3 full cycles): n = 5.93, vol ∝ t^−0.72. These are
+pinned in tests from the script's functions.
+
+- n ≈ 5–6 is the power-law slope, found without fitting a price curve.
 - Shape: each cycle's histogram, standardised by its own mean and std, is
-  statistically indistinguishable from the others (KS p = 0.70–0.89), so one
-  pooled shape can be reused.
+  statistically indistinguishable from the others (KS p = 0.70–0.89, ad
+  hoc), so one pooled shape can be reused.
 - Momentum: monthly autocorrelation +0.24 (since 2010) / +0.11 (since 2015);
   variance ratio 1.4–1.56 at 6–12 months; vol clustering +0.46 / +0.38.
 
@@ -62,7 +67,7 @@ returns; vol annualised):
    never alter model mode (review I-1).
 5. Example lines: **Lines shown** (5–200, default 20) spread across end
    prices, plus **Show extremes** (highest and lowest-ending paths).
-6. Regime filter on the path's own momentum relative to the trend (review
+6. Regime filter on the path's own price level relative to the trend (review
    I-2).
 
 ## Non-goals
@@ -94,26 +99,35 @@ Month-end closes from the full price CSV → monthly log returns `r`. The
 
 - `t`: years since 2009-07-25 (the project's time origin) at the month's
   midpoint;
-- **cycle**: the halving interval it falls in (halvings:
+- **cycle**: the halving interval its month-end falls in (halvings:
   `figures/common.py::_HALVING_KNOWN_DATES`; the genesis block 2009-01-03 is
-  epoch 0, so months before 2012-11-28 belong to cycle 1);
-- **months since halving** (0, 1, 2, …; from genesis for cycle 1);
-- its cycle's sample mean `μ_c` and std `σ_c`, and its **shape**
-  `z = (r − μ_c) / σ_c`. The partial current cycle uses its own sample mean
-  and std.
+  epoch 0, so months before 2012-11-28 belong to cycle 1). A month belongs
+  to the cycle containing its **month-end date**, so the month containing a
+  halving belongs to the new cycle only if the halving precedes its month-end
+  (review r2 M-5; `tools/raw_mc_cycle_stats.py` is the reference);
+- **cycle fraction** `φ ∈ [0, 1)`: days elapsed since the cycle's start
+  epoch at the month's midpoint ÷ that cycle's length in days (future
+  cycles: `_HALVING_EPOCHS`) (review r2 I-A);
+- its cycle's sample mean `μ_c` and std `σ_c` (monthly), and its **shape**
+  `z = (r − μ_c) / σ_c`.
 
 ### Trend curves (fitted once per request; cheap)
 
-A cycle is **in the window** when at least 3/4 of its months are inside the
-Raw window **(controller's call)**. The current cycle never counts as full.
-If the window holds **≥ 3 full cycles**, the curves are fitted on those;
-otherwise on all four full cycles. The status line says which.
+A cycle's months are its months **with price data**. A cycle is **full**
+when it ends at a known halving and has **≥ 24 data months** (cycle 1 has
+27, so all four completed cycles are full today). For the window rule a
+cycle counts only if ≥ 24 of its data months lie inside the Raw window. The
+current cycle is never full. If the window holds **≥ 3 full cycles**, the
+curves are fitted on those; otherwise on all full cycles. The status line
+says which. (Review r2 I-D.)
 
-Per full cycle c: `g_c = μ_c` (mean monthly log return), `s_c = σ_c`.
+Per full cycle c, in **annual natural-log units** (review r2 M-1):
+`t_c` = mean t of its data months, `g_c = 12 · μ_c`, `s_c = √12 · σ_c`. The
+simulation uses monthly `μ(t) = g(t) / 12` and `σ(t) = s(t) / √12`.
 
-| Trend | growth μ(t) | volatility σ(t) |
+| Trend | growth g(t) | volatility s(t) |
 |---|---|---|
-| Power law | `n / t` (one parameter, least squares on `g_c` vs `t_c`) | `a · t^−b` (linear fit of `log s_c` on `log t_c`) |
+| Power law | `n / t`, unweighted LS: `n = Σ(g_c/t_c) / Σ(1/t_c²)` | `a · t^−b` (linear LS of `log s_c` on `log t_c`) |
 | Exponential decay | `exp(α + β t)`, nonlinear least squares directly on `g_c` (`scipy.optimize.curve_fit`) | `exp(γ + δ t)`, same method on `s_c` |
 | None | — | — |
 
@@ -139,12 +153,17 @@ reproduces the histogram's frequencies) of a historical shape:
 
 - **Raw · independent**: one month's `z`, independently each month.
 - **Raw · halving cycle**: the future is walked in **3-month blocks**; each
-  block copies three consecutive historical `z` values whose starting
-  months-since-halving is within **±2 months** of the future block's own
-  months-since-halving (future halvings from `_HALVING_EPOCHS`) (review
-  M-6). If those candidates come from **fewer than 2 distinct cycles**, the
-  block widens to the 6-month phase bucket, then to the whole eligible pool;
-  the status line reports how often (review I-3).
+  block copies three consecutive historical `z` values from a **full
+  cycle** whose starting cycle fraction φ is within **±0.04** (≈ 2 months)
+  of the future block's own φ (review r1 M-6, r2 I-A: matching by fraction
+  of cycle elapsed and drawing only from full cycles keeps the median on the
+  trend; measured residual drift −0.02σ per cycle vs +1.3σ for
+  months-since-halving matching). If those candidates come from **fewer than
+  2 distinct cycles**, the tolerance widens to ±0.08, then to the whole
+  eligible pool; the status line reports how often (review r1 I-3). The
+  caveat says cycle mode replays only the 3–4 past cycles in the window
+  (review r2 M-4). A test pins the cycle-mode median within ±0.25σ (log) of
+  the trend's median path at 10 and 40 years.
 
 With **Trend = None** the same draws use raw `r` instead of `z` (honest
 replay), and the status line states the window's compounded pace, e.g.
@@ -153,27 +172,37 @@ replay), and the status line states the window's compounded pace, e.g.
 **Eligible** months: inside the Raw window, and (cycle mode) all three
 months of a block inside the window.
 
-### Regime filter (Raw)
+### Regime filter (Raw) — level relative to trend (operator decision, r2 I-C)
 
-- **State** of a path at a month: its trailing 12-month log return minus the
-  trend's expected 12-month return, divided by the trend's 12-month std,
-  i.e. "how far above or below normal for its era" **(controller's call)**.
-  With Trend = None: the plain trailing 12-month log return. The first 12
-  simulated months use real history for the months before today.
-- **Bins**: `bub-mc-raw-bins` equal-count bins of the same statistic
-  computed over eligible historical months, coldest first. Checklist labels
-  show each bin's range (e.g. "−1.2σ to −0.4σ"; plain % for Trend = None).
-- **Unchecked bins are never visited**: a draw (a month, or a block checked
-  month by month) that would put the path's state into an unchecked bin is
-  rejected and redrawn, up to 20 tries; after that the last draw is kept and
-  counted. The status line reports the share of forced draws when it
-  exceeds 1 % **(controller's call)**.
+- **State** of a path at a month: how far its **price level** sits above or
+  below the trend, in standard deviations. With a trend: the deviation
+  `D` = log price − log trend-median price, where the trend-median path is
+  the price compounded by μ(t) from a fixed anchor, divided by the trend's
+  long-run dispersion of `D` measured on history (the std of historical `D`
+  over the window, using the same anchor) **(controller's call; anchor and
+  normalisation are pinned by tests, exact formula is the builder's)**. With
+  Trend = None the trend median is the window's constant pace. The state is
+  bounded: it reverts like the model-mode bands do.
+- **Bins**: `bub-mc-raw-bins` equal-count bins of the historical state over
+  eligible months (pre-window months are used where a statistic needs a
+  lookback, so eligibility does not change — review r2 M-7), coldest first.
+  Labels show each bin's range, e.g. "−1.2σ to −0.4σ below trend".
+- **Steering**: a draw (a month; in cycle mode the block is accepted month by
+  month up to its first violating month and redrawn from there) that would
+  put the state into an unchecked bin is rejected and redrawn, up to 20
+  tries; then the **best** try (closest to a checked bin) is kept. Today's
+  state may itself sit in an unchecked bin; paths are steered toward checked
+  bins from there (review r2 I-B).
+- A test pins, for every single-bin and two-bin selection in both variants
+  at 5 bins, the share of simulated months in unchecked bins **≤ 5 %**
+  excluding the first 12 months, and the 40-year median within the range
+  of the checked bins' historical levels (bounded, review r2 I-C).
+- The note states the measured share: "Raw: paths are steered away from
+  unchecked bins (N % of months still fall in them)."
 - Same server rule as model mode: applies only when 0 < checked < bins.
 - The auto-tick of "Show individual price paths" on a real filter click
   applies to `bub-mc-raw-regime` too (own click stamp, same pattern as
   `assets/mc_regime_paths.js`; one Input per clientside callback).
-- The Tab-1 regime note gets Raw wording: "Raw: paths never enter unchecked
-  momentum bins."
 
 ### Determinism
 
@@ -198,8 +227,10 @@ rejected subset).
 - **Lines shown** (`bub-mc-lines`, number 5–200, step 1, default 20): paths
   ranked by price at the last plotted step (the visible right edge — so the
   sample changes when the x-range is panned, by design; review N-2), taken at
-  evenly spaced ranks from the 2nd to the 98th percentile. If lines ≥ sims,
-  all are drawn.
+  evenly spaced ranks from the 2nd to the 98th percentile by a **new
+  rank selector** (not `_add_mc_spaghetti`'s stride subsampling, which is
+  bypassed by passing exactly the chosen paths; review r2 N-1). If lines ≥
+  sims, all are drawn.
 - **Show extremes** (`bub-mc-extremes`, checklist `["yes"]`, default off):
   the top- and bottom-ranked paths, dashed and slightly bolder in the same
   dark neutral (new constants in `colors.py`), legend "Highest end" /
@@ -207,19 +238,21 @@ rejected subset).
 - Both sit directly under **Show individual price paths** (`bub-mc-paths`,
   shared, still the master switch, default off) and only show in Raw mode.
 - Lines keep today's payload treatment (`_add_mc_spaghetti`: every other
-  step, 2 significant figures). ≤ 202 lines ≈ ≤ 25 KB gzip on top of the
-  ≈ 38 KB fan.
+  step, 2 significant figures), trimmed at the visible right edge. Measured
+  gzip: 200 lines × 12 visible years ≈ 23 KB; 202 lines × 40 visible years
+  ≈ 68 KB; 20 lines × 40 years ≈ 8 KB (review r2 M-2). Accepted; the default
+  (20 lines, auto-ranged view) is ≈ 3 KB.
 
 ### Raw controls (shown only in Raw mode; model controls hidden)
 
 | Control | id | Default |
 |---|---|---|
 | Simulations (1–3200, free) | `bub-mc-raw-sims` | 1000 **(controller's call)** |
-| Years | `bub-mc-raw-years` | 40 |
+| Years (10 / 20 / 30 / 40; no "cached" bolding — review r2 M-6) | `bub-mc-raw-years` | 40 |
 | History window | `bub-mc-raw-window` | all history (2010 – current year) |
 | Trend | `bub-mc-raw-trend` | `power` (`power` / `exp` / `none`) |
-| Momentum bins | `bub-mc-raw-bins` | 5 |
-| Momentum regime checklist | `bub-mc-raw-regime` | all checked |
+| Trend-deviation bins | `bub-mc-raw-bins` | 5 |
+| Trend-deviation regime checklist | `bub-mc-raw-regime` | all checked |
 | Lines shown | `bub-mc-lines` | 20 |
 | Show extremes | `bub-mc-extremes` | `[]` |
 
@@ -232,11 +265,13 @@ layout are the builder's call; positions mirror the model controls.
 
 A new `bub-mc-raw-status` div directly under the model-source dropdown, Raw
 only. It always states the trend used and its fitted numbers and which
-cycles were fitted (e.g. "Power law n = 5.8, vol ∝ t^−0.48, fitted on 4
+cycles were fitted (e.g. "Power law n = 5.12, vol ∝ t^−0.49, fitted on 4
 cycles"), the current cycle's pace against the curve, the independent-mode
-caveat ("No memory: understates multi-month swings"), cycle fallbacks,
-forced draws, and any reason no fan is drawn (fewer than 12 eligible
-months **(controller's call)**). `bub-mc-status` is not used for Raw.
+caveat ("No memory: understates multi-month swings"), the cycle-mode caveat,
+cycle fallbacks, the filter's measured share, a warning when sims < 100
+("percentiles are rough below 100 simulations"), and any reason no fan is
+drawn (fewer than **36** eligible months — review r2 M-3). `bub-mc-status`
+is not used for Raw.
 
 ### Paid and premium chrome in Raw
 

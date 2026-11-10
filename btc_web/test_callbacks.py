@@ -1404,19 +1404,6 @@ class TestUpdateBubbleCallbackMC:
         first_line = data.index(self._lines(fig)[0])
         assert last_fan < first_line
 
-    def test_regime_filter_on_cached_scenario_draws_gray_all_regime_reference(self):
-        """Cached paths are only RANKED by the regime filter, never truly
-        filtered, so the fan stays the all-regimes one — in the gray 'MC ref'
-        style — while the ranked example lines sit on top."""
-        fig = self._run(mc_sims=8, mc_regime=[0, 1])
-        names = {t.name for t in fig.data if t.name}
-        assert {"MC ref 5\u201395%", "MC ref 25\u201375%", "MC ref median"} <= names
-        assert not {"MC 5\u201395%", "MC 25\u201375%", "MC median"} & names
-        assert len(self._lines(fig)) == 8
-        y = np.asarray(self._named(fig, "MC ref median").y, dtype=float)
-        np.testing.assert_allclose(
-            y, np.percentile(self._all_cached(), 50, axis=0)[:len(y)], rtol=1e-5)
-
     def test_fan_scales_with_stack_like_the_example_lines(self):
         base = self._run(mc_sims=8)
         stacked = self._run(mc_sims=8, stack=2.5, show_stack=["yes"])
@@ -1481,11 +1468,6 @@ class TestUpdateBubbleCallbackMC:
             np.testing.assert_array_equal(
                 np.asarray(self._named(on, name).y, dtype=float),
                 np.asarray(self._named(off, name).y, dtype=float))
-
-    def test_paths_off_with_a_regime_filter_still_draws_the_gray_reference(self):
-        fig = self._run(mc_sims=8, mc_regime=[0, 1], mc_paths=[])
-        assert self._lines(fig) == []
-        self._named(fig, "MC ref median")
 
 
 @pytest.mark.skipif(_q3 is None, reason="app.py import failed")

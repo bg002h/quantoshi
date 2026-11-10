@@ -91,6 +91,28 @@ def _regime_options(n_bins=5):
 
 _MC_REGIME_OPTIONS_5 = _regime_options(5)   # pre-computed for default 5-bin case
 
+# Tab 1's regime-filter note: shown exactly when the server applies the filter
+# (callbacks/mc_helpers.py: blocked only when 0 < checked < bins; none checked
+# is treated as all allowed). Inputs: (bub-mc-regime.value, bub-mc-bins.value).
+MC_REGIME_NOTE_JS = """
+function(checked, bins) {
+    var n = parseInt(bins, 10);
+    var k = Array.isArray(checked) ? checked.length : 0;
+    return (n > 0 && k > 0 && k < n) ? {} : {display: 'none'};
+}
+"""
+
+
+def _bub_regime_note():
+    from figures.bubble import MC_REGIME_FAN_PATHS
+    return html.Div(id="bub-mc-regime-note", style={"display": "none"}, children=html.Small(
+        f"Filter on: the fan and paths use the {MC_REGIME_FAN_PATHS} of 200 "
+        "cached paths that spend the least time in the unchecked regimes "
+        "\u2014 a ranked subset, not a new simulation.",
+        style={"display": "block", "fontSize": UI_FONT_SM, "color": DIM_TEXT,
+               "lineHeight": "1.3", "marginBottom": "8px"},
+    ))
+
 def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                   show_inflation=False, show_amount=True,
                   show_stack=False, show_mc_entry_q=False,
@@ -118,6 +140,8 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
             _ph.append(dbc.Input(id=f"{prefix}-mc-infl", value=4))
         _ph.append(dbc.Input(id=f"{prefix}-mc-bins", value=5))
         _ph.append(dcc.Checklist(id=f"{prefix}-mc-regime", value=list(range(5))))
+        if prefix == "bub":
+            _ph.append(html.Div(id="bub-mc-regime-note"))
         _ph.append(dcc.Dropdown(id=f"{prefix}-mc-sims", value=default_sims))
         _ph.append(dcc.Dropdown(id=f"{prefix}-mc-years", value=40))
         if "freq" not in shared_controls:
@@ -237,6 +261,7 @@ def _mc_controls(prefix, amount_label="Purchase amount ($)", amount_default=100,
                                 "lineHeight": "1.6", "color": MODAL_DIVIDER_DARK},
                     style={"marginBottom": "2px"},
                 ),
+                _bub_regime_note() if prefix == "bub" else
                 html.Small(
                     "Free-tier: cached paths sorted by alignment with your "
                     "selection (each path may visit blocked regimes briefly). "

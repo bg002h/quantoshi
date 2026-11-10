@@ -470,12 +470,14 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, ma_sel, bubble_toggles
     # paths plot at calendar-yr x-values (e.g. 2031) which is far outside the
     # bubble chart's t-range (~0.1 to 28 yr) → invisible.
     if mc_visible and mc_ok:
-        from figures.bubble import _add_mc_fan, _add_mc_spaghetti
+        from figures.bubble import (_add_mc_fan, _add_mc_spaghetti,
+                                    MC_REGIME_FAN_PATHS)
         from mc_cache import get_cached_paths
         from mc_overlay import filter_paths_by_regime
         # "sims" is the number of EXAMPLE LINES drawn. The fan underneath is
-        # always the percentiles of every path of the scenario, so it reads
-        # the same at sims=1 as at sims=200.
+        # the percentiles of every path of the scenario (or, with a regime
+        # filter on a cached scenario, of the best-matching subset), so it
+        # reads the same at sims=1 as at sims=200.
         display_sims = int(mc_p.get("mc_sims") or 100)
         # The example lines are opt-in (bub-mc-paths, default off): the fan
         # alone is the default picture. Anything but a list holding "yes"
@@ -499,30 +501,40 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, ma_sel, bubble_toggles
             t_axis = np.linspace(t_start, t_end, n_steps)
             fan_paths = paths
             line_paths = paths if show_paths else None
-            # Rank paths by regime alignment (best-aligned first), then
-            # trim to display_sims. For free-tier cached paths the
-            # transition matrix wasn't bin-masked at sim time so every
-            # path visits every bin — rank-based filtering is the only
-            # way the regime checklist can have a visible effect on
-            # cached scenarios. Live (paid) sims already respect the
-            # filter via _apply_bin_mask on the transition matrix.
-            if blocked and show_paths:
+            fan_suffix = ""
+            fan_is_reference = False
+            if blocked:
+                # Cached (free) paths were not bin-masked at sim time, so
+                # every one visits every regime: ranking by time spent in
+                # the blocked regimes (best-aligned first) is the only lever.
+                # Percentiles of all 200 would not move, so on a cached
+                # scenario the fan AND the lines come from the
+                # MC_REGIME_FAN_PATHS best-matching paths, labelled as a
+                # subset (operator request 2026-11-10). A live (paid) run was
+                # simulated under the filter (_apply_bin_mask): its fan is
+                # already the filtered result; only its lines are re-ranked.
                 regime_model = _app_ctx.PRICE_MODELS.get(mc_p.get("mc_model_src"))
-                if regime_model is not None:
-                    line_paths = filter_paths_by_regime(
+                ranked = None
+                if regime_model is not None and (is_free or show_paths):
+                    ranked = filter_paths_by_regime(
                         paths, t_axis, regime_model, blocked,
                         n_bins=int(mc_p.get("mc_bins") or 5))
-                # Trim ranked paths to user's display count
+                if is_free and ranked is not None:
+                    subset = ranked[:MC_REGIME_FAN_PATHS]
+                    fan_paths = subset
+                    fan_suffix = (f" \u00b7 best {subset.shape[0]} "
+                                  f"of {paths.shape[0]}")
+                    line_paths = subset if show_paths else None
+                elif is_free:
+                    # No model to rank against: the fan is the all-regimes
+                    # picture, so draw it in the gray reference style rather
+                    # than pass it off as the filtered result.
+                    fan_is_reference = True
+                elif ranked is not None:
+                    line_paths = ranked
+                # Best-aligned first: trim to the user's display count.
                 if line_paths is not None and line_paths.shape[0] > display_sims:
                     line_paths = line_paths[:display_sims]
-            # Ranking cannot change the percentiles of a cached scenario, so
-            # with a regime filter on it the fan is the ALL-regimes picture:
-            # draw it in the gray reference style rather than pass it off as
-            # the filtered result. A live run would have been simulated under
-            # the filter, so its fan stays amber — but that arm is unreachable
-            # today: build_bubble_figure returns (fig, None), so mc_result is
-            # always None on Tab 1 and sims > 200 draws nothing (F-15).
-            fan_is_reference = bool(blocked) and is_free
             # Nothing else on this chart is sent past the visible right edge
             # (the builder masks every trace to [t_lo, t_hi]); a 40-year run
             # on a chart ending 2033 would otherwise ship 35 unseen years per
@@ -552,7 +564,8 @@ def update_bubble(_first_render, sel_qs, adv_qs, toggles, ma_sel, bubble_toggles
             import plotly.graph_objects as _go
             fig = _go.Figure(fig)
             # Fan first, example lines (when asked for) on top of it.
-            _add_mc_fan(fig, fan_paths, t_axis, reference=fan_is_reference)
+            _add_mc_fan(fig, fan_paths, t_axis, reference=fan_is_reference,
+                        label_suffix=fan_suffix)
             if line_paths is not None:
                 _add_mc_spaghetti(fig, line_paths, t_axis,
                                   n_display=display_sims)

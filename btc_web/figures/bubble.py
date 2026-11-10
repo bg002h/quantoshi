@@ -87,6 +87,13 @@ def _mc_path_alpha(n):
 MC_PATH_POINT_STRIDE = 2
 MC_PATH_SIG_FIGS = 2
 
+# With a price-regime box unchecked on a cached (free) scenario, the fan and the
+# example lines come from this many best-matching cached paths (ranked by
+# mc_overlay.filter_paths_by_regime) out of the 200. Cached paths visit every
+# regime, so ranking is the only lever; percentiles of all 200 would not move
+# (operator request 2026-11-10). 50 keeps 2-3 paths in each 5 % tail.
+MC_REGIME_FAN_PATHS = 50
+
 
 def _mc_path_steps(n_steps):
     """Column indices of the steps an example path ships: every
@@ -167,7 +174,7 @@ def _add_mc_spaghetti(fig, paths, t_axis, n_display=100):
 _MC_FAN_PCTS = (0.05, 0.25, 0.50, 0.75, 0.95)
 
 
-def _add_mc_fan(fig, paths, t_axis, reference=False):
+def _add_mc_fan(fig, paths, t_axis, reference=False, label_suffix=""):
     """Add the MC price fan: 5-95% and 25-75% bands plus the median.
 
     Each edge is the per-step percentile of EVERY row of `paths`, so the fan
@@ -183,6 +190,8 @@ def _add_mc_fan(fig, paths, t_axis, reference=False):
         paths: np.ndarray (n_sims, n_steps), or None / 0-row -> no-op.
         t_axis: np.ndarray (n_steps,) -- years since genesis.
         reference: draw the gray all-regimes reference style.
+        label_suffix: appended to every legend name (e.g. " \u00b7 best 50
+            of 200" when the fan is a regime-ranked subset).
     """
     if paths is None:
         return
@@ -195,11 +204,15 @@ def _add_mc_fan(fig, paths, t_axis, reference=False):
     # whole fan is a ~14-px ribbon, and the shared 0.08 / 0.15 fills vanish.
     hue = MC_GHOST_GRAY if reference else MC_AMBER
     alphas = (MC_PRICE_BAND_OUTER_ALPHA, MC_PRICE_BAND_INNER_ALPHA)
-    bands = [(lo, hi, _hex_alpha(hue, a), label)
+    bands = [(lo, hi, _hex_alpha(hue, a), label + label_suffix)
              for (lo, hi, _fill, label), a
              in zip(_GHOST_BANDS if reference else _MC_BANDS, alphas)]
     traces = _mc_build_traces(t_axis, fan, bands=bands,
                               suppress_legend=reference)
+    if label_suffix:
+        for tr in traces:
+            if tr.name and tr.name.endswith("median"):
+                tr.name = tr.name + label_suffix
     for tr in traces:
         if tr.line.width == 0:
             # width=0 alone leaves the colour to the default cycle, which

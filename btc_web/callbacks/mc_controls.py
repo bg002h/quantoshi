@@ -29,6 +29,16 @@ _app_ctx.app.clientside_callback(
     Output("dca-sc-body", "style"),
     Input("dca-sc-enable", "value"),
 )
+# Tab 1 only: the regime-filter note (layout/mc_controls.py::_bub_regime_note)
+# is shown while the filter is in effect. Clientside: zero server round-trips.
+from layout.mc_controls import MC_REGIME_NOTE_JS  # noqa: E402
+_app_ctx.app.clientside_callback(
+    MC_REGIME_NOTE_JS,
+    Output("bub-mc-regime-note", "style"),
+    Input("bub-mc-regime", "value"),
+    Input("bub-mc-bins", "value"),
+)
+
 for _mc_tog in ("dca", "ret", "hm", "sc", "cp", "bub"):
     _app_ctx.app.clientside_callback(
         "function(v) { return (v && v.length) ? {} : {display:'none'}; }",

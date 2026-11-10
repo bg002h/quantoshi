@@ -103,6 +103,37 @@ function(checked, bins) {
 """
 
 
+# Tab 1: a real click that APPLIES a regime filter ticks "Show individual price
+# paths" (operator request 2026-11-10). Inputs: (bub-mc-regime.value) with State
+# (bub-mc-bins.value, bub-mc-paths.value) -- ONE Input, because allow_duplicate +
+# several Inputs + prevent_initial_call silently never fires in Dash 4.0.
+#   * only a fresh click stamp (assets/mc_regime_paths.js) acts: a share-link
+#     restore or any other programmatic write never touches the paths box;
+#   * only on the transition no-filter -> filter, so a user who unticks paths
+#     while filtered is not overridden by their next regime click. The previous
+#     state lives in window.__qsRegimeFilterOn and is updated on EVERY run,
+#     restores included;
+#   * never unticks. "Filter" is read as the server reads it
+#     (callbacks/mc_helpers.py): 0 < checked < bins.
+MC_REGIME_CLICK_MS = 3000
+MC_REGIME_PATHS_JS = """
+function(checked, bins, paths) {
+    var NU = window.dash_clientside.no_update;
+    var n = parseInt(bins, 10);
+    var k = Array.isArray(checked) ? checked.length : 0;
+    var on = (n > 0 && k > 0 && k < n);
+    var was = window.__qsRegimeFilterOn === true;
+    window.__qsRegimeFilterOn = on;
+    var at = window.__qsMcRegimeClickAt || 0;
+    window.__qsMcRegimeClickAt = 0;
+    if (!on || was) { return NU; }
+    if (!at || Date.now() - at > %(click_ms)s) { return NU; }
+    if (Array.isArray(paths) && paths.indexOf("yes") >= 0) { return NU; }
+    return ["yes"];
+}
+""" % {"click_ms": MC_REGIME_CLICK_MS}
+
+
 def _bub_regime_note():
     from figures.bubble import MC_REGIME_FAN_PATHS
     return html.Div(id="bub-mc-regime-note", style={"display": "none"}, children=html.Small(

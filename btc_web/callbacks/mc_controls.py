@@ -154,6 +154,21 @@ _app_ctx.app.clientside_callback(
     prevent_initial_call=True,
 )
 
+# ── Tab 1: applying a regime filter ticks "Show individual price paths" ─────
+# Logic + rationale: layout/mc_controls.py (MC_REGIME_PATHS_JS). ONE Input (see
+# there). All three ids exist in the layout without the Markov engine too
+# (hidden placeholders), so the callback always resolves.
+from layout.mc_controls import MC_REGIME_PATHS_JS  # noqa: E402
+
+_app_ctx.app.clientside_callback(
+    MC_REGIME_PATHS_JS,
+    Output("bub-mc-paths", "value", allow_duplicate=True),
+    Input("bub-mc-regime", "value"),
+    State("bub-mc-bins", "value"),
+    State("bub-mc-paths", "value"),
+    prevent_initial_call=True,
+)
+
 # ── Frequency unlock toggle + modal ──────────────────────────────────────────
 for _fp in ("dca", "ret", "sc"):
     _app_ctx.app.clientside_callback(

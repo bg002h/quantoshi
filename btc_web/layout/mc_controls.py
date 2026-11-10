@@ -10,6 +10,7 @@ from mc_cache import (CACHED_START_YRS, WD_AMOUNTS,
                       ENTRY_PCT_BINS, MC_YEARS_OPTIONS, INFL_OPTIONS,
                       is_master_cached)
 from mc_overlay import bin_regime_labels
+from snapshot_defaults import SNAPSHOT_DEFAULTS
 
 from layout.common import (_section_card, _ctrl_card, _row, _lbl,
                             _STYLE_HIDDEN, _STYLE_HINT, _CB_MARGIN)
@@ -110,20 +111,27 @@ function(checked, bins) {
 #   * only a fresh click stamp (assets/mc_regime_paths.js) acts: a share-link
 #     restore or any other programmatic write never touches the paths box;
 #   * only on the transition no-filter -> filter, so a user who unticks paths
-#     while filtered is not overridden by their next regime click. The previous
-#     state lives in window.__qsRegimeFilterOn and is updated on EVERY run,
-#     restores included;
+#     while filtered is not overridden by their next regime click;
 #   * never unticks. "Filter" is read as the server reads it
 #     (callbacks/mc_helpers.py): 0 < checked < bins.
+# The tracker remembers the previous checked COUNT, not a verdict: a bins change
+# rewrites only the checklist's options, so this callback does not run for it,
+# yet it changes what a given count means. The count is judged against the
+# CURRENT bins, and the first run starts from the default value's length
+# (review I-1, 2026-11-10). The paths Output is NOT allow_duplicate (it has no
+# primary writer): allow_duplicate made Dash fire update_bubble twice per tick
+# click (review I-2).
 MC_REGIME_CLICK_MS = 3000
+MC_REGIME_DEFAULT_K = len(SNAPSHOT_DEFAULTS["bub-mc-regime:value"])
 MC_REGIME_PATHS_JS = """
 function(checked, bins, paths) {
     var NU = window.dash_clientside.no_update;
     var n = parseInt(bins, 10);
     var k = Array.isArray(checked) ? checked.length : 0;
     var on = (n > 0 && k > 0 && k < n);
-    var was = window.__qsRegimeFilterOn === true;
-    window.__qsRegimeFilterOn = on;
+    var pk = (window.__qsRegimeK === undefined) ? %(default_k)s : window.__qsRegimeK;
+    var was = (n > 0 && pk > 0 && pk < n);
+    window.__qsRegimeK = k;
     var at = window.__qsMcRegimeClickAt || 0;
     window.__qsMcRegimeClickAt = 0;
     if (!on || was) { return NU; }
@@ -131,7 +139,7 @@ function(checked, bins, paths) {
     if (Array.isArray(paths) && paths.indexOf("yes") >= 0) { return NU; }
     return ["yes"];
 }
-""" % {"click_ms": MC_REGIME_CLICK_MS}
+""" % {"click_ms": MC_REGIME_CLICK_MS, "default_k": MC_REGIME_DEFAULT_K}
 
 
 def _bub_regime_note():

@@ -158,11 +158,12 @@ _app_ctx.app.clientside_callback(
 # Logic + rationale: layout/mc_controls.py (MC_REGIME_PATHS_JS). ONE Input (see
 # there). All three ids exist in the layout without the Markov engine too
 # (hidden placeholders), so the callback always resolves.
+# No allow_duplicate on the Output: see the I-2 note there.
 from layout.mc_controls import MC_REGIME_PATHS_JS  # noqa: E402
 
 _app_ctx.app.clientside_callback(
     MC_REGIME_PATHS_JS,
-    Output("bub-mc-paths", "value", allow_duplicate=True),
+    Output("bub-mc-paths", "value"),
     Input("bub-mc-regime", "value"),
     State("bub-mc-bins", "value"),
     State("bub-mc-paths", "value"),

@@ -50,6 +50,12 @@ class TestRegistration:
         assert [(s["id"], s["property"]) for s in _entry()["state"]] == [
             ("bub-mc-bins", "value"), ("bub-mc-paths", "value")]
 
+    def test_paths_output_is_not_allow_duplicate(self):
+        """Review I-2: an allow_duplicate Output makes Dash fire update_bubble
+        for the regime change AND again for the paths write (2 POSTs per tick
+        click). bub-mc-paths.value has no primary writer, so this is it."""
+        assert _entry()["output"] == "bub-mc-paths.value"
+
     def test_never_fires_on_page_load(self):
         assert _entry()["prevent_initial_call"] is True
 
@@ -76,7 +82,7 @@ globalThis.window = {dash_clientside: {no_update: NU}};
 const fn = (%(fn)s);
 const out = [];
 for (const c of %(cases)s) {
-    if (c.reset) { delete window.__qsRegimeFilterOn; window.__qsMcRegimeClickAt = 0; }
+    if (c.reset) { delete window.__qsRegimeK; window.__qsMcRegimeClickAt = 0; }
     if (c.clickAgoMs === null) window.__qsMcRegimeClickAt = 0;
     else if (c.clickAgoMs !== undefined) window.__qsMcRegimeClickAt = now - c.clickAgoMs;
     out.push(fn(c.checked, c.bins, c.paths));
@@ -151,6 +157,26 @@ class TestDecision:
         r = _run([_c(SOME, click=None, reset=True),    # restore: records 'on'
                   _c([0], paths=OFF)])                 # user click, still on
         assert r == [NU, NU]
+
+    def test_lowering_bins_does_not_leave_a_stale_filter_on(self):
+        """Review I-1(a). At bins 7 the user checks every box (no filter),
+        unchecks one (a true transition: ticks), then lowers bins to 6. The
+        callback does not run for the bins change, yet six checked boxes of six
+        is no filter now -- so unchecking one is a GENUINE first filter click
+        and must tick. (A tracker that kept the last verdict 'on' misses it.)"""
+        r = _run([_c(list(range(7)), bins=7, reset=True),        # all checked
+                  _c(list(range(6)), bins=7, paths=OFF),         # uncheck one
+                  _c([0, 1, 2, 4, 5], bins=6, paths=OFF)])       # bins now 6
+        assert r == [NU, ["yes"], ["yes"]]
+
+    def test_raising_bins_makes_the_default_value_a_filter_already(self):
+        """Review I-1(b). bins 5 -> 6 leaves the default value [0..4], so the
+        server already filters (and the note shows) before any click. The
+        first regime click is not a transition: no tick over a manual untick."""
+        assert _run([_c([1, 2, 3, 4], bins=6, paths=OFF, reset=True)]) == [NU]
+
+    def test_default_flow_still_ticks_on_the_first_unchecked_box(self):
+        assert _run([_c([1, 2, 3, 4], bins=5, paths=OFF, reset=True)]) == [["yes"]]
 
     def test_the_stamp_is_consumed(self):
         """One click, one chance: a second callback run on the same stamp

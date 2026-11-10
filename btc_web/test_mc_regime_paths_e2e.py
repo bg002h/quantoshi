@@ -90,6 +90,40 @@ def test_a_programmatic_regime_write_leaves_paths_alone(page):
     assert not _paths_on(page)
 
 
+def _set_bins(page, n):
+    page.evaluate(f'window.dash_clientside.set_props("bub-mc-bins", {{value: {n}}})')
+    assert _wait_until(lambda: page.locator(_REGIME).count() == n), \
+        f"bins {n} did not rebuild the regime boxes — the test would pass vacuously"
+
+
+def test_lowering_bins_does_not_make_a_genuine_first_click_miss(page):
+    """Review I-1(a): at bins 7 check every box, uncheck one (ticks), lower bins
+    to 6 (all six boxes checked, no filter), untick paths by hand, then uncheck
+    a box: a genuine first filter click must tick again."""
+    _set_bins(page, 7)
+    page.locator(_REGIME).nth(5).click()          # k=6 of 7: default value already filters
+    page.locator(_REGIME).nth(6).click()          # k=7 of 7: no filter
+    time.sleep(1.5)
+    assert not _paths_on(page)
+    page.locator(_REGIME).nth(6).click()          # k=6 of 7: a true transition
+    assert _wait_until(lambda: _paths_on(page)), "the transition did not tick"
+    _set_bins(page, 6)                            # value [0..5]: no filter now
+    page.locator(_PATHS).first.click()            # user unticks paths
+    assert _wait_until(lambda: not _paths_on(page))
+    page.locator(_REGIME).nth(3).click()          # genuine first filter click
+    assert _wait_until(lambda: _paths_on(page)), \
+        "a genuine first filter click did not tick after a bins change"
+
+
+def test_raising_bins_makes_the_first_click_not_a_transition(page):
+    """Review I-1(b): bins 5 -> 6 leaves the default value, so the server is
+    already filtering; the first regime click must not tick."""
+    _set_bins(page, 6)
+    page.locator(_REGIME).nth(0).click()
+    time.sleep(3.0)
+    assert not _paths_on(page)
+
+
 def test_clearing_the_filter_does_not_untick_paths(page):
     page.locator(_REGIME).nth(4).click()
     assert _wait_until(lambda: _paths_on(page))

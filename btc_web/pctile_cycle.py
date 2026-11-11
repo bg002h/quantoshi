@@ -38,7 +38,7 @@ from scipy.optimize import minimize_scalar
 __all__ = [
     "CycleFit", "fit_cycle", "wave", "bootstrap_params", "band", "turns",
     "turn_timing", "hindcast", "fan_prices", "is_weak", "beats_flat",
-    "likely_band",
+    "likely_band", "available_models",
     "PMIN", "PMAX", "B_DEFAULT", "BLOCK_WEEKS", "SEED", "WEAK_R2",
     "CENSOR_WINDOW", "CYCLE_MODEL_KEYS", "BASES", "DEFAULT_BASIS",
     "HORIZONS", "DEFAULT_HORIZON",
@@ -59,6 +59,18 @@ CENSOR_WINDOW = ("2019-04-15", "2020-02-15")   # operator's study window
 CYCLE_MODEL_KEYS: tuple[str, ...] = (
     "qr", "bub", "pl", "spl", "lppl", "hybppl", "eppl", "pca", "grdy", "ef")
 HORIZONS: tuple[int, ...] = (10, 20, 30)
+
+
+def available_models(price_models) -> list[str]:
+    """Picker keys usable on this host, in picker order: registered, quantized,
+    with a fan. The ONE filter for the layout options, the callback coercion
+    and the figure builder (``ef`` needs model_data_ef.pkl)."""
+    out = []
+    for k in CYCLE_MODEL_KEYS:
+        m = price_models.get(k)
+        if m is not None and getattr(m, "quantized", False) and getattr(m, "quantiles", None):
+            out.append(k)
+    return out
 DEFAULT_HORIZON = 20
 
 #: Basis elements on offer: key -> (space, f_min, f_max, label). f is cycles

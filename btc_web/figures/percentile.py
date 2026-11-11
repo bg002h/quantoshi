@@ -142,12 +142,9 @@ def _sig4(a) -> list[float]:
 
 def _cycle_model(key: str):
     """The registered quantized model for a picker key, or None."""
-    if key not in _pc.CYCLE_MODEL_KEYS:
+    if key not in _pc.available_models(_app_ctx.PRICE_MODELS):
         return None
-    mdl = _app_ctx.PRICE_MODELS.get(key)
-    if mdl is None or not getattr(mdl, "quantized", False) or not mdl.quantiles:
-        return None
-    return mdl
+    return _app_ctx.PRICE_MODELS[key]
 
 
 def _cycle_label(mdl, key: str) -> str:

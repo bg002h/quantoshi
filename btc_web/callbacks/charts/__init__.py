@@ -668,7 +668,7 @@ _PILL_TO_MODE = {v.pill: m for m, v in VIEW_MODES.items()}
 )
 def toggle_bub_view(price_clicks, cagr_clicks, resid_clicks, pctile_clicks,
                     occ_clicks, cur_xrange):
-    """Pill click -> view mode + the 14 view-state values + an x-range swap.
+    """Pill click -> view mode + the view-state values + an x-range swap.
 
     Every UI value except the x-range comes from ``bub_views.mode_styles``; the
     Output order above mirrors ``bub_views.STYLE_OUTPUT_IDS`` (pinned by
@@ -685,13 +685,14 @@ def toggle_bub_view(price_clicks, cagr_clicks, resid_clicks, pctile_clicks,
     return (mode, *mode_styles(mode), xr)
 
 
-# Generated from bub_views.VIEW_MODES: one 14-value array per mode, in the
+# Generated from bub_views.VIEW_MODES: one array per mode (one value per
+# STYLE_OUTPUT_IDS entry), in the
 # Output order below.  The marker in the comment is how tests find this exact
 # inline script among all the others.
 _VIEW_SYNC_JS = (
     "function(mode) {\n"
     "    /* " + SYNC_JS_MARKER + " — generated from bub_views.VIEW_MODES;\n"
-    "       one array of 14 values per mode, in this callback's Output order. */\n"
+    "       one array per mode, in this callback's Output order. */\n"
     "    var T = " + styles_table_json() + ";\n"
     "    return T[mode] || T[" + json.dumps(DEFAULT_MODE) + "];\n"
     "}\n"
@@ -885,15 +886,25 @@ def _cycle_params(fit_val, fit_model, fit_basis, fit_horizon) -> dict:
     back to the defaults rather than reaching the figure builder."""
     import pctile_cycle as _pc
     fit_val = fit_val if isinstance(fit_val, list) else []
+    if "fit" not in fit_val:
+        # Fit off: the sub-settings change nothing on screen, so pin them to
+        # the defaults and every fit-off figure shares one cache key.
+        return dict(cycle_fit=False, cycle_censor=False, cycle_model="qr",
+                    cycle_basis=_pc.DEFAULT_BASIS,
+                    cycle_horizon=_pc.DEFAULT_HORIZON)
     return dict(
-        cycle_fit="fit" in fit_val,
+        cycle_fit=True,
         cycle_censor="censor" in fit_val,
-        cycle_model=(fit_model if fit_model in _pc.CYCLE_MODEL_KEYS
-                     and fit_model in _app_ctx.PRICE_MODELS else "qr"),
+        cycle_model=(fit_model if fit_model in
+                     _pc.available_models(_app_ctx.PRICE_MODELS) else "qr"),
         cycle_basis=fit_basis if fit_basis in _pc.BASES else _pc.DEFAULT_BASIS,
         cycle_horizon=(fit_horizon if fit_horizon in _pc.HORIZONS
                        else _pc.DEFAULT_HORIZON),
     )
+
+
+_PCTILE_SUB_CONTROLS = frozenset({"bub-pctile-fit-model", "bub-pctile-fit-basis",
+                                  "bub-pctile-fit-horizon"})
 
 
 # Cycle-fit summary under the Percentile chart. The figure carries its lines in
@@ -904,7 +915,7 @@ _app_ctx.app.clientside_callback(
     function(fig) {
         var info = fig && fig.layout && fig.layout.meta && fig.layout.meta.cycle_info;
         if (!info || !info.length) { return ["", {"display": "none"}]; }
-        return [info.join("\n"), {"display": "block"}];
+        return [info.join("\\n"), {"display": "block"}];
     }
     """,
     Output("bub-pctile-info", "children"),
@@ -940,6 +951,13 @@ def update_bub_pctile(view_mode, xrange, toggles, xscale, model_show,
     # The graph is hidden in every other mode; don't rebuild it on each
     # x-range / model tick while the user is looking at something else.
     if view_mode != "percentile":
+        return dash.no_update
+    # A cycle sub-setting changed while the fit is off: nothing to redraw.
+    try:
+        trig = ctx.triggered_id
+    except Exception:          # called outside a callback (tests)
+        trig = None
+    if trig in _PCTILE_SUB_CONTROLS and "fit" not in (fit_val or []):
         return dash.no_update
     from utils import _get_pctile_fig
     toggles = toggles or []

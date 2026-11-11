@@ -961,7 +961,16 @@ def _decode_snapshot_v4(encoded_with_fp_prefix):
             log.warning("q4: fingerprint %s not in registry; falling back "
                         "to current SNAPSHOT_DEFAULTS (some fields may "
                         "restore differently)", fp_payload)
-            historical = SNAPSHOT_DEFAULTS
+            historical = dict(SNAPSHOT_DEFAULTS)
+            # An unregistered fp is older than every retained entry (the
+            # registry evicts oldest-first), so it predates any field the
+            # oldest entry lacks: leave those absent for
+            # _fill_predating_fields instead of filling today's default.
+            oldest = next(iter(_load_registry().values()), None)
+            if oldest is not None:
+                for k in _PREDATING_LINK_VALUES:
+                    if k not in oldest:
+                        historical.pop(k, None)
         state = {}
         for i, (cid, prop) in enumerate(_SNAPSHOT_CONTROLS):
             key = f"{cid}:{prop}"

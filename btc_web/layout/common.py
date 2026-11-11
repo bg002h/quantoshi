@@ -549,9 +549,7 @@ def _pctile_cycle_controls():
     import pctile_cycle as _pc
     from snapshot_defaults import SNAPSHOT_DEFAULTS as _D
     models = [{"label": _app_ctx.PRICE_MODELS[k].legend_name, "value": k}
-              for k in _pc.CYCLE_MODEL_KEYS
-              if k in _app_ctx.PRICE_MODELS
-              and getattr(_app_ctx.PRICE_MODELS[k], "quantized", False)]
+              for k in _pc.available_models(_app_ctx.PRICE_MODELS)]
     dd = {"fontSize": UI_FONT_BASE, "display": "inline-block",
           "marginLeft": "6px", "verticalAlign": "middle"}
     return html.Span(id="bub-pctile-ctl-wrap", style={"display": "none"}, children=[
@@ -575,7 +573,7 @@ def _pctile_cycle_controls():
                      options=[{"label": f"+{h}yr", "value": h}
                               for h in _pc.HORIZONS],
                      value=_D["bub-pctile-fit-horizon:value"], clearable=False,
-                     searchable=False, style={**dd, "width": "80px"}),
+                     searchable=False, style={**dd, "width": "95px"}),
     ])
 
 

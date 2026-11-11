@@ -49,7 +49,8 @@ class ViewMode(NamedTuple):
 
 
 # ── The table ────────────────────────────────────────────────────────────────
-# Order matters: WRAP_IDS / PILL_IDS / CTL_IDS and the 14-value style tuple are
+# Order matters: WRAP_IDS / PILL_IDS / CTL_IDS and the style tuple (one value per
+# STYLE_OUTPUT_IDS entry) are
 # derived from it, and the server callbacks' Output order mirrors it exactly.
 VIEW_MODES: MappingProxyType[str, ViewMode] = MappingProxyType({
     "price": ViewMode(
@@ -88,7 +89,7 @@ PANEL_IDS: tuple[str, str] = ("bub-scale-controls", "bub-bubble-panel")
 HISTORICAL_MODES: frozenset[str] = frozenset(
     m for m, v in VIEW_MODES.items() if v.historical)
 
-#: Full Output order of the 14 style/outline values `mode_styles` returns.
+#: Full Output order of the style/outline values `mode_styles` returns.
 STYLE_OUTPUT_IDS: tuple[str, ...] = WRAP_IDS + PILL_IDS + PANEL_IDS + CTL_IDS
 
 
@@ -101,7 +102,7 @@ def _inline() -> dict:
 
 
 def mode_styles(mode: str) -> tuple:
-    """The 14 view-state values for ``mode``, in Output order.
+    """The view-state values for ``mode`` (one per STYLE_OUTPUT_IDS), in Output order.
 
     Order: 5 wrapper styles (:data:`WRAP_IDS`), 5 pill ``outline`` booleans
     (:data:`PILL_IDS`, active pill ``False``), the scale-controls and
@@ -147,7 +148,7 @@ SYNC_JS_MARKER = "QS_BUB_VIEW_SYNC_TABLE"
 
 
 def styles_table_json() -> str:
-    """``{mode: [14 values]}`` as JSON, for the clientside sync callback."""
+    """``{mode: [len(STYLE_OUTPUT_IDS) values]}`` as JSON, for the clientside sync."""
     return json.dumps({m: list(mode_styles(m)) for m in VIEW_MODES},
                       sort_keys=False)
 

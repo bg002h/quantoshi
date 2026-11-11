@@ -417,7 +417,7 @@ def deep_link_bub_view(pathname):
     /1.4          Percentile
     /1.5[.T[.W]]  Occupancy     (T -> tail 5/10/25 %, W -> window 1/2/4 yr)
     Indices are 1-based; '-' is accepted for '.' (see _norm).  Which path opens
-    which view is `deep_link` in bub_views.VIEW_MODES; the first 15 outputs are
+    which view is `deep_link` in bub_views.VIEW_MODES; the first 1 + len(STYLE_OUTPUT_IDS) outputs are
     the mode plus bub_views.mode_styles(mode) — the same values toggle_bub_view
     returns, in the same order — and only the five trailing control values are
     per-view logic.

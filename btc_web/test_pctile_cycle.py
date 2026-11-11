@@ -513,11 +513,14 @@ class TestFigure:
         assert "log-time element" in fig.layout.meta["cycle_info"][-4] or any(
             "log-time element" in ln for ln in fig.layout.meta["cycle_info"])
 
-    def test_cycle_result_is_fast_enough(self):
+    def test_cycle_result_is_not_pathologically_slow(self):
+        """~1.0 s cold when run alone on dev; the suite runs -n logical (24
+        workers), which took it to 5 s. This ceiling only catches an order-of-
+        magnitude regression (e.g. a daily grid or a lost cache)."""
         fp._cycle_result.cache_clear()
         t0 = time.perf_counter()
         fp._cycle_result("qr", "resqr", False, "cal", str(_app_ctx._MODEL_FP))
-        assert time.perf_counter() - t0 < 4.0
+        assert time.perf_counter() - t0 < 20.0
 
 
 # ── Wiring + share links ─────────────────────────────────────────────────────
@@ -605,6 +608,30 @@ class TestWiring:
         assert len(keys) == 1
         assert [i["id"] for i in cm[keys[0]]["inputs"]] == ["bub-pctile-graph"]
 
+    def test_info_div_js_parses(self, tmp_path):
+        """Regression: a Python-level "\\n" became a raw newline inside a JS
+        string literal, so the browser rejected the function and the summary
+        never showed. Pin the escape, and syntax-check with node when present."""
+        import shutil
+        import subprocess
+        (js,) = [s for s in _app_ctx.app._inline_scripts if "cycle_info" in s]
+        assert 'join("\\n")' in js
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("node not installed")
+        start = js.index("function(fig)")
+        depth, end = 0, None
+        for i, ch in enumerate(js[start:], start):
+            depth += ch == "{"
+            depth -= ch == "}"
+            if ch == "}" and depth == 0:
+                end = i + 1
+                break
+        f = tmp_path / "fn.js"
+        f.write_text("var f = " + js[start:end] + ";\n")
+        r = subprocess.run([node, "--check", str(f)], capture_output=True, text=True)
+        assert r.returncode == 0, r.stderr
+
 
 class TestSnapshot:
     def test_new_fields_appended_at_the_absolute_tail(self):
@@ -663,3 +690,49 @@ class TestSnapshot:
         fp_now = _compute_snapshot_defaults_fingerprint()
         state = _decode_snapshot_v4(_v4(fp_now, {}))
         assert state[_FIT] == ["fit"]
+
+
+class _Trig:
+    def __init__(self, tid):
+        self.triggered_id = tid
+
+
+class TestDashFold:
+    def test_unregistered_fingerprint_link_restores_with_the_fit_off(self):
+        """Dash review M1: an evicted / unknown fp falls back to today's
+        defaults, which must not switch the fit on for an old link."""
+        state = _decode_snapshot_v4(
+            _v4("deadbeef", {str(_idx("bub-view-mode")): "percentile"}))
+        assert state["bub-view-mode:data"] == "percentile"
+        assert state[_FIT] == []
+
+    def test_fit_off_pins_sub_settings_to_one_cache_key(self):
+        from callbacks.charts import _cycle_params
+        a = _cycle_params([], "pl", "log", 30)
+        b = _cycle_params(None, "bub", "calw", 10)
+        assert a == b == dict(cycle_fit=False, cycle_censor=False,
+                              cycle_model="qr", cycle_basis="cal",
+                              cycle_horizon=20)
+
+    def test_sub_dropdown_with_fit_off_does_not_rebuild(self):
+        import dash
+        from callbacks.charts import update_bub_pctile
+        args = ("percentile", [2010, 2027], [], "lin", ["bub"], "outside",
+                "default", "resqr")
+        with patch("callbacks.charts.ctx", _Trig("bub-pctile-fit-basis")):
+            assert update_bub_pctile(*args, [], "qr", "log", 20, None, False) \
+                is dash.no_update
+        with patch("callbacks.charts.ctx", _Trig("bub-pctile-fit")), \
+                patch("utils._get_pctile_fig", return_value=fp.go.Figure()):
+            assert update_bub_pctile(*args, [], "qr", "cal", 20, None, False) \
+                is not dash.no_update               # unticking redraws
+
+    def test_one_availability_filter(self):
+        from callbacks.charts import _cycle_params
+        avail = pc.available_models(_app_ctx.PRICE_MODELS)
+        assert avail[0] == "qr" and set(avail) <= set(pc.CYCLE_MODEL_KEYS)
+        fake = {k: v for k, v in _app_ctx.PRICE_MODELS.items() if k != "ef"}
+        assert "ef" not in pc.available_models(fake)
+        with patch.dict(_app_ctx.PRICE_MODELS, {}, clear=False):
+            _app_ctx.PRICE_MODELS.pop("ef", None)
+            assert _cycle_params(["fit"], "ef", "cal", 20)["cycle_model"] == "qr"

@@ -674,8 +674,12 @@ the report (app.py registration in Task 5 Step 3, `_req` helper owned by
 `raw_mc_testing.py`, `p0` fallback = last value of the registered series, Raw
 branch placed before `_mc_setup`, and the rest as listed).
 
+---
+
+## Closed
+
 ### F-24 — Share links drop regime bins ≥ 5 on Tabs 2–6
-**Type:** wrong result (pre-existing) · **Owning phase:** standalone fix after
+**CLOSED 2026-11-10** (the five tables widened to `range(10)`; `test_mc_regime_bins.py` round-trips 10 bins per tab, v4 + q3, and checks every old 5-bit mask decodes unchanged) · **Type:** wrong result (pre-existing) · **Owning phase:** standalone fix after
 the Raw MC merge (out of scope there: "Tab 1 only") · **Severity:** Important ·
 **Found:** 2026-11-10, Raw MC Task 7 implementer
 
@@ -690,7 +694,7 @@ that old links still decode: the bitmask is positional, so prepending is
 unsafe but extending the tail is fine. Add a 10-bin round-trip test per tab.
 
 ### F-25 — Raising MC bins silently filters the new top bins (Tab 1, both modes)
-**Type:** surprising default · **Owning phase:** standalone, after the Raw MC
+**CLOSED 2026-11-10** (`assets/mc_bins_tick.js` + one clientside callback per bins control, all six tabs and Raw; click/Enter stamp, so restores and `set_props` are untouched; node tests in `test_mc_regime_bins.py`, checked live in Firefox) · **Type:** surprising default · **Owning phase:** standalone, after the Raw MC
 merge (the fix touches model mode, outside Raw MC's "model mode unchanged") ·
 **Severity:** Minor · **Found:** 2026-11-10, Raw MC final review M-4
 
@@ -700,10 +704,6 @@ depend on the value not being overwritten.
 
 **Fix sketch:** add a bins callback that fires on a real user click only (the
 click-stamp pattern). If every old bin was ticked, tick all the new bins.
-
----
-
-## Closed
 
 ### F-10 — Tab-1 view pills Percentile and Occupancy have no deep link
 **CLOSED 2026-09-04** (`/1.4`, `/1.5[.T[.W]]`, JS tab map regex, `test_bub_deep_links.py`) · **Severity:** Minor · **Found:**

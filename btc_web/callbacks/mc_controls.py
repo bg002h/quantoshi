@@ -165,6 +165,26 @@ def _update_bub_raw_regime_opts(bins, window, trend):
     return raw_regime_options(raw_bins(bins), raw_window(window), raw_trend(trend))
 
 
+# ── F-25: user raise of the bin count ticks the new bins ────────────────────
+# Logic: assets/mc_bins_tick.js. ONE Input + allow_duplicate +
+# prevent_initial_call (several Inputs would silently never fire in Dash
+# 4.0); the regime value is State. The share-link restore also writes the
+# regime value, hence allow_duplicate; without a fresh user click this
+# returns no_update, so a restored selection is never overwritten.
+from layout.mc_controls import mc_bins_tick_js  # noqa: E402
+
+for _bins_id in [f"{p}-mc-bins" for p in ("dca", "ret", "hm", "sc", "cp", "bub")] \
+        + ["bub-mc-raw-bins"]:
+    _regime_id = _bins_id.replace("-bins", "-regime")
+    _app_ctx.app.clientside_callback(
+        mc_bins_tick_js(_bins_id),
+        Output(_regime_id, "value", allow_duplicate=True),
+        Input(_bins_id, "value"),
+        State(_regime_id, "value"),
+        prevent_initial_call=True,
+    )
+
+
 # ── Tab 1: widen the X range when the user turns MC on ──────────────────────
 # Logic + rationale: layout/bubble.py (MC_AUTOWIDEN_JS). Exactly ONE Input:
 # allow_duplicate + several Inputs + prevent_initial_call silently never fires

@@ -114,6 +114,16 @@ logger = logging.getLogger(__name__)
 # (final review M-6).  On a wrapper inside the qs-mc-raw-only Div, so the
 # inline display never fights the Raw/model class rules.
 RAW_LINES_VIS_JS = "function(v) { return (v && v.length) ? {} : {display: 'none'}; }"
+
+# F-25: a user raise of the bin count ticks the new bins when every old bin was
+# ticked. Logic, the click stamp and why it needs one: assets/mc_bins_tick.js.
+# Every bins control (model 5-10, Raw 3-10) defaults to 5.
+MC_BINS_DEFAULT = 5
+
+
+def mc_bins_tick_js(bins_id: str) -> str:
+    return ("function(bins, regime) { return window.__qsBinsTick(bins, regime, "
+            f'"{bins_id}", {MC_BINS_DEFAULT}); }}')
 _SMALL_NOTE = {"display": "block", "fontSize": UI_FONT_SM, "color": DIM_TEXT,
                "lineHeight": "1.3", "marginBottom": "6px"}
 

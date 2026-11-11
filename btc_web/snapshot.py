@@ -572,11 +572,14 @@ _CHECKLIST_OPTIONS = {
     "hm-mc-advanced":   ["yes"],
     "sc-mc-enable":     ["yes"],
     "sc-mc-advanced":   ["yes"],
-    # MC regime checklists (5 bits each — int values 0-4)
-    "dca-mc-regime":    [0, 1, 2, 3, 4],
-    "ret-mc-regime":    [0, 1, 2, 3, 4],
-    "hm-mc-regime":     [0, 1, 2, 3, 4],
-    "sc-mc-regime":     [0, 1, 2, 3, 4],
+    # MC regime checklists: one bit per bin index. The bins control runs
+    # 5-10, so the table must reach index 9 or a ticked bin >= 5 is dropped
+    # on encode (F-24; was 5 wide). Positional: widening only appends bits,
+    # so old links' masks (bits 0-4) decode exactly as before.
+    "dca-mc-regime":    list(range(10)),
+    "ret-mc-regime":    list(range(10)),
+    "hm-mc-regime":     list(range(10)),
+    "sc-mc-regime":     list(range(10)),
     # Citadel Planner checklists (cp-qs is a dropdown, not a checklist)
     "cp-toggles":       ["log_y", "annotate", "show_legend", "minor_grid", "chart_zoom"],
     "cp-use-lots":      ["yes"],
@@ -586,7 +589,7 @@ _CHECKLIST_OPTIONS = {
     # Citadel MC checklists
     "cp-mc-enable":     ["yes"],
     "cp-mc-advanced":   ["yes"],
-    "cp-mc-regime":     [0, 1, 2, 3, 4],
+    "cp-mc-regime":     list(range(10)),   # F-24, as above
     # NOTE: cp-tax-toggle is a dbc.Switch (bool), NOT a checklist.
     # It's encoded/decoded directly as a JSON bool — do not add it here.
     # ── Custom Time Axis (Tab 1, appended 2026-04-13) ──

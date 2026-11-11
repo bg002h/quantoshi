@@ -762,3 +762,30 @@ def test_price_change_clears_the_cache(counted_simulate):
     _run()
     assert _raw._cache
     assert _raw.clear_cache in raw_mc._CACHE_CLEARERS
+    raw_mc.set_prices(*raw_mc.get_prices())      # re-register: clearers run
+    assert not _raw._cache
+
+
+def test_huge_stack_does_not_overflow(monkeypatch):
+    """Review M-1: the float32 cache times a huge stack stays finite (the
+    multiply is float64). The reviewer measured raw paths up to ~1e32 (trend
+    none, 40 y, 3200 sims); a fake result pins that level deterministically,
+    and x 1e8 is past float32's 3.4e38."""
+    from types import SimpleNamespace
+    from callbacks.charts import _raw
+    real = raw_mc.simulate
+
+    def huge(req):
+        r = real(req)
+        return SimpleNamespace(ok=True, status=list(r.status), t_axis=r.t_axis,
+                               paths=np.full_like(r.paths, 1e32))
+    monkeypatch.setattr(raw_mc, "simulate", huge)
+    _raw.clear_cache()
+    fig = _run(show_stack=["yes"], stack=1e8, mc_paths=["yes"], mc_extremes=["yes"])[0]
+    seen = 0
+    for t in fig.data:
+        if (t.name or "").startswith("MC") or "mc" in (getattr(t, "legendgroup", "") or ""):
+            y = np.asarray([np.nan if v is None else v for v in t.y], dtype=float)
+            assert np.isfinite(y).all(), t.name   # inf serialises as null
+            seen += 1
+    assert seen > 5

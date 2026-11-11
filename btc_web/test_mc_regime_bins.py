@@ -80,12 +80,12 @@ class TestF25Wiring:
         assert set(cbs) == want
 
     def test_shape(self):
-        """ONE Input, allow_duplicate output, no initial call (Dash 4.0
-        silently drops allow_duplicate + several Inputs + prevent_initial_call),
-        and the regime value read as State."""
+        """ONE Input, a plain (NOT allow_duplicate) output -- an allow_duplicate
+        one makes Dash fire update_bubble twice per bins raise (review I-1) --
+        no initial call, and the regime value read as State."""
         for bins_id, (key, cb) in _bins_callbacks().items():
             regime = bins_id.replace("-bins", "-regime")
-            assert key.startswith(f"{regime}.value@"), key   # allow_duplicate hash
+            assert key == f"{regime}.value", key   # no allow_duplicate hash
             assert cb.get("prevent_initial_call") is True
             states = [(s["id"], s["property"]) for s in cb.get("state", [])]
             assert states == [(regime, "value")], states

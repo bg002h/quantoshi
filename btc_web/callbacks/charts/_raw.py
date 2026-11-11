@@ -107,7 +107,10 @@ def _frozen(a: np.ndarray, dtype=None) -> np.ndarray:
 
 
 def _simulate_cached(req):
-    """``(ok, status, paths, t_axis)`` for ``req``; arrays are read-only."""
+    """``(ok, status, paths, t_axis)`` for ``req``; arrays are read-only.
+    The lock is not held during ``simulate``: two threads missing on the same
+    request both simulate and store identical results -- harmless, and
+    gunicorn runs sync workers (review N-1)."""
     with _cache_lock:
         hit = _cache.get(req)
         if hit is not None:
@@ -172,7 +175,8 @@ def add_raw_overlay(fig, *, variant, price_data, xrange, stack, show_stack,
     paths = paths[:, :keep]
     stack_f = _cf(stack, 0)
     if "yes" in (show_stack or []) and stack_f > 0:
-        paths = paths * stack_f
+        # float64: the float32 cache times a large stack overflows (review M-1)
+        paths = np.multiply(paths, stack_f, dtype=np.float64)
 
     import plotly.graph_objects as go
     fig = go.Figure(fig)                      # never mutate the cached figure

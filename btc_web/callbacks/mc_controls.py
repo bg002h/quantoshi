@@ -166,11 +166,13 @@ def _update_bub_raw_regime_opts(bins, window, trend):
 
 
 # ── F-25: user raise of the bin count ticks the new bins ────────────────────
-# Logic: assets/mc_bins_tick.js. ONE Input + allow_duplicate +
-# prevent_initial_call (several Inputs would silently never fire in Dash
-# 4.0); the regime value is State. The share-link restore also writes the
-# regime value, hence allow_duplicate; without a fresh user click this
-# returns no_update, so a restored selection is never overwritten.
+# Logic: assets/mc_bins_tick.js. ONE Input, prevent_initial_call, the regime
+# value as State. NOT allow_duplicate: this is the only non-duplicate writer of
+# *-regime.value, and an allow_duplicate Output makes Dash fire update_bubble
+# twice per bins raise -- once on the bins change with the stale selection,
+# again on the tick (F-24/F-25 review I-1; same as the paths callback's I-2).
+# Without a fresh user click this returns no_update, so a restored selection
+# is never overwritten.
 from layout.mc_controls import mc_bins_tick_js  # noqa: E402
 
 for _bins_id in [f"{p}-mc-bins" for p in ("dca", "ret", "hm", "sc", "cp", "bub")] \
@@ -178,7 +180,7 @@ for _bins_id in [f"{p}-mc-bins" for p in ("dca", "ret", "hm", "sc", "cp", "bub")
     _regime_id = _bins_id.replace("-bins", "-regime")
     _app_ctx.app.clientside_callback(
         mc_bins_tick_js(_bins_id),
-        Output(_regime_id, "value", allow_duplicate=True),
+        Output(_regime_id, "value"),
         Input(_bins_id, "value"),
         State(_regime_id, "value"),
         prevent_initial_call=True,

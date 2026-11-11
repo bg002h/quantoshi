@@ -749,7 +749,9 @@ MC_PATH_ALPHA_BUDGET  = 8.0    # cap on the SUM of path alphas: 200 paths -> 0.0
                                # cloud the fan shows through (0.45 x 200 is a black slab)
 MC_EXTREME_ALPHA      = 0.6    # Tab-1 Raw MC extreme paths (MC_PATH_COLOR) — stronger than any example line
 MC_LEGEND_BG_ALPHA    = 0.7    # MC legend repositioned bg
-PCTILE_FIT_BAND_ALPHA       = 0.18   # cycle-fit 10-90% bootstrap band fill (model colour)
+PCTILE_FIT_BAND_ALPHA       = 0.22   # cycle-fit inner band: fit uncertainty (model colour)
+PCTILE_LIKELY_BAND_ALPHA    = 0.09   # cycle-fit outer band: likely range (model colour)
+PCTILE_WEAK_BOX_ALPHA       = 0.25   # weak-cycle warning box (FALLBACK_MODEL_GRAY)
 PCTILE_FIT_CONTEXT_OPACITY  = 0.35   # other models' percentile lines while a cycle fit is shown
 PCTILE_FORECAST_SHADE_ALPHA = 0.045  # forecast-region wash
 PCTILE_CENSOR_ALPHA         = 0.14   # "skip 2019-20" withheld window (PCTILE_RICH_COLOR)

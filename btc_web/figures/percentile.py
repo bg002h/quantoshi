@@ -23,6 +23,7 @@ from colors import (_hex_alpha, PLOT_BG_COLOR, FALLBACK_MODEL_GRAY,
                     PCTILE_FIT_DATA_COLOR, PCTILE_FIT_BAND_ALPHA,
                     PCTILE_FIT_CONTEXT_OPACITY, PCTILE_FORECAST_SHADE,
                     PCTILE_FORECAST_SHADE_ALPHA, PCTILE_CENSOR_ALPHA,
+                    PCTILE_LIKELY_BAND_ALPHA, PCTILE_WEAK_BOX_ALPHA,
                     CHART_FONT_LEGEND, BLACK_A0)
 
 from figures.common import (
@@ -93,16 +94,22 @@ def _percentile_series(mdl, t_data, px_data, sigma_mode="constant"):
     return pct * 100.0
 
 
-# ── Cycle fit (one calendar-time sinusoid through ONE model's percentile) ─────
+# ── Cycle fit (one basis element through ONE model's percentile) ─────────────
 # Spec: docs/superpowers/specs/2026-11-10-percentile-cycle-fit-design.md
 # The math lives in pctile_cycle.py; this section caches it per model / sigma
-# mode / censor / data version and turns it into traces and labels.
+# mode / censor / element / data version and turns it into traces, labels and
+# the summary lines that the info div under the chart shows (they ride in
+# layout.meta.cycle_info, so every writer of the figure carries them).
 
 _WEEK = 7.0 / 365.25
 _TRANSPARENT = BLACK_A0   # width-0 band edges need an explicit transparent colour
 _FIT_LINE_WIDTH = 2.4
 _TURN_SIZE = 9
-_LABEL_SHIFT = 24        # px between a turn marker and its label
+_LABEL_SHIFT = 24          # px between a turn marker and its label
+_GRID_PAST_LAST = 30.0     # fixed band grid runs this far past the last close
+#: Text labels per kind (peak / trough) on the next forecast turns; the rest
+#: carry hover only. A log axis squeezes 20 yr into ~1/5 of the width.
+_LABELS_PER_KIND = {True: 1, False: 3}      # keyed on "x axis is log"
 
 
 def _t_of(datestr: str, genesis) -> float:
@@ -127,7 +134,7 @@ def _money(v: float) -> str:
     return f"${v:.2f}"
 
 
-def _sig4(a: np.ndarray) -> list[float]:
+def _sig4(a) -> list[float]:
     """Round to 4 significant figures for the wire (prices span 9 decades)."""
     return [float(f"{v:.4g}") for v in np.asarray(a, float)]
 
@@ -142,22 +149,47 @@ def _cycle_model(key: str):
     return mdl
 
 
-def _cycle_label(key: str, mdl) -> str:
-    return _pc.CYCLE_MODEL_LABELS.get(key) or getattr(mdl, "legend_name", key)
+def _cycle_label(mdl, key: str) -> str:
+    return getattr(mdl, "legend_name", None) or key
+
+
+def _qr_asof_series(t, px, genesis):
+    """``y_at(cut)`` for an honest QR hindcast: the percentile of every close
+    against the Time Machine's as-of QR fan of the last frame <= ``cut`` (a
+    fan fitted only on data up to that frame), or None before the first frame.
+    QR is sigma-invariant, so this is like-for-like with the live series."""
+    import timemachine as tm
+    frame_t = np.array([_t_of(d, genesis) for d in tm.frames()])
+    memo: dict[int, Any] = {}
+
+    def y_at(cut):
+        i = int(np.searchsorted(frame_t, cut, side="right")) - 1
+        if i < 0:
+            return None
+        if i not in memo:
+            mdl = tm.asof_qr(i)
+            memo[i] = (None if mdl is None
+                       else _percentile_series(mdl, t, px, sigma_mode="constant"))
+        return memo[i]
+    return y_at
 
 
 @functools.lru_cache(maxsize=16)
-def _cycle_result(model_key: str, sigma_mode: str, censor: bool, fp: str):
-    """Fit, bootstrap and hindcast for one model's FULL-record percentile.
+def _cycle_result(model_key: str, sigma_mode: str, censor: bool, basis: str,
+                  fp: str):
+    """Fit, bootstrap, bands and hindcast of one basis element to one model's
+    FULL-record percentile.
 
     ``fp`` (the model-data fingerprint) is only a cache key: a rebuilt
     model_data.pkl changes it, so a worker never serves a stale fit. The
-    x-window never enters — the slider cannot change the fit. Returns None
-    when the model is unavailable or has no fan.
+    x-window never enters — the slider cannot change the fit. Bands live on a
+    fixed weekly grid from the first close to last + 30 yr, so zoom and horizon
+    never re-draw them. Returns None when the model is unavailable, the
+    element unknown, or the fan missing.
     """
     del fp
     mdl = _cycle_model(model_key)
-    if mdl is None:
+    if mdl is None or basis not in _pc.BASES:
         return None
     M = _app_ctx.M
     t_all = np.asarray(M.price_years, float)
@@ -173,13 +205,45 @@ def _cycle_result(model_key: str, sigma_mode: str, censor: bool, fp: str):
         a = _t_of(_pc.CENSOR_WINDOW[0], M.genesis)
         b = _t_of(_pc.CENSOR_WINDOW[1], M.genesis)
         ok &= ~((t >= a) & (t <= b))
-    t, pct = t[ok], pct[ok]
+    t, px, pct = t[ok], px[ok], pct[ok]
     if t.size < 2 * 365:
         return None
-    fit = _pc.fit_cycle(t, pct)
-    return dict(model_key=model_key, t=t, pct=pct, fit=fit,
-                params=_pc.bootstrap_params(t, pct, fit),
-                hind=_pc.hindcast(t, pct))
+    fit = _pc.fit_cycle(t, pct, basis=basis)
+    params = _pc.bootstrap_params(t, pct, fit)
+
+    honest = False
+    hind = None
+    if model_key == "qr":
+        try:
+            import timemachine as tm
+            if tm.available() and tm._load()["models"].get("qr"):
+                hind = _pc.hindcast(t, pct, basis=basis,
+                                    y_at=_qr_asof_series(t, px, M.genesis))
+                honest = bool(hind["n"])
+        except Exception:
+            hind, honest = None, False
+    if not honest:
+        hind = _pc.hindcast(t, pct, basis=basis)
+
+    grid = np.arange(float(t[0]), float(t[-1]) + _GRID_PAST_LAST + _WEEK, _WEEK)
+    fit_lo, fit_hi = _pc.band(params, grid, space=fit.space)
+    lik_lo, lik_hi = _pc.likely_band(params, t, pct, fit, grid)
+    tw, yw = t[::_pc.STEP], pct[::_pc.STEP]
+
+    def cover(lo, hi):
+        a_ = np.interp(tw, grid, lo)
+        b_ = np.interp(tw, grid, hi)
+        return float(((yw >= a_) & (yw <= b_)).mean())
+
+    qs = np.asarray(mdl.quantiles, float)
+    clamped = float(((pct <= qs[0] * 100 + 1e-6)
+                     | (pct >= qs[-1] * 100 - 1e-6)).mean())
+    return dict(model_key=model_key, t=t, pct=pct, fit=fit, params=params,
+                hind=hind, honest=honest, weak=_pc.is_weak(fit, hind),
+                grid=grid, fit_lo=fit_lo, fit_hi=fit_hi,
+                lik_lo=lik_lo, lik_hi=lik_hi,
+                cov_fit=cover(fit_lo, fit_hi), cov_lik=cover(lik_lo, lik_hi),
+                clamped=clamped, censor=censor)
 
 
 def _logfan(mdl, tt, sigma_mode):
@@ -194,156 +258,231 @@ def _logfan(mdl, tt, sigma_mode):
     return qs, lf
 
 
-def _cycle_overlay(cyc, mdl, p, m, t_lo, t_hi, xlog):
-    """Traces (back layer, front layer), shapes and annotations for the fit."""
-    fit, params, hind = cyc["fit"], cyc["params"], cyc["hind"]
+def _cycle_info(cyc, label, mdl):
+    """Plain-text summary lines for the info div (and tests)."""
+    fit, hind, params = cyc["fit"], cyc["hind"], cyc["params"]
+    blabel = _pc.BASES[fit.basis][3]
+    r2_txt = "R² (2019–20 excluded)" if cyc["censor"] else "R²"
+    lines = []
+    if cyc["weak"]:
+        if fit.at_limit:
+            why = "its period sits at the edge of the searched range"
+        elif fit.r2 < _pc.WEAK_R2:
+            why = f"{r2_txt} {fit.r2:.2f}"
+        else:
+            why = "it misses past 2-yr windows by more than a flat line does"
+        lines.append(f"⚠ Weak cycle in {label}'s percentile ({why}) — "
+                     f"no forecast drawn. Fans that already model the cycle leave "
+                     f"little to fit; try another element, or QR.")
+    if fit.space == "cal":
+        per = 1.0 / params[:, 2]
+        p_lo, p_hi = np.percentile(per, [10, 90])
+        per_txt = f"period {fit.period:.2f} yr (10–90%: {p_lo:.2f}–{p_hi:.2f})"
+    else:
+        per = np.exp(1.0 / params[:, 2])
+        p_lo, p_hi = np.percentile(per, [10, 90])
+        per_txt = (f"turns every ×{fit.period:.2f} in time since 2009 "
+                   f"(10–90%: {p_lo:.2f}–{p_hi:.2f})")
+    lines.append(f"{label} · {blabel} element · {per_txt} · "
+                 f"amplitude {fit.A:.0f} pp · {r2_txt} {fit.r2:.2f}")
+    if hind["n"]:
+        wins = int(round(hind["win_rate"] * hind["n"]))
+        src = ("as-of fans, no look-ahead" if cyc["honest"] else
+               "against today's fan — optimistic, the fan has seen the later data")
+        lines.append(f"Hindcast ({src}): the wave beat a flat line in {wins} of "
+                     f"{hind['n']} overlapping 2-yr windows; mean miss "
+                     f"{hind['rmse_wave']:.0f} vs {hind['rmse_flat']:.0f} pp.")
+    else:
+        lines.append("Hindcast: not enough history to score.")
+    lines.append(f"Bands: ‘fit uncertainty’ = 10–90% of "
+                 f"{params.shape[0]} refits on 1-yr-block resamples (where the "
+                 f"wave is; narrowest at turns — turn timing is the bars); "
+                 f"‘likely range’ adds the percentile's own scatter. "
+                 f"In-sample the actual percentile sat inside them "
+                 f"{cyc['cov_fit']:.0%} / {cyc['cov_lik']:.0%} of weeks.")
+    if cyc["clamped"] > 0.05:
+        lines.append(f"{cyc['clamped']:.0%} of days sit at the edge of {label}'s "
+                     f"fan (percentile pinned), which biases the fit.")
+    lines.append("Descriptive fit, not a forecast.")
+    return lines
+
+
+def _cycle_overlay(cyc, mdl, p, m, t_lo, t_edge, xlog, forecast):
+    """(back traces, front traces, shapes, annotations, info lines, subtitle)."""
+    fit, params = cyc["fit"], cyc["params"]
     key = cyc["model_key"]
-    label = _cycle_label(key, mdl)
+    label = _cycle_label(mdl, key)
     color = _get_model_color(key, p)
     sm = p.get("sigma_mode", "constant")
-    t_last = float(m.price_years[-1])
-    weak = fit.r2 < _pc.WEAK_R2
+    sp = fit.space
+    weak = cyc["weak"]
+    t_last = float(cyc["t"][-1])
+    grid = cyc["grid"]
 
     def ax_x(t):
         return math.log10(t) if xlog else t
 
+    def at(tt, arr):
+        return np.interp(tt, grid, arr)
+
     def rows(tt):
-        """Wave value + hover rows [band lo, band hi, $, $lo, $hi] at tt."""
-        yc = _pc.wave(fit.c, fit.A, fit.f, fit.phi, tt)
-        blo, bhi = _pc.band(params, tt)
+        """Wave + hover rows [fit lo, fit hi, likely lo, likely hi, $fit,
+        $likely lo, $likely hi] at tt (date is prepended at customdata[0])."""
+        yc = _pc.wave(fit.c, fit.A, fit.f, fit.phi, tt, sp)
+        flo, fhi = at(tt, cyc["fit_lo"]), at(tt, cyc["fit_hi"])
+        llo, lhi = at(tt, cyc["lik_lo"]), at(tt, cyc["lik_hi"])
         qs, lf = _logfan(mdl, tt, sm)
         pr = _pc.fan_prices(lf, qs, np.clip(yc, 0.0, 100.0))
-        prl = _pc.fan_prices(lf, qs, blo)
-        prh = _pc.fan_prices(lf, qs, bhi)
-        cd = [[round(float(a), 1), round(float(b), 1), c, d, e]
-              for a, b, c, d, e in zip(blo, bhi, _sig4(pr), _sig4(prl), _sig4(prh))]
-        return yc, blo, bhi, cd
+        prl = _pc.fan_prices(lf, qs, llo)
+        prh = _pc.fan_prices(lf, qs, lhi)
+        cd = [[round(float(a), 1), round(float(b), 1), round(float(c), 1),
+               round(float(d), 1), e, f_, g]
+              for a, b, c, d, e, f_, g in zip(flo, fhi, llo, lhi, _sig4(pr),
+                                               _sig4(prl), _sig4(prh))]
+        return yc, cd
 
-    grid = np.append(np.arange(t_lo, t_hi, _WEEK), t_hi)
-    _, blo, bhi, _ = rows(grid)
-    back = [
-        go.Scatter(x=grid, y=_round_trace_data(bhi), mode="lines",
-                   line=dict(width=0, color=_TRANSPARENT), hoverinfo="skip",
-                   showlegend=False, name="band 90%"),
-        go.Scatter(x=grid, y=_round_trace_data(blo), mode="lines",
-                   line=dict(width=0, color=_TRANSPARENT), hoverinfo="skip",
-                   fill="tonexty",
-                   fillcolor=_hex_alpha(color, PCTILE_FIT_BAND_ALPHA),
-                   name="10–90% band (bootstrap)"),
-    ]
+    t_end = t_edge if forecast else min(t_edge, t_last)
+    G = grid[(grid >= t_lo) & (grid <= t_end)]
+    if G.size == 0 or G[-1] < t_end:
+        G = np.append(G, t_end)
+
+    def band_pair(lo, hi, alpha, name):
+        return [
+            go.Scatter(x=G, y=_round_trace_data(at(G, hi)), mode="lines",
+                       line=dict(width=0, color=_TRANSPARENT), hoverinfo="skip",
+                       showlegend=False, name=f"{name} (upper)"),
+            go.Scatter(x=G, y=_round_trace_data(at(G, lo)), mode="lines",
+                       line=dict(width=0, color=_TRANSPARENT), hoverinfo="skip",
+                       fill="tonexty", fillcolor=_hex_alpha(color, alpha),
+                       name=name),
+        ]
+
+    back = []
+    if not weak:
+        back += band_pair(cyc["lik_lo"], cyc["lik_hi"], PCTILE_LIKELY_BAND_ALPHA,
+                          "likely range (10–90%)")
+    back += band_pair(cyc["fit_lo"], cyc["fit_hi"], PCTILE_FIT_BAND_ALPHA,
+                      "fit uncertainty (10–90% of refits)")
 
     hover = ("<b>%{fullData.name}</b><br>%{customdata[0]}<br>"
-             "fit Q%{y:.0f} (band Q%{customdata[1]:.0f}–Q%{customdata[2]:.0f})<br>"
-             "≈ $%{customdata[3]:.3s} "
-             "($%{customdata[4]:.3s}–$%{customdata[5]:.3s})<extra></extra>")
+             "fit Q%{y:.0f} ≈ $%{customdata[5]:.3s}<br>"
+             "wave Q%{customdata[1]:.0f}–Q%{customdata[2]:.0f} (fit uncertainty)<br>"
+             "likely Q%{customdata[3]:.0f}–Q%{customdata[4]:.0f} "
+             "≈ $%{customdata[6]:.3s}–$%{customdata[7]:.3s}<extra></extra>")
+    per_txt = (f"{fit.period:.2f} yr" if sp == "cal" else f"×{fit.period:.2f}")
     front = []
-    ins = grid[grid <= t_last]
-    if ins.size == 0 or ins[-1] < min(t_last, t_hi):
-        ins = np.append(ins, min(t_last, t_hi))
-    yc, _, _, cd = rows(ins)
+    ins = G[G <= t_last]
+    if ins.size == 0 or ins[-1] < min(t_last, t_end):
+        ins = np.append(ins, min(t_last, t_end))
+    yc, cd = rows(ins)
     front.append(go.Scatter(
         x=ins, y=_round_trace_data(yc), mode="lines", customdata=cd,
-        name=f"{label} cycle fit ({fit.period:.2f} yr)", hovertemplate=hover,
-        line=dict(color=color, width=_FIT_LINE_WIDTH)))
-    forecast = t_hi > t_last
+        name=f"{label} cycle fit ({per_txt})", hovertemplate=hover,
+        line=dict(color=color, width=_FIT_LINE_WIDTH,
+                  dash="dot" if weak else "solid")))
     if forecast:
-        fc = np.insert(grid[grid > t_last], 0, t_last)
-        yc, _, _, cd = rows(fc)
+        fc = np.insert(G[G > t_last], 0, t_last)
+        yc, cd = rows(fc)
         front.append(go.Scatter(
             x=fc, y=_round_trace_data(yc), mode="lines", customdata=cd,
             name=f"{label} cycle extrapolation", hovertemplate=hover,
             line=dict(color=color, width=_FIT_LINE_WIDTH, dash="dash")))
 
     anns, shapes = [], []
-    tturns = _pc.turns(fit, t_lo, t_hi)
-    for past, tag in ((True, "fitted turns"), (False, "forecast turns")):
-        sel = [r for r in tturns if (r[0] <= t_last) == past]
-        if not sel:
-            continue
-        xs = np.array([r[0] for r in sel])
-        vs = np.array([r[1] for r in sel])
-        qs, lf = _logfan(mdl, xs, sm)
-        prices = _pc.fan_prices(lf, qs, vs)
-        kinds = [r[2] for r in sel]
-        sym = ["triangle-up" if k == "peak" else "triangle-down" for k in kinds]
-        if past:
-            cd = [[k, float(f"{pr:.4g}")] for k, pr in zip(kinds, prices)]
-            tmpl = ("<b>fitted %{customdata[1]}</b> %{customdata[0]}<br>"
-                    "Q%{y:.0f} · ≈ $%{customdata[2]:.3s}<extra></extra>")
-            err = None
-        else:
-            timing = [_pc.turn_timing(params, x, k) for x, k in zip(xs, kinds)]
-            cd = [[k, float(f"{pr:.4g}"), _mon_yr(a, m.genesis), _mon_yr(b, m.genesis)]
-                  for k, pr, (a, b) in zip(kinds, prices, timing)]
-            tmpl = ("<b>forecast %{customdata[1]}</b> %{customdata[0]}<br>"
-                    "Q%{y:.0f} · ≈ $%{customdata[2]:.3s}<br>"
-                    "turn date, 10–90% of refits: "
-                    "%{customdata[3]} – %{customdata[4]}<extra></extra>")
-            err = dict(type="data", symmetric=False,
-                       array=[b - x for x, (a, b) in zip(xs, timing)],
-                       arrayminus=[x - a for x, (a, b) in zip(xs, timing)],
-                       color=color, thickness=1.5, width=5)
-        front.append(go.Scatter(
-            x=xs, y=vs, mode="markers", name=f"{label} {tag}",
-            showlegend=False, customdata=cd, hovertemplate=tmpl,
-            error_x=err,
-            marker=dict(symbol=sym, size=_TURN_SIZE, color=color,
-                        line=dict(color=PLOT_BG_COLOR, width=1))))
-        if not past and not weak:
-            for x, v, k, pr in zip(xs, vs, kinds, prices):
-                anns.append(dict(
-                    x=ax_x(float(x)), y=float(v), xref="x", yref="y",
-                    text=f"{_mon_yr(x, m.genesis)}<br>Q{v:.0f} · {_money(pr)}",
-                    showarrow=False, yshift=_LABEL_SHIFT if k == "peak" else -_LABEL_SHIFT,
-                    font=dict(size=CHART_FONT_LEGEND, color=color),
-                    bgcolor=_hex_alpha(PLOT_BG_COLOR, MC_LEGEND_BG_ALPHA),
-                    bordercolor=color, borderwidth=1, borderpad=2))
+    if not weak:
+        tturns = _pc.turns(fit, t_lo, t_end)
+        n_lab = _LABELS_PER_KIND[bool(xlog)]
+        for past, tag in ((True, "fitted turns"), (False, "forecast turns")):
+            sel = [r for r in tturns if (r[0] <= t_last) == past]
+            if not sel:
+                continue
+            xs = np.array([r[0] for r in sel])
+            vs = np.array([r[1] for r in sel])
+            kinds = [r[2] for r in sel]
+            qs, lf = _logfan(mdl, xs, sm)
+            prices = _pc.fan_prices(lf, qs, vs)
+            sym = ["triangle-up" if k == "peak" else "triangle-down" for k in kinds]
+            if past:
+                cd = [[k, float(f"{pr:.4g}")] for k, pr in zip(kinds, prices)]
+                tmpl = ("<b>fitted %{customdata[1]}</b> %{customdata[0]}<br>"
+                        "Q%{y:.0f} · ≈ $%{customdata[2]:.3s}<extra></extra>")
+                err = None
+            else:
+                # cycle index from the central fit's last in-sample turn of
+                # each kind (where replicates agree); without one, match
+                # nearest (j = 0 at the turn itself)
+                past_turns = _pc.turns(fit, float(cyc["t"][0]), t_last)
+                anchor = {k: max((r[0] for r in past_turns if r[2] == k),
+                                 default=None) for k in ("peak", "trough")}
+                seen = {"peak": 0, "trough": 0}
+                idx, timing = [], []
+                for x, k in zip(xs, kinds):
+                    idx.append(seen[k])
+                    seen[k] += 1
+                    t_a, j = ((anchor[k], seen[k]) if anchor[k] is not None
+                              else (float(x), 0))
+                    timing.append(_pc.turn_timing(params, t_a, j, k, float(x),
+                                                  space=sp))
+                cd = [[k, float(f"{pr:.4g}"), _mon_yr(a, m.genesis),
+                       _mon_yr(b, m.genesis)]
+                      for k, pr, (a, b) in zip(kinds, prices, timing)]
+                tmpl = ("<b>forecast %{customdata[1]}</b> %{customdata[0]}<br>"
+                        "Q%{y:.0f} · ≈ $%{customdata[2]:.3s}<br>"
+                        "turn date, 10–90% of refits: "
+                        "%{customdata[3]} – %{customdata[4]}<extra></extra>")
+                err = dict(type="data", symmetric=False,
+                           array=[max(0.0, b - x) for x, (a, b) in zip(xs, timing)],
+                           arrayminus=[max(0.0, x - a) for x, (a, b) in zip(xs, timing)],
+                           color=color, thickness=1.5, width=5)
+                for x, v, k, pr, j in zip(xs, vs, kinds, prices, idx):
+                    if j >= n_lab:
+                        continue
+                    anns.append(dict(
+                        x=ax_x(float(x)), y=float(v), xref="x", yref="y",
+                        text=f"{_mon_yr(x, m.genesis)}<br>Q{v:.0f} · {_money(pr)}",
+                        showarrow=False,
+                        yshift=_LABEL_SHIFT if k == "peak" else -_LABEL_SHIFT,
+                        font=dict(size=CHART_FONT_LEGEND, color=color),
+                        bgcolor=_hex_alpha(PLOT_BG_COLOR, MC_LEGEND_BG_ALPHA),
+                        bordercolor=color, borderwidth=1, borderpad=2))
+            front.append(go.Scatter(
+                x=xs, y=vs, mode="markers", name=f"{label} {tag}",
+                showlegend=False, customdata=cd, hovertemplate=tmpl,
+                error_x=err,
+                marker=dict(symbol=sym, size=_TURN_SIZE, color=color,
+                            line=dict(color=PLOT_BG_COLOR, width=1))))
+    else:
+        anns.append(dict(
+            x=0.01, y=0.99, xref="paper", yref="paper", xanchor="left",
+            yanchor="top", showarrow=False,
+            text=f"⚠ weak cycle in {label}'s percentile — no forecast "
+                 f"(details below the chart)",
+            font=dict(size=CHART_FONT_LEGEND),
+            bgcolor=_hex_alpha(FALLBACK_MODEL_GRAY, PCTILE_WEAK_BOX_ALPHA),
+            borderpad=3))
 
     if forecast:
         shapes.append(dict(
-            type="rect", xref="x", yref="paper", x0=t_last, x1=t_hi, y0=0, y1=1,
+            type="rect", xref="x", yref="paper", x0=t_last, x1=t_edge, y0=0, y1=1,
             layer="below", line=dict(width=0),
             fillcolor=_hex_alpha(PCTILE_FORECAST_SHADE, PCTILE_FORECAST_SHADE_ALPHA)))
-    if p.get("cycle_censor"):
+    if cyc["censor"]:
         a = _t_of(_pc.CENSOR_WINDOW[0], m.genesis)
         b = _t_of(_pc.CENSOR_WINDOW[1], m.genesis)
-        if b > t_lo and a < t_hi:
+        if b > t_lo and a < t_edge:
             shapes.append(dict(
                 type="rect", xref="x", yref="paper", x0=max(a, t_lo),
-                x1=min(b, t_hi), y0=0, y1=1, layer="below", line=dict(width=0),
+                x1=min(b, t_edge), y0=0, y1=1, layer="below", line=dict(width=0),
                 fillcolor=_hex_alpha(PCTILE_RICH_COLOR, PCTILE_CENSOR_ALPHA)))
             anns.append(dict(
-                x=ax_x((max(a, t_lo) + min(b, t_hi)) / 2), y=0.02, xref="x",
+                x=ax_x((max(a, t_lo) + min(b, t_edge)) / 2), y=0.02, xref="x",
                 yref="paper", text="withheld<br>from fit", showarrow=False,
                 font=dict(size=CHART_FONT_LEGEND)))
 
-    per = 1.0 / params[:, 2]
-    p_lo, p_hi = np.percentile(per, [10, 90])
-    if hind["n"]:
-        hline = (f"hindcast: the wave beats a flat forecast in "
-                 f"{hind['win_rate']:.0%} of {hind['n']} past 2-yr windows "
-                 f"(RMSE {hind['rmse_wave']:.0f} vs {hind['rmse_flat']:.0f} pp)")
-    else:
-        hline = "hindcast: not enough history to score"
-    if weak:
-        head = (f"⚠ weak cycle in {label} (R² {fit.r2:.2f}): this model "
-                f"already explains most of the cycle — the wave is not meaningful")
-        box = _hex_alpha(PCTILE_RICH_COLOR, 0.30)
-    else:
-        head = (f"<b>{label}</b> · period {fit.period:.2f} yr "
-                f"({p_lo:.2f}–{p_hi:.2f}) · amplitude {fit.A:.0f} pp "
-                f"· R² {fit.r2:.2f}")
-        box = _hex_alpha(PLOT_BG_COLOR, MC_LEGEND_BG_ALPHA)
-    anns.append(dict(
-        x=0.01, y=0.99, xref="paper", yref="paper", xanchor="left",
-        yanchor="top", align="left", showarrow=False, text=f"{head}<br>{hline}",
-        font=dict(size=CHART_FONT_LEGEND), bgcolor=box, borderpad=3))
-    note = (f"band = 10–90% of {params.shape[0]} refits on 1-yr-block "
-            f"resamples (periods 2–8 yr searched): where the wave is, not "
-            f"the {hind['rmse_wave']:.0f} pp the percentile typically strays from it"
-            if hind["n"] else
-            f"band = 10–90% of {params.shape[0]} refits on 1-yr-block resamples")
-    return back, front, shapes, anns, note + " · descriptive fit, not a forecast"
+    sub = (f"{label} · {_pc.BASES[fit.basis][3]} element · inner band: "
+           f"fit uncertainty · outer band: likely range · descriptive, "
+           f"not a forecast")
+    return back, front, shapes, anns, _cycle_info(cyc, label, mdl), sub
 
 
 def build_percentile_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
@@ -375,11 +514,15 @@ def build_percentile_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         cyc_mdl = _cycle_model(cyc_key)
         if cyc_mdl is not None:
             cyc = _cycle_result(cyc_key, sigma_mode, bool(p.get("cycle_censor")),
+                                p.get("cycle_basis") or _pc.DEFAULT_BASIS,
                                 str(getattr(_app_ctx, "_MODEL_FP", "")))
-    t_edge = t_hi
-    horizon = int(p.get("cycle_horizon") or 20)
-    if cyc is not None and int(p["xmax"]) >= date.today().year:
-        t_edge = td + horizon
+    horizon = p.get("cycle_horizon")
+    horizon = horizon if horizon in _pc.HORIZONS else _pc.DEFAULT_HORIZON
+    # Forecast only for a fit that is not weak, and only while the right
+    # handle reaches today (2027 = 1 Jan 2027 does; 2026 = 1 Jan 2026 not).
+    forecast = (cyc is not None and not cyc["weak"]
+                and yr_to_t(p["xmax"], m.genesis) >= td)
+    t_edge = td + horizon if forecast else t_hi
 
     traces = []
     for model_key in p.get("active_models", []):
@@ -413,16 +556,16 @@ def build_percentile_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             opacity=PCTILE_FIT_CONTEXT_OPACITY if cyc is not None else None,
         ))
 
-    cyc_shapes, cyc_anns, cyc_note = [], [], ""
+    cyc_shapes, cyc_anns, cyc_info, cyc_sub = [], [], [], ""
     if cyc is not None:
         actual = _percentile_series(cyc_mdl, t_data, px_data, sigma_mode=sigma_mode)
-        back, front, cyc_shapes, cyc_anns, cyc_note = _cycle_overlay(
-            cyc, cyc_mdl, p, m, t_lo, t_edge, p.get("xscale") == "log")
+        back, front, cyc_shapes, cyc_anns, cyc_info, cyc_sub = _cycle_overlay(
+            cyc, cyc_mdl, p, m, t_lo, t_edge, p.get("xscale") == "log", forecast)
         mid = []
         if actual is not None and len(t_data):
             mid.append(go.Scatter(
                 x=t_data, y=_round_trace_data(actual), mode="lines",
-                name=f"{_cycle_label(cyc['model_key'], cyc_mdl)} percentile (actual)",
+                name=f"{_cycle_label(cyc_mdl, cyc['model_key'])} percentile (actual)",
                 line=dict(color=PCTILE_FIT_DATA_COLOR, width=1.0)))
         traces = back + traces + mid + front
 
@@ -451,7 +594,7 @@ def build_percentile_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     title = "Price percentile within model fan (valuation oscillator)"
     if cyc is not None:
         title = ("Price percentile within model fan + cycle fit"
-                 f"<br><sup>{cyc_note}</sup>")
+                 f"<br><sup>{cyc_sub}</sup>")
     layout = _base_layout(title=title, xlabel="", ylabel="")
     layout["xaxis"].update(range=[t_lo, t_edge], tickvals=tick_ts,
                            ticktext=tick_lbls, tickangle=45)
@@ -478,6 +621,8 @@ def build_percentile_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
         _empty_state_annotation(layout)
     elif cyc_anns:
         layout["annotations"] = cyc_anns
+    if cyc is not None:
+        layout["meta"] = {"cycle_info": cyc_info}
 
     _apply_sans_typography(layout)
     from figures.common import _uirevision_key

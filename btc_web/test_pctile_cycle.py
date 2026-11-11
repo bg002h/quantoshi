@@ -88,10 +88,66 @@ class TestMath:
         t, y = _synthetic(noise=10.0, ar=0.99)
         f = pc.fit_cycle(t, y)
         P = pc.bootstrap_params(t, y, f)
+        anchor = {k: max(x for x, _, kk in pc.turns(f, t[0], t[-1]) if kk == k)
+                  for k in ("peak", "trough")}
+        seen = {"peak": 0, "trough": 0}
         for x, _, k in pc.turns(f, t[-1], t[-1] + 12):
-            lo, hi = pc.turn_timing(P, x, k)
+            seen[k] += 1
+            lo, hi = pc.turn_timing(P, anchor[k], seen[k], k, x)
             assert lo <= x <= hi
             assert hi - lo < f.period          # one turn, not a neighbour
+
+    def test_turn_just_after_the_last_close_is_not_matched_to_the_next_cycle(self):
+        """Replicates split either side of the last close must still match
+        the SAME turn (regression: a +1-period bar chained into a line)."""
+        f = pc.CycleFit(c=50.0, A=30.0, f=1 / 3.6, phi=0.0, r2=0.9, n=100)
+        P = np.array([[50.0, 30.0, 1 / 3.6, d] for d in np.linspace(-0.2, 0.2, 41)])
+        anchor = 3.6 * 3                       # an in-sample peak (phase 0)
+        t_last = 3.6 * 4 - 0.01                # just before the next peak
+        lo, hi = pc.turn_timing(P, anchor, 1, "peak", 3.6 * 4)
+        assert hi - lo < 0.5 and lo < t_last < hi
+
+    def test_turn_timing_matches_by_cycle_index(self):
+        """Every replicate equal to the central fit -> zero-width bar at the
+        j-th turn, for j beyond the first."""
+        f = pc.CycleFit(c=50.0, A=30.0, f=1 / 3.6, phi=1.0, r2=0.9, n=100)
+        P = np.tile([f.c, f.A, f.f, f.phi], (20, 1))
+        peaks = [x for x, _, k in pc.turns(f, 10.0, 40.0) if k == "peak"]
+        for j, x in enumerate(peaks[1:], start=1):
+            lo, hi = pc.turn_timing(P, peaks[0], j, "peak", x)
+            assert lo == pytest.approx(x) and hi == pytest.approx(x)
+
+    def test_at_limit_flags_a_boundary_period(self):
+        t = np.arange(1.0, 17.0, 1.0 / 365.25)
+        f = pc.fit_cycle(t, 50 + 30 * np.cos(2 * np.pi * t / 12.0))
+        assert f.at_limit and f.period == pytest.approx(pc.PMAX, abs=0.05)
+        assert not pc.fit_cycle(*_synthetic()).at_limit
+
+    def test_likely_band_covers_about_80pct_in_sample(self):
+        t, y = _synthetic(noise=15.0, ar=0.995)
+        f = pc.fit_cycle(t, y)
+        P = pc.bootstrap_params(t, y, f)
+        lo, hi = pc.likely_band(P, t, y, f, t[::7])
+        inside = ((y[::7] >= lo) & (y[::7] <= hi)).mean()
+        assert 0.65 <= inside <= 0.95
+        flo, fhi = pc.band(P, t[::7])
+        assert np.mean(hi - lo) > np.mean(fhi - flo)       # wider than the fit band
+        lo2, hi2 = pc.likely_band(P, t, y, f, t[::7])
+        np.testing.assert_array_equal(lo, lo2)             # deterministic
+
+    def test_hindcast_y_at_replaces_the_series_per_cutoff(self):
+        t = np.arange(1.0, 17.0, 1.0 / 365.25)
+        y = 50 + 30 * np.cos(2 * np.pi * t / 3.6 + 0.3)
+        calls = []
+
+        def y_at(cut):
+            calls.append(cut)
+            return np.full_like(t, 50.0) if cut < 10 else y
+        h_leaky = pc.hindcast(t, y)
+        h = pc.hindcast(t, y, y_at=y_at)
+        assert calls and h["n"] == h_leaky["n"]
+        assert h["win_rate"] < h_leaky["win_rate"]
+        assert pc.hindcast(t, y, y_at=lambda c: None)["n"] == 0
 
     def test_hindcast_pure_sinusoid_wins(self):
         t = np.arange(1.0, 17.0, 1.0 / 365.25)
@@ -124,6 +180,70 @@ class TestMath:
         hi = pc.fan_prices(logfan, qs, np.array([100.0, 100.0]))
         np.testing.assert_allclose(lo, [1e3, 1e3])
         np.testing.assert_allclose(hi, [1e5, 1e5])
+
+
+class TestBases:
+    def test_wide_calendar_reaches_a_one_year_wave(self):
+        t = np.arange(1.0, 15.0, 1.0 / 365.25)
+        y = 50 + 30 * np.cos(2 * np.pi * t / 1.0)
+        assert pc.fit_cycle(t, y, basis="calw").period == pytest.approx(1.0, abs=0.01)
+        assert pc.fit_cycle(t, y).period >= pc.PMIN
+
+    def test_log_basis_recovers_log_periodic(self):
+        rng = np.random.default_rng(3)
+        t = np.arange(1.0, 17.0, 1.0 / 365.25)
+        y = 50 + 30 * np.cos(7.2 * np.log(t) + 0.5) + rng.normal(0, 3, t.size)
+        f = pc.fit_cycle(t, y, basis="log")
+        assert f.space == "log" and f.basis == "log"
+        assert 2 * np.pi * f.f == pytest.approx(7.2, abs=0.1)
+        assert f.period == pytest.approx(np.exp(2 * np.pi / 7.2), rel=0.02)
+        assert f.r2 > 0.9
+
+    def test_log_turns_are_extrema_and_alternate(self):
+        f = pc.CycleFit(c=50.0, A=30.0, f=7.2 / (2 * np.pi), phi=0.5, r2=0.9,
+                        n=100, basis="log")
+        tt = pc.turns(f, 1.0, 60.0)
+        assert len(tt) >= 4
+        kinds = [k for _, _, k in tt]
+        assert all(a != b for a, b in zip(kinds, kinds[1:]))
+        for x, v, k in tt:
+            near = pc.wave(f.c, f.A, f.f, f.phi, np.array([x * 0.999, x * 1.001]), "log")
+            assert (np.all(near <= v + 1e-9) if k == "peak" else np.all(near >= v - 1e-9))
+        peaks = [x for x, _, k in tt if k == "peak"]
+        np.testing.assert_allclose(np.diff(np.log(peaks)), 1.0 / f.f, rtol=1e-9)
+
+    def test_log_bootstrap_and_timing(self):
+        rng = np.random.default_rng(4)
+        t = np.arange(1.0, 17.0, 1.0 / 365.25)
+        y = 50 + 30 * np.cos(7.2 * np.log(t) + 0.5) + rng.normal(0, 8, t.size)
+        f = pc.fit_cycle(t, y, basis="log")
+        P = pc.bootstrap_params(t, y, f, B=40)
+        lo, hi = pc.band(P, np.array([t[-1], t[-1] + 10]), space="log")
+        assert np.all(lo <= hi)
+        for x, _, k in pc.turns(f, t[-1], t[-1] + 30):
+            a, b = pc.turn_timing(P, x, 0, k, x, space="log")
+            assert a <= x <= b
+
+    def test_hindcast_honours_basis(self):
+        t = np.arange(1.0, 17.0, 1.0 / 365.25)
+        y = 50 + 30 * np.cos(7.2 * np.log(t) + 0.5)
+        assert pc.hindcast(t, y, basis="log")["win_rate"] == 1.0
+
+    def test_is_weak(self):
+        ok = pc.CycleFit(50, 30, 0.28, 0, 0.5, 100)
+        low = pc.CycleFit(50, 30, 0.28, 0, 0.1, 100)
+        good = dict(n=10, rmse_wave=20.0, rmse_flat=27.0, win_rate=0.8)
+        bad = dict(n=10, rmse_wave=28.0, rmse_flat=25.0, win_rate=0.3)
+        none = dict(n=0, rmse_wave=None, rmse_flat=None, win_rate=None)
+        assert not pc.is_weak(ok, good)
+        assert pc.is_weak(ok, bad)
+        assert pc.is_weak(low, good)
+        assert not pc.is_weak(ok, none)
+
+    def test_every_basis_key_has_a_label_and_valid_space(self):
+        for k, (space, fmin, fmax, label) in pc.BASES.items():
+            assert space in ("cal", "log") and 0 < fmin < fmax and label
+        assert pc.DEFAULT_BASIS in pc.BASES
 
 
 # ── Figure ────────────────────────────────────────────────────────────────────
@@ -184,16 +304,27 @@ class TestFigure:
         b = fp.build_percentile_figure(M, _p(cycle_fit=False))
         assert _names(a) == _names(b)
         assert a.layout.xaxis.range == b.layout.xaxis.range
+        assert not (b.layout.meta or {})
 
-    def test_fit_on_adds_band_wave_actual_and_turns(self):
+    def test_fit_on_adds_bands_wave_actual_and_turns(self):
         fig = fp.build_percentile_figure(M, _p())
         names = _names(fig)
         assert "QR percentile (actual)" in names
         assert any("cycle fit" in (n or "") for n in names)
-        assert "10–90% band (bootstrap)" in names
+        assert "fit uncertainty (10–90% of refits)" in names
+        assert "likely range (10–90%)" in names
         fc = [t for t in fig.data if (t.name or "").startswith("QR cycle extrapolation")]
         assert len(fc) == 1 and fc[0].line.dash == "dash"
         assert _forecast_turn_traces(fig)
+
+    @pytest.mark.parametrize("h", [10, 20, 30])
+    def test_xrange_extends_to_horizon(self, h):
+        fig = fp.build_percentile_figure(M, _p(cycle_horizon=h))
+        assert fig.layout.xaxis.range[1] == pytest.approx(today_t(M.genesis) + h, abs=0.02)
+
+    def test_bad_horizon_falls_back_to_20(self):
+        fig = fp.build_percentile_figure(M, _p(cycle_horizon=7))
+        assert fig.layout.xaxis.range[1] == pytest.approx(today_t(M.genesis) + 20, abs=0.02)
 
     def test_forecast_region_is_shaded_from_last_data_to_edge(self):
         fig = fp.build_percentile_figure(M, _p())
@@ -201,10 +332,10 @@ class TestFigure:
         assert sh.x1 == pytest.approx(fig.layout.xaxis.range[1])
         assert sh.x0 == pytest.approx(float(M.price_years[-1]), abs=1e-6)
 
-    @pytest.mark.parametrize("h", [10, 20, 30])
-    def test_xrange_extends_to_horizon(self, h):
-        fig = fp.build_percentile_figure(M, _p(cycle_horizon=h))
-        assert fig.layout.xaxis.range[1] == pytest.approx(today_t(M.genesis) + h, abs=0.02)
+    def test_handle_at_this_year_is_not_a_forecast(self):
+        """xmax = this year means 1 Jan, before today: no forecast."""
+        fig = fp.build_percentile_figure(M, _p(xmax=date.today().year))
+        assert not _forecast_shades(fig) and not _forecast_turn_traces(fig)
 
     def test_zoomed_past_has_no_forecast_region(self):
         fig = fp.build_percentile_figure(M, _p(xmin=2014, xmax=2018))
@@ -213,39 +344,77 @@ class TestFigure:
         assert not _price_labels(fig)
         assert not _forecast_turn_traces(fig)
 
-    def test_forecast_turn_labels_have_prices(self):
+    def test_timing_bars_stay_within_a_period(self):
+        """Regression: the first trough sits days after the last close; its
+        bar must not jump a whole cycle (bars chained into a flat line)."""
         fig = fp.build_percentile_figure(M, _p())
-        assert len(_price_labels(fig)) >= 4
         (tr,) = _forecast_turn_traces(fig)
-        assert len(tr.x) == len(_price_labels(fig))
+        per = fp._cycle_result("qr", "resqr", False, "cal",
+                               str(_app_ctx._MODEL_FP))["fit"].period
+        widths = np.add(tr.error_x.array, tr.error_x.arrayminus)
+        assert widths[0] < per / 2
+        assert np.all(widths < per)
+
+    def test_linear_axis_labels_next_three_of_each_kind(self):
+        fig = fp.build_percentile_figure(M, _p())
+        (tr,) = _forecast_turn_traces(fig)
+        labels = _price_labels(fig)
+        assert len(labels) == 6 < len(tr.x)
         assert all(v >= 0 for v in tr.error_x.array)
         assert all(v >= 0 for v in tr.error_x.arrayminus)
+        # the labelled turns are the EARLIEST ones
+        assert max(float(a.x) for a in labels) < sorted(tr.x)[-1]
 
-    def test_summary_line_reports_period_r2_and_hindcast(self):
-        fig = fp.build_percentile_figure(M, _p())
-        txt = [a.text for a in _anns(fig) if "period" in (a.text or "")]
-        assert len(txt) == 1
-        assert "R²" in txt[0] and "hindcast" in txt[0]
-
-    def test_weak_fit_warns_and_drops_labels(self):
-        fig = fp.build_percentile_figure(M, _p(cycle_model="bub"))
-        assert any("weak cycle" in (a.text or "") for a in _anns(fig))
-        assert not _price_labels(fig)
-
-    def test_log_axis_annotations_use_log10(self):
+    def test_log_axis_labels_next_peak_and_trough_at_log10(self):
         fig = fp.build_percentile_figure(M, _p(xscale="log"))
         (tr,) = _forecast_turn_traces(fig)
         labels = _price_labels(fig)
-        assert labels
-        xs = sorted(float(a.x) for a in labels)
-        np.testing.assert_allclose(xs, sorted(math.log10(v) for v in tr.x), atol=1e-6)
+        assert len(labels) == 2
+        first_two = sorted(tr.x)[:2]
+        np.testing.assert_allclose(sorted(float(a.x) for a in labels),
+                                   [math.log10(v) for v in first_two], atol=1e-6)
         assert fig.layout.xaxis.type == "log"
 
-    def test_wave_hover_carries_band_and_prices(self):
+    def test_info_lines_report_element_period_r2_hindcast_and_coverage(self):
+        fig = fp.build_percentile_figure(M, _p())
+        info = fig.layout.meta["cycle_info"]
+        head = info[0]
+        assert "QR" in head and "calendar 2–8 yr" in head and "period" in head
+        assert "R²" in head
+        assert any("Hindcast (as-of fans, no look-ahead)" in ln for ln in info)
+        assert any("sat inside them" in ln for ln in info)
+        assert info[-1] == "Descriptive fit, not a forecast."
+
+    def test_non_qr_hindcast_is_labelled_optimistic(self):
+        fig = fp.build_percentile_figure(M, _p(cycle_model="pl"))
+        assert any("optimistic" in ln for ln in fig.layout.meta["cycle_info"])
+
+    def test_weak_fit_draws_no_forecast(self):
+        fig = fp.build_percentile_figure(M, _p(cycle_model="bub"))
+        assert any("weak cycle" in (a.text or "") for a in _anns(fig))
+        assert fig.layout.meta["cycle_info"][0].startswith("⚠ Weak cycle in BM")
+        assert not _price_labels(fig)
+        assert not _forecast_turn_traces(fig)
+        assert not any((n or "").endswith("cycle extrapolation") for n in _names(fig))
+        assert not _forecast_shades(fig)
+        assert fig.layout.xaxis.range[1] <= today_t(M.genesis) + 1e-6
+        assert "likely range (10–90%)" not in _names(fig)
+
+    def test_hindcast_failure_triggers_weak(self, monkeypatch):
+        fp._cycle_result.cache_clear()
+        monkeypatch.setattr(fp._pc, "is_weak", lambda fit, hind: True)
+        try:
+            fig = fp.build_percentile_figure(M, _p())
+            assert any("weak cycle" in (a.text or "") for a in _anns(fig))
+            assert not _forecast_turn_traces(fig)
+        finally:
+            fp._cycle_result.cache_clear()
+
+    def test_wave_hover_carries_bands_and_prices(self):
         fig = fp.build_percentile_figure(M, _p())
         w = [t for t in fig.data if (t.name or "").startswith("QR cycle fit")][0]
-        assert len(w.customdata[0]) == 6          # date + 5 numbers
-        assert "customdata[5]" in w.hovertemplate
+        assert len(w.customdata[0]) == 8          # date + 7 numbers
+        assert "customdata[7]" in w.hovertemplate
 
     def test_fit_model_not_active_still_drawn(self):
         fig = fp.build_percentile_figure(M, _p(active_models=["bub"]))
@@ -253,20 +422,51 @@ class TestFigure:
         bm = [t for t in fig.data if t.name == "BM"]
         assert bm and bm[0].opacity == PCTILE_FIT_CONTEXT_OPACITY
 
+    def test_picked_master_is_the_same_series_as_its_line(self):
+        """I-3: picking EPPL fits the eppl master the model list draws."""
+        fig = fp.build_percentile_figure(M, _p(active_models=["eppl"], cycle_model="eppl"))
+        names = _names(fig)
+        assert "EPPL percentile (actual)" in names
+        assert "EPPL" not in names                 # not drawn twice under one name
+
+    @pytest.mark.parametrize("key", list(pc.CYCLE_MODEL_KEYS))
+    @pytest.mark.parametrize("basis", list(pc.BASES))
+    def test_every_picker_model_and_element_builds(self, key, basis):
+        if key not in _app_ctx.PRICE_MODELS:
+            pytest.skip(f"{key} not registered here")
+        fig = fp.build_percentile_figure(M, _p(cycle_model=key, cycle_basis=basis))
+        assert fig.layout.meta["cycle_info"]
+
     def test_censor_changes_fit_and_is_cached(self):
         fpk = str(_app_ctx._MODEL_FP)
-        a = fp._cycle_result("qr", "resqr", False, fpk)
-        b = fp._cycle_result("qr", "resqr", True, fpk)
+        a = fp._cycle_result("qr", "resqr", False, "cal", fpk)
+        b = fp._cycle_result("qr", "resqr", True, "cal", fpk)
         assert a["fit"].r2 != b["fit"].r2
         assert b["t"].size < a["t"].size
-        assert fp._cycle_result("qr", "resqr", True, fpk) is b
+        assert fp._cycle_result("qr", "resqr", True, "cal", fpk) is b
+        info = fp.build_percentile_figure(M, _p(cycle_censor=True)).layout.meta["cycle_info"]
+        assert "R² (2019–20 excluded)" in info[0]
 
-    def test_unknown_model_falls_back_to_no_fit(self):
-        fig = fp.build_percentile_figure(M, _p(cycle_model="nope"))
-        assert not any("cycle fit" in (n or "") for n in _names(fig))
+    def test_qr_hindcast_is_honest_and_coverage_is_sane(self):
+        r = fp._cycle_result("qr", "resqr", False, "cal", str(_app_ctx._MODEL_FP))
+        assert r["honest"] and r["hind"]["n"] >= 10
+        assert 0.6 <= r["cov_lik"] <= 0.97
+        assert r["cov_fit"] < r["cov_lik"]
+
+    def test_unknown_model_or_basis_falls_back_to_no_fit(self):
+        for kw in (dict(cycle_model="nope"), dict(cycle_basis="nope"),
+                   dict(cycle_model="u1")):
+            fig = fp.build_percentile_figure(M, _p(**kw))
+            assert not any("cycle fit" in (n or "") for n in _names(fig))
+
+    def test_log_basis_figure(self):
+        fig = fp.build_percentile_figure(M, _p(cycle_basis="log"))
+        assert "log-time element" in fig.layout.title.text
+        assert "log-time element" in fig.layout.meta["cycle_info"][-4] or any(
+            "log-time element" in ln for ln in fig.layout.meta["cycle_info"])
 
     def test_cycle_result_is_fast_enough(self):
         fp._cycle_result.cache_clear()
         t0 = time.perf_counter()
-        fp._cycle_result("pl", "resqr", False, str(_app_ctx._MODEL_FP))
-        assert time.perf_counter() - t0 < 3.0
+        fp._cycle_result("qr", "resqr", False, "cal", str(_app_ctx._MODEL_FP))
+        assert time.perf_counter() - t0 < 4.0

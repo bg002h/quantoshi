@@ -676,6 +676,33 @@ branch placed before `_mc_setup`, and the rest as listed).
 
 ---
 
+### F-26 — Percentile cycle fit: hover price precision and polish (fold re-review M/N)
+**Type:** display precision · **Owning phase:** next Percentile-cycle touch
+(before any change to `figures/percentile.py::_money` callers) ·
+**Severity:** Minor · **Found:** 2026-11-10,
+`docs/superpowers/reviews/2026-11-10-pctile-cycle-fold-rereview.md`
+
+- M-1 `_money()` shows one significant figure for $1–9.99 and $1k–9.99k
+  ($2.53 → "$3", $1,499 → "$1k"); ~14 % of hover prices on the default view
+  (2010–2011 and 2013–2017 fan prices). Fix: 3 significant figures in every
+  band (`.2f` under 10, `.1f` under 100), `.3g` under $1.
+- N-1 one sub-cent value reads "$0.00".
+- N-2 the longest subtitle (log-time element, long model label) still clips
+  one character at 380 px.
+- N-3 the lower timing clamp (first close) has no "or earlier" marker.
+- N-4 `test_hover_prices_are_preformatted_not_si` cannot catch a lost date
+  column (asserts on positions 5–7 only).
+
+### F-27 — Percentile cycle fit: noise-level binaries on screen (by design)
+**Type:** UX note · **Owning phase:** none (operator decision) · **Severity:** Nit ·
+**Found:** 2026-11-10, whole-diff review N-3
+
+The default view's "⚠ no out-of-sample edge" box toggles on a months timescale
+(QR honest margin −0.13 pp 39 weeks ago, +1.68 now), and HybPPL `calw` sits at
+R² ≈ 0.205 against the 0.20 weak gate, so its forecast can come and go with
+daily data. Both follow the settled rules; recorded so prod behaviour is not a
+surprise. Revisit only if the operator wants hysteresis.
+
 ## Closed
 
 ### F-24 — Share links drop regime bins ≥ 5 on Tabs 2–6

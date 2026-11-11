@@ -897,7 +897,8 @@ def _cycle_params(fit_val, fit_model, fit_basis, fit_horizon) -> dict:
         cycle_censor="censor" in fit_val,
         cycle_model=(fit_model if fit_model in
                      _pc.available_models(_app_ctx.PRICE_MODELS) else "qr"),
-        cycle_basis=fit_basis if fit_basis in _pc.BASES else _pc.DEFAULT_BASIS,
+        cycle_basis=(fit_basis if isinstance(fit_basis, str)
+                     and fit_basis in _pc.BASES else _pc.DEFAULT_BASIS),
         cycle_horizon=(fit_horizon if fit_horizon in _pc.HORIZONS
                        else _pc.DEFAULT_HORIZON),
     )
@@ -954,10 +955,10 @@ def update_bub_pctile(view_mode, xrange, toggles, xscale, model_show,
         return dash.no_update
     # A cycle sub-setting changed while the fit is off: nothing to redraw.
     try:
-        trig = ctx.triggered_id
+        trig = set(ctx.triggered_prop_ids.values())
     except Exception:          # called outside a callback (tests)
-        trig = None
-    if trig in _PCTILE_SUB_CONTROLS and "fit" not in (fit_val or []):
+        trig = set()
+    if trig and trig <= _PCTILE_SUB_CONTROLS and "fit" not in (fit_val or []):
         return dash.no_update
     from utils import _get_pctile_fig
     toggles = toggles or []

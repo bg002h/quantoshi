@@ -16,10 +16,10 @@ Why each choice (measured 2026-11-10, spec
   a·cos + b·sin = A·cos(·+φ), so the frequency is scanned on a grid and each
   node solved exactly — no starting guess can strand the fit.
 * Element choice (tools/pctile_cycle_basis_explore.py): calendar 2-8 yr is
-  best in- AND out-of-sample for QR / PL / SatPL; damped and log-time elements
-  gain in-sample but lose out-of-sample; for BM and the oscillator models no
-  single element beats a flat forecast out-of-sample — which is why
-  :func:`is_weak` gates on the hindcast, not on R² alone.
+  best in- AND out-of-sample for QR / PL / SatPL (and the LPPL master); damped
+  and log-time elements gain in-sample but lose out-of-sample; BM, HybPPL,
+  EPPL, PCA, Greedy and EF leave too little cycle to fit (R² < 0.20). The
+  hindcast is REPORTED (:func:`beats_flat`), never a gate (:func:`is_weak`).
 * Daily residuals have lag-1 autocorrelation ~0.996 (n_eff ~ 12), so an
   i.i.d. bootstrap would understate the uncertainty by an order of magnitude.
   The residual ACF reaches ~0 at one year, so the band comes from a CIRCULAR
@@ -59,6 +59,7 @@ CENSOR_WINDOW = ("2019-04-15", "2020-02-15")   # operator's study window
 CYCLE_MODEL_KEYS: tuple[str, ...] = (
     "qr", "bub", "pl", "spl", "lppl", "hybppl", "eppl", "pca", "grdy", "ef")
 HORIZONS: tuple[int, ...] = (10, 20, 30)
+DEFAULT_HORIZON = 20
 
 
 def available_models(price_models) -> list[str]:
@@ -71,7 +72,6 @@ def available_models(price_models) -> list[str]:
         if m is not None and getattr(m, "quantized", False) and getattr(m, "quantiles", None):
             out.append(k)
     return out
-DEFAULT_HORIZON = 20
 
 #: Basis elements on offer: key -> (space, f_min, f_max, label). f is cycles
 #: per unit of g: per year for "cal", per unit of ln t for "log" (so the log
@@ -134,8 +134,20 @@ def _solve(u, y, f):
     return coef, float(r @ r)
 
 
-def _grid_best(u, y, fs):
-    """Best grid frequency via vectorised 3x3 normal equations."""
+def _grid_best(u, y, fs, chunk=50):
+    """Best grid frequency via vectorised 3x3 normal equations, scanned in
+    chunks of ``chunk`` frequencies: the full (400 x 6000) daily scan held
+    ~76 MB at once (whole-diff review M-6); chunks give the same answer."""
+    best_k, best_sse = 0, np.inf
+    for s0 in range(0, fs.size, chunk):
+        k, sse = _grid_chunk(u, y, fs[s0:s0 + chunk])
+        if sse < best_sse:
+            best_k, best_sse = s0 + k, sse
+    return best_k
+
+
+def _grid_chunk(u, y, fs):
+    """(index, sse) of the best frequency in ``fs``."""
     W = 2 * np.pi * np.outer(fs, u)
     C, S = np.cos(W), np.sin(W)
     n = float(u.size)
@@ -153,7 +165,8 @@ def _grid_best(u, y, fs):
     coef = np.linalg.solve(G, rhs[..., None])[..., 0]          # (nf, 3)
     # SSE = y·y − coef·rhs  (normal-equation identity)
     sse = float(y @ y) - np.einsum("ij,ij->i", coef, rhs)
-    return int(np.argmin(sse))
+    k = int(np.argmin(sse))
+    return k, float(sse[k])
 
 
 def fit_cycle(t, y, *, basis=DEFAULT_BASIS, ngrid=400) -> CycleFit:

@@ -509,9 +509,8 @@ class TestFigure:
 
     def test_log_basis_figure(self):
         fig = fp.build_percentile_figure(M, _p(cycle_basis="log"))
-        assert "log-time element" in fig.layout.title.text
-        assert "log-time element" in fig.layout.meta["cycle_info"][-4] or any(
-            "log-time element" in ln for ln in fig.layout.meta["cycle_info"])
+        assert "\u00b7 log-time \u00b7" in fig.layout.title.text
+        assert any("log-time element" in ln for ln in fig.layout.meta["cycle_info"])
 
     def test_cycle_result_is_not_pathologically_slow(self):
         """~1.0 s cold when run alone on dev; the suite runs -n logical (24
@@ -695,6 +694,7 @@ class TestSnapshot:
 class _Trig:
     def __init__(self, tid):
         self.triggered_id = tid
+        self.triggered_prop_ids = {f"{tid}.value": tid}
 
 
 class TestDashFold:
@@ -736,3 +736,67 @@ class TestDashFold:
         with patch.dict(_app_ctx.PRICE_MODELS, {}, clear=False):
             _app_ctx.PRICE_MODELS.pop("ef", None)
             assert _cycle_params(["fit"], "ef", "cal", 20)["cycle_model"] == "qr"
+
+
+class TestWholeDiffFold:
+    _PRICE = re.compile(r"^\$[\d.,]+[kMBT]?$")
+
+    def test_hover_prices_are_preformatted_not_si(self):
+        """I-1: d3 '.3s' rendered $0.36 as '$362m' (milli)."""
+        fig = fp.build_percentile_figure(M, _p())
+        for tr in fig.data:
+            assert ".3s" not in (tr.hovertemplate or ""), tr.name
+        w = [t for t in fig.data if (t.name or "").startswith("QR cycle fit")][0]
+        early = w.customdata[0]                     # 2010: sub-dollar fan
+        for v in early[5:8]:
+            assert self._PRICE.match(v), v
+        assert early[5].startswith("$0.")
+        turns = [t for t in fig.data if (t.name or "").endswith("fitted turns")][0]
+        assert all(self._PRICE.match(r[2]) for r in turns.customdata)
+
+    def test_crafted_basis_type_does_not_raise(self):
+        """M-1: a list/dict from a hand-made link must coerce, not 500."""
+        from callbacks.charts import _cycle_params
+        for bad in (["cal"], {"a": 1}, 3):
+            assert _cycle_params(["fit"], "qr", bad, 20)["cycle_basis"] == "cal"
+
+    def test_far_timing_bounds_are_clamped_not_crashing(self, monkeypatch):
+        """M-2: a bound centuries out used to overflow pandas (year 2262)."""
+        monkeypatch.setattr(fp._pc, "turn_timing",
+                            lambda params, t_a, j, k, t_e, space="cal": (t_e - 900.0, t_e + 900.0))
+        fig = fp.build_percentile_figure(M, _p())
+        (tr,) = _forecast_turn_traces(fig)
+        assert all("or later" in r[4] for r in tr.customdata)
+        assert max(np.add(tr.x, tr.error_x.array)) <= float(M.price_years[-1]) + fp._TIMING_CAP + 1e-6
+
+    def test_optimistic_no_edge_box_says_even_against_todays_fan(self, monkeypatch):
+        """M-3: a non-QR box must not claim an out-of-sample check."""
+        fp._cycle_result.cache_clear()
+        monkeypatch.setattr(fp._pc, "beats_flat", lambda hind: False)
+        try:
+            fig = fp.build_percentile_figure(M, _p(cycle_model="pl"))
+            txt = " ".join(a.text or "" for a in _anns(fig))
+            assert "even against today's fan" in txt and "out-of-sample edge" not in txt
+            info = " ".join(fig.layout.meta["cycle_info"])
+            assert "optimistic check" in info and "loses even so" in info
+        finally:
+            fp._cycle_result.cache_clear()
+
+    def test_at_limit_legend_says_so(self):
+        """M-4: HybPPL's calendar fit sits on the 2-yr grid edge."""
+        r = fp._cycle_result("hybppl", "resqr", False, "cal", str(_app_ctx._MODEL_FP))
+        if not r["fit"].at_limit:
+            pytest.skip("HybPPL no longer at the search limit with today's data")
+        fig = fp.build_percentile_figure(M, _p(cycle_model="hybppl"))
+        assert "HybPPL cycle fit (period at search limit)" in _names(fig)
+
+    def test_censored_hindcast_line_says_the_fits_withheld_a_window(self):
+        """M-5."""
+        info = fp.build_percentile_figure(M, _p(cycle_censor=True)).layout.meta["cycle_info"]
+        assert any("Each fit withheld 2019" in ln for ln in info)
+
+    def test_chunked_grid_scan_matches_one_pass(self):
+        """M-6: chunking is a memory change only."""
+        t, y = _synthetic(noise=10.0, ar=0.99)
+        fs = np.linspace(1 / 8, 1 / 2, 400)
+        assert pc._grid_best(t, y, fs, chunk=50) == pc._grid_best(t, y, fs, chunk=10_000)

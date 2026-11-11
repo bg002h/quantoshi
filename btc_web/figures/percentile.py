@@ -107,6 +107,7 @@ _FIT_LINE_WIDTH = 2.4
 _TURN_SIZE = 9
 _LABEL_SHIFT = 24          # px between a turn marker and its label
 _GRID_PAST_LAST = 30.0     # fixed band grid runs this far past the last close
+_TIMING_CAP = 100.0        # turn-timing bars stop this far past the last close
 #: Text labels per kind (peak / trough) on the next forecast turns; the rest
 #: carry hover only. A log x-axis gets 1 (20 yr is ~1/5 of the width); a
 #: linear one 3 / 2 / 1 at +10 / +20 / +30 yr (~70 px labels, review r2 M-2).
@@ -133,11 +134,6 @@ def _money(v: float) -> str:
     if v >= 1:
         return f"${v:,.0f}"
     return f"${v:.2f}"
-
-
-def _sig4(a) -> list[float]:
-    """Round to 4 significant figures for the wire (prices span 9 decades)."""
-    return [float(f"{v:.4g}") for v in np.asarray(a, float)]
 
 
 def _cycle_model(key: str):
@@ -309,15 +305,20 @@ def _cycle_info(cyc, label, mdl):
         ln = (f"Out-of-sample (as-of fans, no look-ahead): the wave beat a flat "
               f"line in {wins} of {hind['n']} overlapping 2-yr windows; mean miss "
               f"{hind['rmse_wave']:.1f} vs {hind['rmse_flat']:.1f} pp.")
+        if cyc["censor"]:
+            ln += (" (Each fit withheld 2019\u201320, a window picked after "
+                   "seeing it misfit, so this flatters the wave a little.)")
         if not cyc["edge"]:
             ln += " \u26a0 No out-of-sample edge over a flat line."
         lines.append(ln)
     else:
-        ln = (f"Not checked out-of-sample: only QR has as-of fans. Against today's "
-              f"fan, which has seen the later data (an upper bound), the wave's "
-              f"mean miss is {hind['rmse_wave']:.1f} vs {hind['rmse_flat']:.1f} pp "
-              f"for a flat line")
-        ln += " \u2014 it loses even with that advantage." if not cyc["edge"] else "."
+        why = ("the Time Machine as-of fans are unavailable here"
+               if cyc["model_key"] == "qr" else "only QR has as-of fans")
+        ln = (f"Not checked out-of-sample: {why}. Against today's fan, which has "
+              f"seen the later data, the wave's mean miss is "
+              f"{hind['rmse_wave']:.1f} vs {hind['rmse_flat']:.1f} pp for a flat "
+              f"line \u2014 an optimistic check: the gap overstates the wave's edge")
+        ln += ", and it loses even so." if not cyc["edge"] else "."
         lines.append(ln)
     lines.append(f"Bands: \u2018fit uncertainty\u2019 = 10\u201390% of "
                  f"{params.shape[0]} refits on 1-yr-block resamples (where the "
@@ -361,10 +362,11 @@ def _cycle_overlay(cyc, mdl, p, m, t_lo, t_edge, xlog, forecast):
         pr = _pc.fan_prices(lf, qs, np.clip(yc, 0.0, 100.0))
         prl = _pc.fan_prices(lf, qs, llo)
         prh = _pc.fan_prices(lf, qs, lhi)
+        # prices go out pre-formatted: d3's SI ".3s" renders $0.36 as "362m"
+        # (milli), and 2010 fan prices are sub-dollar (whole-diff review I-1)
         cd = [[round(float(a), 1), round(float(b), 1), round(float(c), 1),
-               round(float(d), 1), e, f_, g]
-              for a, b, c, d, e, f_, g in zip(flo, fhi, llo, lhi, _sig4(pr),
-                                               _sig4(prl), _sig4(prh))]
+               round(float(d), 1), _money(e), _money(f_), _money(g)]
+              for a, b, c, d, e, f_, g in zip(flo, fhi, llo, lhi, pr, prl, prh)]
         return yc, cd
 
     t_end = t_edge if forecast else min(t_edge, t_last)
@@ -391,11 +393,14 @@ def _cycle_overlay(cyc, mdl, p, m, t_lo, t_edge, xlog, forecast):
                       "fit uncertainty (10–90% of refits)")
 
     hover = ("<b>%{fullData.name}</b><br>%{customdata[0]}<br>"
-             "fit Q%{y:.0f} ≈ $%{customdata[5]:.3s}<br>"
+             "fit Q%{y:.0f} ≈ %{customdata[5]}<br>"
              "wave Q%{customdata[1]:.0f}–Q%{customdata[2]:.0f} (fit uncertainty)<br>"
              "likely Q%{customdata[3]:.0f}–Q%{customdata[4]:.0f} "
-             "≈ $%{customdata[6]:.3s}–$%{customdata[7]:.3s}<extra></extra>")
-    per_txt = (f"{fit.period:.2f} yr" if sp == "cal" else f"×{fit.period:.2f}")
+             "≈ %{customdata[6]}–%{customdata[7]}<extra></extra>")
+    if fit.at_limit:
+        per_txt = "period at search limit"
+    else:
+        per_txt = (f"{fit.period:.2f} yr" if sp == "cal" else f"×{fit.period:.2f}")
     front = []
     ins = G[G <= t_last]
     if ins.size == 0 or ins[-1] < min(t_last, t_end):
@@ -432,9 +437,9 @@ def _cycle_overlay(cyc, mdl, p, m, t_lo, t_edge, xlog, forecast):
             prices = _pc.fan_prices(lf, qs, vs)
             sym = ["triangle-up" if k == "peak" else "triangle-down" for k in kinds]
             if past:
-                cd = [[k, float(f"{pr:.4g}")] for k, pr in zip(kinds, prices)]
+                cd = [[k, _money(pr)] for k, pr in zip(kinds, prices)]
                 tmpl = ("<b>fitted %{customdata[1]}</b> %{customdata[0]}<br>"
-                        "Q%{y:.0f} · ≈ $%{customdata[2]:.3s}<extra></extra>")
+                        "Q%{y:.0f} · ≈ %{customdata[2]}<extra></extra>")
                 err = None
             else:
                 # cycle index from the central fit's last in-sample turn of
@@ -450,13 +455,18 @@ def _cycle_overlay(cyc, mdl, p, m, t_lo, t_edge, xlog, forecast):
                     seen[k] += 1
                     t_a, j = ((anchor[k], seen[k]) if anchor[k] is not None
                               else (float(x), 0))
-                    timing.append(_pc.turn_timing(params, t_a, j, k, float(x),
-                                                  space=sp))
-                cd = [[k, float(f"{pr:.4g}"), _mon_yr(a, m.genesis),
-                       _mon_yr(b, m.genesis)]
+                    a_, b_ = _pc.turn_timing(params, t_a, j, k, float(x), space=sp)
+                    # a widely spread log-element bootstrap can put a bound
+                    # centuries out (pandas stops at 2262): clamp to a range
+                    # the dates can name and the axis can show (review M-2)
+                    timing.append((max(a_, float(cyc["t"][0])),
+                                   min(b_, t_last + _TIMING_CAP)))
+                cd = [[k, _money(pr), _mon_yr(a, m.genesis),
+                       _mon_yr(b, m.genesis)
+                       + (" or later" if b >= t_last + _TIMING_CAP else "")]
                       for k, pr, (a, b) in zip(kinds, prices, timing)]
                 tmpl = ("<b>forecast %{customdata[1]}</b> %{customdata[0]}<br>"
-                        "Q%{y:.0f} · ≈ $%{customdata[2]:.3s}<br>"
+                        "Q%{y:.0f} · ≈ %{customdata[2]}<br>"
                         "turn date, 10–90% of refits: "
                         "%{customdata[3]} – %{customdata[4]}<extra></extra>")
                 err = dict(type="data", symmetric=False,
@@ -484,7 +494,10 @@ def _cycle_overlay(cyc, mdl, p, m, t_lo, t_edge, xlog, forecast):
         anns.append(dict(
             x=0.01, y=0.99, xref="paper", yref="paper", xanchor="left",
             yanchor="top", showarrow=False,
-            text="⚠ no out-of-sample edge over a flat line (details below)",
+            text=("⚠ no out-of-sample edge over a flat line (details below)"
+                  if cyc["honest"] else
+                  "⚠ no edge over a flat line, even against today's fan "
+                  "(details below)"),
             font=dict(size=CHART_FONT_LEGEND),
             bgcolor=_hex_alpha(FALLBACK_MODEL_GRAY, PCTILE_WEAK_BOX_ALPHA),
             borderpad=3))
@@ -516,8 +529,8 @@ def _cycle_overlay(cyc, mdl, p, m, t_lo, t_edge, xlog, forecast):
                 yref="paper", text="withheld<br>from fit", showarrow=False,
                 font=dict(size=CHART_FONT_LEGEND)))
 
-    sub = (f"{label} · {_pc.BASES[fit.basis][3]} element · inner band: "
-           f"fit uncertainty · outer band: likely range · descriptive, "
+    # short: Plotly titles do not wrap (cut at ~380 px on a phone otherwise)
+    sub = (f"{label} · {_pc.BASES[fit.basis][3]} · bands: fit / likely · "
            f"not a forecast")
     return back, front, shapes, anns, _cycle_info(cyc, label, mdl), sub
 

@@ -375,6 +375,16 @@ def test_stale_data_fp_is_a_value_error(raw_prices):  # noqa: F811
 
 # ── update_bubble: Raw branch ───────────────────────────────────────────────
 
+@pytest.fixture(autouse=True)
+def _empty_redraw_cache():
+    """Each test simulates afresh: a cache hit left by an earlier test would
+    bypass a monkeypatched simulate."""
+    from callbacks.charts import _raw
+    _raw.clear_cache()
+    yield
+    _raw.clear_cache()
+
+
 def _kw(**over):
     kw = dict(
         _first_render=1,
@@ -688,3 +698,67 @@ def test_raw_params_not_in_bubble_cache_key(monkeypatch):
                         lambda p: (off.append(dict(p)), real(p))[1])
     _run(mc_enable=[])
     assert off[0] == seen[0]        # same key as MC off: an L1 hit
+
+
+# ── Redraw cache (review M-3, operator ruling 2026-11-10) ───────────────────
+
+@pytest.fixture
+def counted_simulate(monkeypatch):
+    """Count real simulate calls, starting from an empty redraw cache."""
+    from callbacks.charts import _raw
+    _raw.clear_cache()
+    calls = []
+    real = raw_mc.simulate
+
+    def counting(req):
+        calls.append(req)
+        return real(req)
+    monkeypatch.setattr(raw_mc, "simulate", counting)
+    yield calls
+    _raw.clear_cache()
+
+
+def test_cosmetic_redraw_reuses_the_simulation(counted_simulate):
+    """Pans, path/extreme toggles, point size: one simulation, same fan."""
+    a = _run()[0]
+    b = _run(xrange=[2012, 2045], mc_paths=["yes"], mc_extremes=["yes"], ptsize=5)[0]
+    assert len(counted_simulate) == 1
+    med = lambda f: [t for t in f.data if (t.name or "").startswith("MC median")][0]  # noqa: E731
+    assert list(med(a).y[:50]) == list(med(b).y[:50])
+
+
+def test_simulation_inputs_miss_the_cache(counted_simulate):
+    _run()
+    _run(mc_raw_sims=300)
+    _run(mc_raw_trend="exp")
+    _run(price_data=71000)                       # p0 changes the fan when filtered
+    assert len(counted_simulate) == 4
+
+
+def test_cache_holds_two_entries_lru(counted_simulate):
+    from callbacks.charts import _raw
+    _run(mc_raw_sims=201)
+    _run(mc_raw_sims=202)
+    _run(mc_raw_sims=201)                        # hit, now most recent
+    _run(mc_raw_sims=203)                        # evicts 202
+    _run(mc_raw_sims=201)                        # still a hit
+    _run(mc_raw_sims=202)                        # miss
+    assert [r.sims for r in counted_simulate] == [201, 202, 203, 202]
+    assert len(_raw._cache) == 2
+
+
+def test_cached_paths_are_float32_and_read_only(counted_simulate):
+    from callbacks.charts import _raw
+    _run(show_stack=["yes"], stack=2.0)          # stack multiply must copy
+    (ok, _status, paths, t_axis), = _raw._cache.values()
+    assert ok and paths.dtype == np.float32
+    assert not paths.flags.writeable and not t_axis.flags.writeable
+    _run(show_stack=["yes"], stack=2.0)
+    assert len(counted_simulate) == 1
+
+
+def test_price_change_clears_the_cache(counted_simulate):
+    from callbacks.charts import _raw
+    _run()
+    assert _raw._cache
+    assert _raw.clear_cache in raw_mc._CACHE_CLEARERS

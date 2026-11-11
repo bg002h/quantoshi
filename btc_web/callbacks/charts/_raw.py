@@ -2,13 +2,20 @@
 
 Raw never touches BTCPay, ``mc_cache``, the payment modal or the MC stores:
 it simulates on request from ``raw_mc``'s price registry and draws onto a
-clone of the fast-path figure. Memory (ALARA): a ``RawResult`` -- on filtered
-cycle runs its ``sources`` alone is ~12 MB -- is used and dropped here, never
-cached, stored or kept in a module global.
+clone of the fast-path figure. Memory (ALARA): a ``RawResult`` itself is
+never kept. What is kept is a per-worker redraw cache (review M-3, operator
+ruling 2026-11-10) of the last ``_CACHE_MAX`` simulations' drawable parts --
+float32, read-only paths -- keyed on the full ``RawRequest``, so a cosmetic
+``update_bubble`` trigger (pan, point size, legend, paths/extremes toggles)
+skips the 30-126 ms re-simulation. Worst case 2 x 3200 x 481 x 4 B ~ 12 MB per
+worker; the default 1000 sims is ~4 MB. Dropped when the price registry
+changes (``raw_mc._CACHE_CLEARERS``); the date and live price are in the key.
 """
 from __future__ import annotations
 
 import logging
+import threading
+from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
@@ -80,6 +87,44 @@ def raw_controls(sims, years, window, trend, bins, regime, lines) -> dict:
     )
 
 
+_CACHE_MAX = 2
+_cache: OrderedDict = OrderedDict()     # RawRequest -> (ok, status, paths, t_axis)
+_cache_lock = threading.Lock()
+
+
+def clear_cache() -> None:
+    with _cache_lock:
+        _cache.clear()
+
+
+raw_mc._CACHE_CLEARERS.append(clear_cache)
+
+
+def _frozen(a: np.ndarray, dtype=None) -> np.ndarray:
+    a = np.array(a, dtype=dtype)              # always a private copy
+    a.setflags(write=False)
+    return a
+
+
+def _simulate_cached(req):
+    """``(ok, status, paths, t_axis)`` for ``req``; arrays are read-only."""
+    with _cache_lock:
+        hit = _cache.get(req)
+        if hit is not None:
+            _cache.move_to_end(req)
+            return hit
+    res = raw_mc.simulate(req)
+    entry = (res.ok, tuple(res.status), _frozen(res.paths, np.float32),
+             _frozen(res.t_axis))
+    del res                                   # never hold a RawResult (ALARA)
+    with _cache_lock:
+        _cache[req] = entry
+        _cache.move_to_end(req)
+        while len(_cache) > _CACHE_MAX:
+            _cache.popitem(last=False)
+    return entry
+
+
 def _status_children(lines: list[str]):
     return [html.Div(s) for s in lines]
 
@@ -108,14 +153,13 @@ def add_raw_overlay(fig, *, variant, price_data, xrange, stack, show_stack,
             checked=c["checked"], sims=c["sims"], years=c["years"],
             today=pd.Timestamp.today().normalize(), p0=p0, data_fp=data_fp,
             asof=None)
-        res = raw_mc.simulate(req)
+        ok, status, paths, t_axis = _simulate_cached(req)
     except Exception:                         # noqa: BLE001 -- final review M-7
         # A Raw fault must not 500 update_bubble (that freezes all of Tab 1):
         # draw the chart without a fan, say so, and log it.
         logger.exception("Raw simulation failed for %r", req)
         return fig, _status_children([RAW_FAILED])
-    ok, status, paths, t_axis = res.ok, list(res.status), res.paths, res.t_axis
-    del res                                   # never hold a RawResult (ALARA)
+    status = list(status)
     if not ok or paths.size == 0:
         return fig, _status_children(status)
 

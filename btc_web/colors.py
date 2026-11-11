@@ -72,6 +72,11 @@ HM_DEFAULT_MID      = "#2c2c2c"   # CAGR heatmap neutral midpoint (rbg preset + 
 # 'rich', deuteranomaly-friendly; NO red/green). Rendered as low-alpha bands.
 PCTILE_CHEAP_COLOR  = "#2166AC"   # cool blue — actual price low in the model fan (cheap)
 PCTILE_RICH_COLOR   = "#E69F00"   # CB-safe amber — actual price high in the fan (rich)
+# Percentile cycle fit (Tab-1 Percentile pill, "Cycle fit"): the picked model's
+# ACTUAL percentile is drawn in neutral grey (data role) so the fitted wave can
+# carry the model colour; the forecast region is a faint grey wash.
+PCTILE_FIT_DATA_COLOR = "#9A9A9A"   # actual percentile under the cycle fit
+PCTILE_FORECAST_SHADE = "#000000"   # forecast-region wash (at PCTILE_FORECAST_SHADE_ALPHA)
 TODAY_LINE_COLOR    = "#F7931A"   # today vertical line default — unified with BTC orange
 HALVING_LINE_COLOR  = "#3F51B5"   # halving vertical lines — muted indigo (colorblind-safe, blue axis)
 # Tab-1 moving averages (bub-ma) — ONE colour for all four windows; the window
@@ -744,6 +749,10 @@ MC_PATH_ALPHA_BUDGET  = 8.0    # cap on the SUM of path alphas: 200 paths -> 0.0
                                # cloud the fan shows through (0.45 x 200 is a black slab)
 MC_EXTREME_ALPHA      = 0.6    # Tab-1 Raw MC extreme paths (MC_PATH_COLOR) — stronger than any example line
 MC_LEGEND_BG_ALPHA    = 0.7    # MC legend repositioned bg
+PCTILE_FIT_BAND_ALPHA       = 0.18   # cycle-fit 10-90% bootstrap band fill (model colour)
+PCTILE_FIT_CONTEXT_OPACITY  = 0.35   # other models' percentile lines while a cycle fit is shown
+PCTILE_FORECAST_SHADE_ALPHA = 0.045  # forecast-region wash
+PCTILE_CENSOR_ALPHA         = 0.14   # "skip 2019-20" withheld window (PCTILE_RICH_COLOR)
 
 # ── Supercharge / Citadel band fills ──
 SC_ENVELOPE_ALPHA         = 0.3   # supercharge model envelope fill

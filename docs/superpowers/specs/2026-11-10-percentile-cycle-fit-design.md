@@ -22,6 +22,14 @@ Operator decisions (2026-11-10, verbatim choices):
 | uncertainty | **Widening band** — central line plus a band from refitting on resampled data that fans out as period/phase uncertainty compounds |
 | models | **One at a time, picker** — dropdown chooses the model (default QR) |
 | reviews | Opus for every review subagent |
+| the fit (operator, mid-session) | "we are fitting a **single calendar-time sinusoid** to the percentile (or whatever element of the appropriate basis set for the model is)" |
+
+So the fitted form is exactly one term, `c + A·cos(2πf·t + φ)` with t in
+calendar years, and its target is the picked model's own position coordinate:
+the level in **that model's** quantile basis (its fan's quantile grid) at which
+each daily close sits — i.e. the same percentile series the Percentile view
+already plots for that model, at the view's σ-mode. Each model is fit against
+its own fan; nothing is pooled across models.
 
 ## Statistical judgment (measured 2026-11-10 on the live `model_data.pkl`)
 

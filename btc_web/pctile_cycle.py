@@ -37,7 +37,8 @@ from scipy.optimize import minimize_scalar
 
 __all__ = [
     "CycleFit", "fit_cycle", "wave", "bootstrap_params", "band", "turns",
-    "turn_timing", "hindcast", "fan_prices", "is_weak", "likely_band",
+    "turn_timing", "hindcast", "fan_prices", "is_weak", "beats_flat",
+    "likely_band",
     "PMIN", "PMAX", "B_DEFAULT", "BLOCK_WEEKS", "SEED", "WEAK_R2",
     "CENSOR_WINDOW", "CYCLE_MODEL_KEYS", "BASES", "DEFAULT_BASIS",
     "HORIZONS", "DEFAULT_HORIZON",
@@ -190,30 +191,40 @@ def bootstrap_params(t, y, fit: CycleFit, *, B=B_DEFAULT, block=BLOCK_WEEKS,
 
 
 def _block_path(res, length, block, rng):
-    """One circular moving-block resample of ``res``, ``length`` long."""
+    """One circular moving-block resample of ``res``, ``length`` long, with a
+    random block phase (so different paths change block in different weeks)."""
     n = res.size
     block = max(1, min(int(block), n))
-    nb = int(np.ceil(length / block))
+    phase = int(rng.integers(0, block))
+    total = length + phase
+    nb = int(np.ceil(total / block))
     starts = rng.integers(0, n, nb)
-    idx = ((starts[:, None] + np.arange(block)[None, :]).ravel()[:length]) % n
-    return res[idx]
+    idx = ((starts[:, None] + np.arange(block)[None, :]).ravel()[:total]) % n
+    return res[idx[phase:]]
 
 
 def likely_band(params, t, y, fit: CycleFit, grid, *, lo=10.0, hi=90.0,
-                block=BLOCK_WEEKS, step=STEP, seed=SEED + 1):
-    """Predictive envelope: pointwise lo/hi of (replicate curve + one
+                paths=8, block=BLOCK_WEEKS, step=STEP, seed=SEED + 1):
+    """Predictive envelope: pointwise lo/hi of (replicate curve + a
     block-resampled residual path) on ``grid`` (a weekly grid), clipped to
     0-100. The curve carries where the wave is; the residual path carries how
-    far the percentile strays from it — so in-sample it covers ~(hi-lo) %."""
+    far the percentile strays from it — so in-sample it covers ~(hi-lo) %.
+
+    ``paths`` residual paths per replicate, each with its own random block
+    phase: with one synchronised path per replicate every block boundary fell
+    in the same week and the band edge stepped 12-15 pp (review r2 I-4)."""
     tw = np.asarray(t, float)[::step]
     res = np.asarray(y, float)[::step] - wave(fit.c, fit.A, fit.f, fit.phi,
                                                tw, fit.space)
     curves = wave(params[:, 0], params[:, 1], params[:, 2], params[:, 3],
                   grid, fit.space)
     rng = np.random.default_rng(seed)
+    L = curves.shape[1]
+    out = np.empty((curves.shape[0] * paths, L))
     for b in range(curves.shape[0]):
-        curves[b] += _block_path(res, curves.shape[1], block, rng)
-    b_lo, b_hi = np.percentile(curves, [lo, hi], axis=0)
+        for k in range(paths):
+            out[b * paths + k] = curves[b] + _block_path(res, L, block, rng)
+    b_lo, b_hi = np.percentile(out, [lo, hi], axis=0)
     return np.clip(b_lo, 0.0, 100.0), np.clip(b_hi, 0.0, 100.0)
 
 
@@ -266,10 +277,17 @@ def turn_timing(params, t_anchor: float, j: int, kind: str, t_e: float,
     return float(min(a, t_e)), float(max(b, t_e))
 
 
-def hindcast(t, y, *, horizon=2.0, every=0.5, lookback=10.0, min_span=5.0,
-             step=STEP, basis=DEFAULT_BASIS, y_at=None) -> dict:
+def hindcast(t, y, *, horizon=2.0, every=1.0 / 12, lookback=10.0,
+             min_span=5.0, step=STEP, basis=DEFAULT_BASIS, y_at=None,
+             fit_mask=None) -> dict:
     """Rolling-origin check: fit on data up to each cutoff, score the next
     ``horizon`` years against the flat (in-sample mean) forecast.
+
+    Cutoffs are monthly (``every``) so a daily price update moves the verdict
+    by a sliver, not across a half-yearly cutoff grid (review r2 I-1).
+    ``fit_mask`` (optional, aligned with ``t``) removes days from FITTING only
+    (the operator's censor window); scoring always uses every day, so leaving
+    out a window that misfits cannot flatter the score (review r2 I-3).
 
     ``y_at(cut)`` (optional) returns the series as it would have been computed
     at the cutoff (against an as-of fan), aligned with ``t``, or None to skip
@@ -277,10 +295,11 @@ def hindcast(t, y, *, horizon=2.0, every=0.5, lookback=10.0, min_span=5.0,
     is used, which leaks the future into the scored values (optimistic)."""
     t = np.asarray(t, float)
     y0 = np.asarray(y, float)
+    fm = np.ones(t.size, bool) if fit_mask is None else np.asarray(fit_mask, bool)
     last = t[-1]
     rw, rf = [], []
     for cut in np.arange(last - lookback, last - horizon + 1e-9, every):
-        m_in = t <= cut
+        m_in = (t <= cut) & fm
         if not m_in.any() or (t[m_in][-1] - t[0]) < min_span:
             continue
         m_out = (t > cut) & (t <= cut + horizon)
@@ -304,13 +323,22 @@ def hindcast(t, y, *, horizon=2.0, every=0.5, lookback=10.0, min_span=5.0,
                 rmse_flat=float(rf.mean()), win_rate=float((rw < rf).mean()))
 
 
-def is_weak(fit: CycleFit, hind: dict) -> bool:
-    """Too weak to extrapolate: R² < WEAK_R2, the period sits at the edge of
-    the searched range (an artefact of the window), or the wave does not beat
-    a flat forecast out-of-sample (mean 2-yr hindcast RMSE)."""
-    if fit.r2 < WEAK_R2 or fit.at_limit:
-        return True
-    return bool(hind.get("n")) and hind["rmse_wave"] >= hind["rmse_flat"]
+def is_weak(fit: CycleFit) -> bool:
+    """Too weak to extrapolate: R² < WEAK_R2, or the period sits at the edge
+    of the searched range (an artefact of the window, not an estimate).
+
+    The hindcast does NOT decide this: QR's out-of-sample edge is ~1.5 pp on
+    ~4 independent windows, so a binary gate on it flips with routine price
+    updates (review r2 I-1). It is reported instead (:func:`beats_flat`)."""
+    return fit.r2 < WEAK_R2 or fit.at_limit
+
+
+def beats_flat(hind: dict):
+    """True / False: mean hindcast RMSE of the wave below / not below the flat
+    forecast's; None when there is no hindcast."""
+    if not hind.get("n"):
+        return None
+    return hind["rmse_wave"] < hind["rmse_flat"]
 
 
 def fan_prices(logfan, qs, pct):

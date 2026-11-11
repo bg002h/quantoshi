@@ -1,6 +1,6 @@
 # Percentile cycle fit — design
 
-**Date:** 2026-11-10 · **Status:** r1 folded (review `docs/superpowers/reviews/2026-11-10-pctile-cycle-spec-review-r1.md`) · **Tab:** 1 (Percentile pill)
+**Date:** 2026-11-10 · **Status:** r1 + r2 folded (reviews `docs/superpowers/reviews/2026-11-10-pctile-cycle-spec-review-r{1,2}.md`) · **Tab:** 1 (Percentile pill)
 
 ## Intent
 
@@ -41,11 +41,13 @@ and the r1 reviewer's scratch checks (reproduced the explore numbers exactly).
   rolling-origin hindcast against *today's* fan leaks the future into the
   percentile series (the fan saw the later data). With QR's **as-of fans**
   (Time Machine grid, fitted only on data to each frame), the 2-yr hindcast:
-  wave beats flat in **53 %** of 17 overlapping windows (≈ 4 independent),
-  RMSE **21.8 vs 23.3 pp** — versus a leaky 76 % / 21.4 vs 27.0. At 4 yr: 69 %,
+  wave beats flat in **53 %** of 17 half-yearly windows, RMSE **21.8 vs 23.3 pp**
+  — versus a leaky 76 % / 21.4 vs 27.0; with monthly cutoffs (as built) **54 % of
+  97** overlapping windows (≈ 4 independent), **21.5 vs 23.2 pp**. At 4 yr: 69 %,
   22.4 vs 24.3. Peak timing is mostly robust (2019/2021/2023 cutoffs move < 1
-  month). Verdict: **a real but small edge for QR; worth showing only with the
-  honest number next to it.**
+  month). Verdict: **a real but small edge for QR — about 1.5 pp, inside what a
+  half-year of new data can move (r2 I-1) — worth showing only with the honest
+  number next to it, and too small to switch the forecast on and off by.**
 * **Daily points overstate the evidence.** Residual lag-1 autocorrelation 0.996
   (n_eff ≈ 12); residual ACF ≈ 0 at 365 d. Hence 1-yr block resampling.
 * **The refit band is narrow by nature.** It is uncertainty in *where the wave
@@ -55,9 +57,12 @@ and the r1 reviewer's scratch checks (reproduced the explore numbers exactly).
 * **Basis element by model** (2-yr hindcast vs flat against today's fan):
   calendar 2–8 yr is best in- *and* out-of-sample for QR / PL / SatPL. Damped
   and log-time elements gain in-sample and lose out-of-sample. For BM and the
-  oscillator models (LPPL, HybPPL, EPPL, PCA, Greedy) and EF, **no single
-  element beats a flat forecast out-of-sample**: their fans already carry the
-  cycle. Best in-sample for BM: calendar ~1.85 yr (R² 0.12 vs 0.04). The
+  oscillator models and EF **no single element beats a flat forecast
+  out-of-sample** (measured on the ticker's `lp3` / `cfg_1d_1u` / `ecfg_1d_1u`
+  variants, PCA, Greedy): their fans already carry the cycle. The picker uses
+  the **masters** (r1 I-3), and for those (r2 I-2): `lppl` (1-freq) keeps a
+  strong 3.6-yr cycle (R² 0.51, optimistic hindcast only); `hybppl`, `eppl` are
+  weak by R². Best in-sample for BM: calendar ~1.85 yr (R² 0.12 vs 0.04). The
   operator's hunch is right in-sample and wrong out-of-sample; the view lets
   them try the elements and *shows the out-of-sample verdict*.
 * **Amplitude does not decay in percentile units** (`docs/artifacts/README.md`),
@@ -79,7 +84,8 @@ and the r1 reviewer's scratch checks (reproduced the explore numbers exactly).
    with its price range.
 4. A summary under the chart: model, element, period (10–90 % range), amplitude,
    R², hindcast (honest where possible, labelled where not), band coverage.
-5. A weak fit is said plainly and **not extrapolated**.
+5. A weak fit is said plainly and **not extrapolated**; a fit with no
+   out-of-sample edge is extrapolated **with that caveat on the chart**.
 6. State survives share links; links made before the feature restore with it off.
 
 ## Non-goals
@@ -92,7 +98,9 @@ Percentile view when Cycle fit is off.
 
 * A forecast with no visible uncertainty, or a band labelled as if it were a
   range for the percentile/price when it is not.
-* A skill number with look-ahead presented as out-of-sample.
+* A skill number with look-ahead presented as out-of-sample, or a censor
+  window that flatters the score.
+* A forecast that appears and disappears with routine daily data.
 * Non-deterministic bands (seeds fixed); uncached server cost (one fit per
   model × σ × censor × element × data version per worker).
 * Shifting any existing share-link index; changing what an old link shows.
@@ -126,6 +134,13 @@ exactly as its sender saw it.
 **Registry:** pinning the new defaults fingerprint evicts the oldest entry
 (`faf00e93`, live ~1 day in 2026-04); accepted (r1 M-1).
 
+**Decided, not changed (r2 N-1, N-2):** the predating rule is unconditional — an
+old Price-view link whose recipient later opens Percentile gets the fit off,
+where a fresh visitor gets it on; harmless. A link with x-range ending 2027
+opened after 2027-01-01 no longer reaches today, so it shows no forecast until
+the right handle is dragged to the end — the same rule as any zoom into the
+past.
+
 The pill row gets `flexWrap: "wrap"` so the controls drop to a second line on
 a phone.
 
@@ -138,25 +153,37 @@ a phone.
   cycles/yr; log ω = 2πf ∈ [1, 30]) and refined by bounded scalar minimisation
   within one grid step. `at_limit` = refined f within one grid step of either
   end (the "period" is then an artefact of the window).
+* **Censor** (`skip 2019–20`) removes the window from **fitting only** — the
+  central fit, the bootstrap, each hindcast fit. Hindcast scoring, coverage and
+  the clamped share use every day (r2 I-3).
 * **Bootstrap:** circular moving-block on the weekly residuals, block 52, B = 150,
   fixed seed; each replicate refit with the same element (200-point grid).
 * **Fit band:** pointwise 10/90 of replicate curves.
-* **Likely band (r1 C-2):** pointwise 10/90 of *replicate curve + one
-  block-resampled residual path* (weekly, circular 52-week blocks, its own fixed
-  seed), clipped to [0, 100]. Computed once on a fixed weekly grid from the
+* **Likely band (r1 C-2):** pointwise 10/90 of *replicate curve + a
+  block-resampled residual path*, **8 paths per replicate, each with a random
+  block phase** (weekly, circular 52-week blocks, its own fixed seed), clipped to
+  [0, 100]. One synchronised path per replicate stepped 12–15 pp at block
+  boundaries; this is ≤ ~3 pp (r2 I-4). Computed once on a fixed weekly grid from the
   series start to last + 30 yr, so zoom and horizon never re-draw it.
   **Coverage** = share of actual daily percentiles inside each band (in-sample),
   reported in the summary.
 * **Turns:** analytic in g (peak 2πf·g + φ = 2πk; trough π + 2πk). **Timing by
   cycle index (r1 M-2):** the j-th same-kind turn after the last observation in
   each replicate; 10/90 → bar, `array`/`arrayminus` clamped ≥ 0.
-* **Hindcast:** cutoffs every 0.5 yr from last−10 to last−2, ≥ 5 yr history,
-  weekly fit, 2-yr horizon, flat = in-sample mean. **For QR it is honest:** the
-  percentile series at each cutoff is recomputed against the Time Machine as-of
-  QR fan of the last frame ≤ cutoff (QR is σ-invariant). Other models are scored
-  against today's fan and labelled **"optimistic (today's fan)"**. Report n,
-  "overlapping", win share, mean RMSE wave vs flat.
-* **Weak** = R² < 0.20, **or** hindcast mean RMSE wave ≥ flat, **or** `at_limit`.
+* **Hindcast:** **monthly** cutoffs from last−10 to last−2 (r2 I-1), ≥ 5 yr
+  history, on the weekly series, 2-yr horizon, flat = in-sample mean.
+  **For QR it is honest:** the series at each cutoff is recomputed against the
+  Time Machine as-of QR fan of the last frame ≤ cutoff (QR is σ-invariant);
+  as-of weekly series are cached per (frame, data version), shared across
+  elements and censor. If the grid or every frame is unavailable it falls back
+  to the non-QR treatment. **Other models have no look-ahead-free check**: the
+  summary says "Not checked out-of-sample", shows the RMSE pair against today's
+  fan as an upper bound and **no win share**, and the forecast's legend name
+  ends "(not checked out-of-sample)" (r2 I-2).
+* **Weak** (no forecast) = R² < 0.20 **or** `at_limit` — in-sample only.
+  The hindcast is **reported, not a gate** (r2 I-1): when the wave's mean miss
+  is not below flat's, the chart carries "⚠ no out-of-sample edge over a flat
+  line" and the summary says so, but the forecast stays.
 * **Percentile → price:** sorted (monotone-rearranged) log10 fan, linear interp
   in quantile, clipped to the outer quantiles.
 
@@ -174,18 +201,20 @@ a phone.
 * **Weak:** in-sample wave only (dotted, model colour), fit band in-sample,
   no forecast segment, no forecast turns, no labels, no axis extension, plus a
   short in-chart warning ("weak cycle in ‹model›'s percentile — no forecast").
-* **Labels (r1 I-4):** text labels on the next N peaks and N troughs after the
-  last observation, N = 1 on a log x-axis and 3 on a linear one; all other turns
-  carry hover only. Annotation x is log10(t) on a log axis.
+* **Labels (r1 I-4, r2 M-2):** text labels on the next N peaks and N troughs
+  after the last observation: N = 1 on a log x-axis; on a linear one 3 / 2 / 1
+  at +10 / +20 / +30 yr. All other turns carry hover only. Annotation x is log10(t) on a log axis.
 * **Hover:** wave rows (after the shared date prepend at `customdata[0]`):
   fit band lo/hi, likely band lo/hi, price at fit, price at likely lo/hi.
 * **Summary + footnote:** written into `layout.meta.cycle_info` (list of lines)
   and shown by a clientside callback in a wrapping `html.Div`
   (`bub-pctile-info`) under the graph (r1 M-9), so every writer of the figure
   updates it. The title's subtitle carries a short caveat for PNG exports.
-  Wording: R² reads "R² (2019–20 excluded)" when censored (M-10); the band
-  footnote says the fit band is narrowest at turns and timing lives in the bars
-  (M-3); clamped share shown when > 5 % (M-4).
+  Wording: R² reads "R² (2019–20 excluded from the fit)" when censored; the
+  band footnote says the fit band is narrowest at turns and timing lives in the
+  bars, and that prices hold only if today's fan holds (r2 M-6); clamped share
+  shown when > 5 %; an at-limit fit prints "period at the search limit", a log
+  element prints "turn ratio λ" (r2 M-4).
 * **Payload:** weekly grid for all new traces (r1 M-7).
 * Colours are `colors.py` constants; the weak box is not the rich-zone amber
   (N-2).
@@ -203,6 +232,10 @@ a phone.
   `_CHECKLIST_OPTIONS["bub-pctile-fit"] = ["fit", "censor"]`; defaults in
   `SNAPSHOT_DEFAULTS`; ids in `_TAB_CONTROLS["bubble"]`; fingerprint pinned
   before and after.
+
+**Cost (measured, dev):** cold fit per (model, σ, censor, element) ≤ ~1.0 s
+(QR incl. the as-of hindcast; the Time Machine grid, ~19 MB, loads once per
+worker on the first QR cycle view); warm figure build ~0.25 s.
 
 ## Left to the builder
 

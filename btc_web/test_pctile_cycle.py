@@ -229,16 +229,38 @@ class TestBases:
         y = 50 + 30 * np.cos(7.2 * np.log(t) + 0.5)
         assert pc.hindcast(t, y, basis="log")["win_rate"] == 1.0
 
-    def test_is_weak(self):
-        ok = pc.CycleFit(50, 30, 0.28, 0, 0.5, 100)
-        low = pc.CycleFit(50, 30, 0.28, 0, 0.1, 100)
-        good = dict(n=10, rmse_wave=20.0, rmse_flat=27.0, win_rate=0.8)
-        bad = dict(n=10, rmse_wave=28.0, rmse_flat=25.0, win_rate=0.3)
-        none = dict(n=0, rmse_wave=None, rmse_flat=None, win_rate=None)
-        assert not pc.is_weak(ok, good)
-        assert pc.is_weak(ok, bad)
-        assert pc.is_weak(low, good)
-        assert not pc.is_weak(ok, none)
+    def test_is_weak_is_in_sample_only(self):
+        """The hindcast is reported, never a gate (review r2 I-1)."""
+        assert not pc.is_weak(pc.CycleFit(50, 30, 0.28, 0, 0.5, 100))
+        assert pc.is_weak(pc.CycleFit(50, 30, 0.28, 0, 0.1, 100))
+        assert pc.is_weak(pc.CycleFit(50, 30, 0.125, 0, 0.5, 100, at_limit=True))
+
+    def test_beats_flat(self):
+        assert pc.beats_flat(dict(n=10, rmse_wave=20.0, rmse_flat=27.0)) is True
+        assert pc.beats_flat(dict(n=10, rmse_wave=28.0, rmse_flat=25.0)) is False
+        assert pc.beats_flat(dict(n=0, rmse_wave=None, rmse_flat=None)) is None
+
+    def test_likely_band_is_smooth_week_to_week(self):
+        """r2 I-4: one synchronised residual path per refit stepped 12-15 pp."""
+        t, y = _synthetic(noise=15.0, ar=0.995)
+        f = pc.fit_cycle(t, y)
+        P = pc.bootstrap_params(t, y, f)
+        grid = np.arange(t[-1], t[-1] + 20, 7 / 365.25)
+        lo, hi = pc.likely_band(P, t, y, f, grid)
+        assert np.max(np.abs(np.diff(hi))) < 6.0
+        assert np.max(np.abs(np.diff(lo))) < 6.0
+
+    def test_censor_mask_fits_without_but_scores_with(self):
+        """r2 I-3: days withheld from the fit are still scored."""
+        t = np.arange(1.0, 17.0, 7 / 365.25)
+        y = 50 + 30 * np.cos(2 * np.pi * t / 3.6)
+        bad = (t > 9.0) & (t < 10.0)
+        y_bad = y.copy()
+        y_bad[bad] = 100.0                         # a window the wave misfits
+        mask = ~bad
+        scored = pc.hindcast(t, y_bad, step=1, fit_mask=mask)
+        dropped = pc.hindcast(t[mask], y_bad[mask], step=1)
+        assert scored["rmse_wave"] > dropped["rmse_wave"]   # misfit still scored
 
     def test_every_basis_key_has_a_label_and_valid_space(self):
         for k, (space, fmin, fmax, label) in pc.BASES.items():
@@ -317,6 +339,20 @@ class TestFigure:
         assert len(fc) == 1 and fc[0].line.dash == "dash"
         assert _forecast_turn_traces(fig)
 
+    @pytest.mark.parametrize("trim_days", [0, 45, 90, 135, 165, 180])
+    def test_default_qr_stays_a_forecast_as_data_moves(self, trim_days):
+        """r2 I-1: the default view must not lose its forecast after a
+        routine price update. Weakness is in-sample only."""
+        mdl = _app_ctx.PRICE_MODELS["qr"]
+        t = np.asarray(M.price_years, float)
+        px = np.asarray(M.price_prices, float)
+        keep = t >= 1.0
+        t, px = t[keep], px[keep]
+        if trim_days:
+            t, px = t[:-trim_days], px[:-trim_days]
+        y = np.asarray(fp._percentile_series(mdl, t, px, sigma_mode="resqr"))
+        assert not pc.is_weak(pc.fit_cycle(t, y))
+
     @pytest.mark.parametrize("h", [10, 20, 30])
     def test_xrange_extends_to_horizon(self, h):
         fig = fp.build_percentile_figure(M, _p(cycle_horizon=h))
@@ -355,15 +391,17 @@ class TestFigure:
         assert widths[0] < per / 2
         assert np.all(widths < per)
 
-    def test_linear_axis_labels_next_three_of_each_kind(self):
-        fig = fp.build_percentile_figure(M, _p())
+    @pytest.mark.parametrize("h,n", [(10, 6), (20, 4), (30, 2)])
+    def test_linear_axis_labels_the_next_turns_by_horizon(self, h, n):
+        fig = fp.build_percentile_figure(M, _p(cycle_horizon=h))
         (tr,) = _forecast_turn_traces(fig)
         labels = _price_labels(fig)
-        assert len(labels) == 6 < len(tr.x)
+        assert len(labels) == n <= len(tr.x)
         assert all(v >= 0 for v in tr.error_x.array)
         assert all(v >= 0 for v in tr.error_x.arrayminus)
-        # the labelled turns are the EARLIEST ones
-        assert max(float(a.x) for a in labels) < sorted(tr.x)[-1]
+        # the labelled turns are exactly the EARLIEST n (kinds alternate)
+        np.testing.assert_allclose(sorted(float(a.x) for a in labels),
+                                   sorted(tr.x)[:n])
 
     def test_log_axis_labels_next_peak_and_trough_at_log10(self):
         fig = fp.build_percentile_figure(M, _p(xscale="log"))
@@ -381,13 +419,19 @@ class TestFigure:
         head = info[0]
         assert "QR" in head and "calendar 2–8 yr" in head and "period" in head
         assert "R²" in head
-        assert any("Hindcast (as-of fans, no look-ahead)" in ln for ln in info)
+        assert any("Out-of-sample (as-of fans, no look-ahead)" in ln for ln in info)
         assert any("sat inside them" in ln for ln in info)
         assert info[-1] == "Descriptive fit, not a forecast."
 
-    def test_non_qr_hindcast_is_labelled_optimistic(self):
+    def test_non_qr_is_not_checked_out_of_sample_and_shows_no_win_share(self):
+        """r2 I-2: an optimistic hindcast is not a win rate beside QR's."""
         fig = fp.build_percentile_figure(M, _p(cycle_model="pl"))
-        assert any("optimistic" in ln for ln in fig.layout.meta["cycle_info"])
+        info = fig.layout.meta["cycle_info"]
+        hl = [ln for ln in info if "out-of-sample" in ln]
+        assert hl and hl[0].startswith("Not checked out-of-sample")
+        assert not re.search(r"in \d+ of \d+", " ".join(info))
+        assert any(n == "PL cycle extrapolation (not checked out-of-sample)"
+                   for n in _names(fig))
 
     def test_weak_fit_draws_no_forecast(self):
         fig = fp.build_percentile_figure(M, _p(cycle_model="bub"))
@@ -400,13 +444,15 @@ class TestFigure:
         assert fig.layout.xaxis.range[1] <= today_t(M.genesis) + 1e-6
         assert "likely range (10–90%)" not in _names(fig)
 
-    def test_hindcast_failure_triggers_weak(self, monkeypatch):
+    def test_hindcast_failure_is_reported_not_suppressing(self, monkeypatch):
         fp._cycle_result.cache_clear()
-        monkeypatch.setattr(fp._pc, "is_weak", lambda fit, hind: True)
+        monkeypatch.setattr(fp._pc, "beats_flat", lambda hind: False)
         try:
             fig = fp.build_percentile_figure(M, _p())
-            assert any("weak cycle" in (a.text or "") for a in _anns(fig))
-            assert not _forecast_turn_traces(fig)
+            assert any("no out-of-sample edge" in (a.text or "") for a in _anns(fig))
+            assert any("No out-of-sample edge" in ln
+                       for ln in fig.layout.meta["cycle_info"])
+            assert _forecast_turn_traces(fig)            # forecast still drawn
         finally:
             fp._cycle_result.cache_clear()
 
@@ -442,10 +488,12 @@ class TestFigure:
         a = fp._cycle_result("qr", "resqr", False, "cal", fpk)
         b = fp._cycle_result("qr", "resqr", True, "cal", fpk)
         assert a["fit"].r2 != b["fit"].r2
-        assert b["t"].size < a["t"].size
+        assert b["fit"].n < a["fit"].n                 # withheld from the fit
+        assert b["t"].size == a["t"].size              # ...but kept for scoring
+        assert b["honest"] and b["hind"]["n"] == a["hind"]["n"]
         assert fp._cycle_result("qr", "resqr", True, "cal", fpk) is b
         info = fp.build_percentile_figure(M, _p(cycle_censor=True)).layout.meta["cycle_info"]
-        assert "R² (2019–20 excluded)" in info[0]
+        assert "R² (2019–20 excluded from the fit)" in info[0]
 
     def test_qr_hindcast_is_honest_and_coverage_is_sane(self):
         r = fp._cycle_result("qr", "resqr", False, "cal", str(_app_ctx._MODEL_FP))

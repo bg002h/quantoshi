@@ -655,6 +655,7 @@ _PILL_TO_MODE = {v.pill: m for m, v in VIEW_MODES.items()}
     Output("bub-scale-controls", "style"),
     Output("bub-bubble-panel", "style"),
     Output("bub-cagr-fwd-wrap", "style"),
+    Output("bub-pctile-ctl-wrap", "style"),
     Output("bub-occ-ctl-wrap", "style"),
     Output("bub-xrange", "value", allow_duplicate=True),
     Input("bub-view-price", "n_clicks"),
@@ -714,6 +715,7 @@ _app_ctx.app.clientside_callback(
     Output("bub-scale-controls", "style", allow_duplicate=True),
     Output("bub-bubble-panel", "style", allow_duplicate=True),
     Output("bub-cagr-fwd-wrap", "style", allow_duplicate=True),
+    Output("bub-pctile-ctl-wrap", "style", allow_duplicate=True),
     Output("bub-occ-ctl-wrap", "style", allow_duplicate=True),
     Input("bub-view-mode", "data"),
     prevent_initial_call=True,
@@ -877,6 +879,39 @@ def update_bub_resid(view_mode, xrange, toggles, xscale, model_show,
 
 # ── Percentile oscillator for tab 1 ─────────────────────────────────────────
 
+def _cycle_params(fit_val, fit_model, fit_basis, fit_horizon) -> dict:
+    """Cycle-fit params from the four controls, coerced: a share link (or a
+    host without model_data_ef.pkl) can carry anything, so unknown values fall
+    back to the defaults rather than reaching the figure builder."""
+    import pctile_cycle as _pc
+    fit_val = fit_val if isinstance(fit_val, list) else []
+    return dict(
+        cycle_fit="fit" in fit_val,
+        cycle_censor="censor" in fit_val,
+        cycle_model=(fit_model if fit_model in _pc.CYCLE_MODEL_KEYS
+                     and fit_model in _app_ctx.PRICE_MODELS else "qr"),
+        cycle_basis=fit_basis if fit_basis in _pc.BASES else _pc.DEFAULT_BASIS,
+        cycle_horizon=(fit_horizon if fit_horizon in _pc.HORIZONS
+                       else _pc.DEFAULT_HORIZON),
+    )
+
+
+# Cycle-fit summary under the Percentile chart. The figure carries its lines in
+# layout.meta.cycle_info, so whichever callback writes the figure (pill switch,
+# control change, snapshot restore) the text follows it — no server round trip.
+_app_ctx.app.clientside_callback(
+    """
+    function(fig) {
+        var info = fig && fig.layout && fig.layout.meta && fig.layout.meta.cycle_info;
+        if (!info || !info.length) { return ["", {"display": "none"}]; }
+        return [info.join("\n"), {"display": "block"}];
+    }
+    """,
+    Output("bub-pctile-info", "children"),
+    Output("bub-pctile-info", "style"),
+    Input("bub-pctile-graph", "figure"),
+)
+
 @callback(
     Output("bub-pctile-graph", "figure"),
     Input("bub-view-mode", "data"),
@@ -887,12 +922,17 @@ def update_bub_resid(view_mode, xrange, toggles, xscale, model_show,
     Input("bub-legend-pos", "value"),
     Input("palette-store", "data"),
     Input("bub-sigma-mode", "value"),
+    Input("bub-pctile-fit", "value"),
+    Input("bub-pctile-fit-model", "value"),
+    Input("bub-pctile-fit-basis", "value"),
+    Input("bub-pctile-fit-horizon", "value"),
     State("user-model-store", "data"),
     State("snapshot-pending", "data"),
     prevent_initial_call=True,
 )
 def update_bub_pctile(view_mode, xrange, toggles, xscale, model_show,
-                      legend_pos, palette_key, sigma_mode, user_model_store,
+                      legend_pos, palette_key, sigma_mode, fit_val, fit_model,
+                      fit_basis, fit_horizon, user_model_store,
                       snapshot_pending=False):
     # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
     if snapshot_pending:
@@ -919,6 +959,7 @@ def update_bub_pctile(view_mode, xrange, toggles, xscale, model_show,
         legend_pos=legend_pos or "outside",
         sigma_mode=sigma_mode or "constant",
         user_model=user_model_store,
+        **_cycle_params(fit_val, fit_model, fit_basis, fit_horizon),
     )
     fig = _get_pctile_fig(p)
     apply_zoom_lock(fig, "chart_zoom" in toggles)

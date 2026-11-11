@@ -163,6 +163,8 @@ _TAB_CONTROLS = {
                     "bub-decomp-model","bub-decomp-components","bub-decomp-mode",
                     "bub-decomp-show-formulas","bub-view-mode",
                     "bub-occ-tail","bub-occ-window",
+                    "bub-pctile-fit","bub-pctile-fit-model",
+                    "bub-pctile-fit-basis","bub-pctile-fit-horizon",
                     "bub-ma",
                     "bub-lppl-activate","bub-hybppl-activate","bub-eppl-activate",
                     # Custom Time Axis (Tab 1 only, added 2026-04-13)
@@ -397,6 +399,7 @@ _app_ctx.app.clientside_callback(
     Output("bub-scale-controls", "style", allow_duplicate=True),
     Output("bub-bubble-panel", "style", allow_duplicate=True),
     Output("bub-cagr-fwd-wrap", "style", allow_duplicate=True),
+    Output("bub-pctile-ctl-wrap", "style", allow_duplicate=True),
     Output("bub-occ-ctl-wrap", "style", allow_duplicate=True),
     Output("bub-xrange", "value", allow_duplicate=True),
     Output("bub-cagr-fwd-yrs", "value", allow_duplicate=True),
@@ -424,7 +427,7 @@ def deep_link_bub_view(pathname):
     pathname = _norm(pathname)
     mode = mode_for_path(pathname)
     if mode is None:
-        return (NU,) * 20
+        return (NU,) * 21
     parts = pathname[1:].split(".")
 
     def _pick(i, options):

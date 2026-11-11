@@ -470,3 +470,148 @@ class TestFigure:
         t0 = time.perf_counter()
         fp._cycle_result("qr", "resqr", False, "cal", str(_app_ctx._MODEL_FP))
         assert time.perf_counter() - t0 < 4.0
+
+
+# ── Wiring + share links ─────────────────────────────────────────────────────
+
+import base64                                                  # noqa: E402
+import gzip                                                    # noqa: E402
+import json                                                    # noqa: E402
+from unittest.mock import patch                                # noqa: E402
+
+from bub_views import STYLE_OUTPUT_IDS, VIEW_MODES, mode_styles  # noqa: E402
+from snapshot import (_SNAPSHOT_CONTROLS, _CHECKLIST_OPTIONS,  # noqa: E402
+                      _decode_snapshot, _decode_snapshot_v4, _encode_snapshot,
+                      _encode_snapshot_v4)
+from snapshot_defaults import (SNAPSHOT_DEFAULTS,              # noqa: E402
+                               _compute_snapshot_defaults_fingerprint)
+
+_FIT = "bub-pctile-fit:value"
+_NEW = ["bub-pctile-fit", "bub-pctile-fit-model", "bub-pctile-fit-basis",
+        "bub-pctile-fit-horizon"]
+_PRE_FIT_FP = "0eac47fc"      # last defaults fingerprint before the fields
+
+
+def _idx(cid):
+    return [c for c, _ in _SNAPSHOT_CONTROLS].index(cid)
+
+
+def _v4(fp, diffs):
+    j = json.dumps([fp, diffs, None], separators=(",", ":"))
+    return f"{fp}:" + base64.urlsafe_b64encode(gzip.compress(j.encode())).decode()
+
+
+def _walk_ids(node, out):
+    pid = getattr(node, "id", None)
+    if pid is not None:
+        out[pid] = node
+    ch = getattr(node, "children", None)
+    for c in (ch if isinstance(ch, (list, tuple)) else [ch]):
+        if c is not None and hasattr(c, "to_plotly_json"):
+            _walk_ids(c, out)
+    return out
+
+
+class TestWiring:
+    def test_percentile_mode_shows_its_ctl_span_only(self):
+        i = STYLE_OUTPUT_IDS.index("bub-pctile-ctl-wrap")
+        for mode in VIEW_MODES:
+            want = {"display": "inline"} if mode == "percentile" else {"display": "none"}
+            assert mode_styles(mode)[i] == want, mode
+
+    def test_controls_exist_with_snapshot_defaults(self):
+        from layout.common import _pctile_cycle_controls
+        ids = _walk_ids(_pctile_cycle_controls(), {})
+        assert ids["bub-pctile-fit"].value == ["fit"]
+        assert [o["value"] for o in ids["bub-pctile-fit"].options] == ["fit", "censor"]
+        assert ids["bub-pctile-fit-model"].value == "qr"
+        assert ids["bub-pctile-fit-basis"].value == "cal"
+        assert ids["bub-pctile-fit-horizon"].value == 20
+        models = [o["value"] for o in ids["bub-pctile-fit-model"].options]
+        assert models[0] == "qr" and set(models) <= set(pc.CYCLE_MODEL_KEYS)
+        assert [o["value"] for o in ids["bub-pctile-fit-basis"].options] == list(pc.BASES)
+        assert [o["value"] for o in ids["bub-pctile-fit-horizon"].options] == list(pc.HORIZONS)
+
+    def test_update_callback_passes_coerced_cycle_params(self):
+        from callbacks.charts import update_bub_pctile
+        seen = {}
+
+        def grab(p):
+            seen.update(p)
+            return fp.build_percentile_figure(M, p)
+        args = ("percentile", [2010, 2027], [], "lin", ["bub"], "outside",
+                "default", "resqr")
+        with patch("utils._get_pctile_fig", side_effect=grab):
+            update_bub_pctile(*args, ["fit", "censor"], "pl", "log", 30, None, False)
+            assert (seen["cycle_fit"], seen["cycle_censor"], seen["cycle_model"],
+                    seen["cycle_basis"], seen["cycle_horizon"]) == (True, True, "pl", "log", 30)
+            update_bub_pctile(*args, None, "u1", "zzz", 7, None, False)
+            assert (seen["cycle_fit"], seen["cycle_censor"], seen["cycle_model"],
+                    seen["cycle_basis"], seen["cycle_horizon"]) == (False, False, "qr", "cal", 20)
+
+    def test_info_div_is_filled_clientside_from_layout_meta(self):
+        scripts = [s for s in _app_ctx.app._inline_scripts if "cycle_info" in s]
+        assert len(scripts) == 1
+        cm = _app_ctx.app.callback_map
+        keys = [k for k in cm if "bub-pctile-info.children" in k]
+        assert len(keys) == 1
+        assert [i["id"] for i in cm[keys[0]]["inputs"]] == ["bub-pctile-graph"]
+
+
+class TestSnapshot:
+    def test_new_fields_appended_at_the_absolute_tail(self):
+        assert [c for c, _ in _SNAPSHOT_CONTROLS[348:352]] == _NEW
+        assert all(p == "value" for _, p in _SNAPSHOT_CONTROLS[348:352])
+        assert len(_SNAPSHOT_CONTROLS) == 352
+        assert _SNAPSHOT_CONTROLS[347] == ("bub-mc-extremes", "value")
+
+    def test_defaults_options_and_tab_controls(self):
+        from callbacks.routing import _TAB_CONTROLS
+        assert SNAPSHOT_DEFAULTS[_FIT] == ["fit"]
+        assert SNAPSHOT_DEFAULTS["bub-pctile-fit-model:value"] == "qr"
+        assert SNAPSHOT_DEFAULTS["bub-pctile-fit-basis:value"] == "cal"
+        assert SNAPSHOT_DEFAULTS["bub-pctile-fit-horizon:value"] == 20
+        assert _CHECKLIST_OPTIONS["bub-pctile-fit"] == ["fit", "censor"]
+        assert set(_NEW) <= _TAB_CONTROLS["bubble"]
+
+    def test_round_trip(self):
+        st = {"bub-view-mode:data": "percentile", _FIT: ["fit", "censor"],
+              "bub-pctile-fit-model:value": "pl",
+              "bub-pctile-fit-basis:value": "log",
+              "bub-pctile-fit-horizon:value": 30}
+        dec = _decode_snapshot_v4(_encode_snapshot_v4(st))
+        for k, v in st.items():
+            assert dec[k] == v, k
+
+    def test_fit_off_survives_a_new_link(self):
+        dec = _decode_snapshot_v4(_encode_snapshot_v4(
+            {"bub-view-mode:data": "percentile", _FIT: []}))
+        assert dec[_FIT] == []
+
+    def test_current_fingerprint_is_registered_and_old_one_kept(self):
+        from snapshot import _registry_lookup
+        fp_now = _compute_snapshot_defaults_fingerprint()
+        assert _registry_lookup(fp_now) is not None
+        old = _registry_lookup(_PRE_FIT_FP)
+        assert old is not None and _FIT not in old
+
+    def test_old_v4_percentile_link_restores_with_the_fit_off(self):
+        state = _decode_snapshot_v4(
+            _v4(_PRE_FIT_FP, {str(_idx("bub-view-mode")): "percentile"}))
+        assert state["bub-view-mode:data"] == "percentile"
+        assert state[_FIT] == []
+
+    def test_old_positional_link_restores_with_the_fit_off(self):
+        values = [None] * _idx("bub-pctile-fit")
+        values[_idx("bub-view-mode")] = "percentile"
+        j = json.dumps([values, None], separators=(",", ":"))
+        state = _decode_snapshot(
+            base64.urlsafe_b64encode(gzip.compress(j.encode())).decode())
+        assert state[_FIT] == []
+
+    def test_new_v4_link_of_another_tab_keeps_the_default_on(self):
+        """The rule keys on the field being ABSENT; a new link always carries
+        it (registered default), even one scoped to another tab."""
+        fp_now = _compute_snapshot_defaults_fingerprint()
+        state = _decode_snapshot_v4(_v4(fp_now, {}))
+        assert state[_FIT] == ["fit"]

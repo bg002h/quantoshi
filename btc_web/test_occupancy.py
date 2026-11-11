@@ -364,7 +364,8 @@ class TestOccupancyWiring:
         assert out[4] == {"display": "none"}      # bub-pctile-wrap hidden
         assert out[10] is False                   # bub-view-occ filled (active)
         assert out[9] is True                     # bub-view-pctile outlined
-        assert out[14] == {"display": "inline"}   # bub-occ-ctl-wrap shown
+        assert out[15] == {"display": "inline"}   # bub-occ-ctl-wrap shown
+        assert out[14] == {"display": "none"}     # bub-pctile-ctl-wrap hidden
 
     def test_pill_toggle_back_to_price_hides_occupancy(self):
         from callbacks.charts import toggle_bub_view
@@ -373,7 +374,7 @@ class TestOccupancyWiring:
         assert out[0] == "price"
         assert out[5] == {"display": "none"}
         assert out[10] is True
-        assert out[14] == {"display": "none"}
+        assert out[15] == {"display": "none"}
 
     def test_clientside_sync_returns_one_value_per_output(self):
         # The view-mode sync JS returns positional arrays; a mode whose row is
@@ -391,7 +392,7 @@ class TestOccupancyWiring:
         table = json.loads(
             re.search(r"var T = (\{.*\});", scripts[0], flags=re.S).group(1))
         assert set(table) == set(VIEW_MODES)   # price, cagr, resid, pctile, occ
-        assert {len(row) for row in table.values()} == {14}
+        assert {len(row) for row in table.values()} == {15}
         assert table["occupancy"][4] == {}     # bub-occ-wrap shown
 
     def test_historical_only_clientside_checks_include_occupancy(self):

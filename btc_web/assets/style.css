@@ -1750,3 +1750,12 @@ mjx-container[display="true"] {
     max-width: 100%;
     overflow-x: auto;
 }
+
+/* Tab-1 Percentile cycle-fit summary (filled clientside from layout.meta) */
+.qs-pctile-info {
+  white-space: pre-line;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  padding: 4px 12px 8px;
+  max-width: 100%;
+}

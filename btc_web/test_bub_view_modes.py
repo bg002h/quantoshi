@@ -59,7 +59,7 @@ def _find_callback(must_contain: tuple[str, ...],
                    must_not_contain: tuple[str, ...] = ()) -> str:
     """The one callback key holding all of `must_contain` and none of the rest.
 
-    All three view-mode callbacks drive the same 14 components, so they can
+    All three view-mode callbacks drive the same 15 components, so they can
     only be told apart by their extra outputs.
     """
     keys = [k for k in _callback_map()
@@ -82,7 +82,7 @@ class TestTableShape:
         for ids in (WRAP_IDS, PILL_IDS, CTL_IDS):
             assert len(set(ids)) == len(ids), ids
         assert STYLE_OUTPUT_IDS == WRAP_IDS + PILL_IDS + PANEL_IDS + CTL_IDS
-        assert len(STYLE_OUTPUT_IDS) == 14
+        assert len(STYLE_OUTPUT_IDS) == 15
 
     def test_default_mode_is_in_the_table(self):
         assert DEFAULT_MODE in VIEW_MODES
@@ -94,7 +94,7 @@ class TestTableShape:
     @pytest.mark.parametrize("mode", _ALL)
     def test_mode_styles_shows_exactly_one_wrap_and_fills_one_pill(self, mode):
         st = mode_styles(mode)
-        assert len(st) == 14
+        assert len(st) == 15
         spec = VIEW_MODES[mode]
         wraps, pills = st[:5], st[5:10]
         assert [w == {} for w in wraps] == [w == spec.wrap for w in WRAP_IDS]
@@ -102,7 +102,7 @@ class TestTableShape:
         assert pills[PILL_IDS.index(spec.pill)] is False
         assert st[10] == ({} if spec.scale_controls else {"display": "none"})
         assert st[11] == ({} if spec.bubble_panel else {"display": "none"})
-        assert [c == {"display": "inline"} for c in st[12:14]] == \
+        assert [c == {"display": "inline"} for c in st[12:15]] == \
                [c == spec.ctl for c in CTL_IDS]
 
     def test_unknown_mode_falls_back_to_default(self):
@@ -156,30 +156,30 @@ class TestToggleBubView:
         with patch.multiple("callbacks.charts",
                             ctx=_Ctx(VIEW_MODES[mode].pill)):
             out = toggle_bub_view(0, 0, 0, 0, 0, [2010, 2033])
-        assert len(out) == 16
+        assert len(out) == 17
         assert out[0] == mode
-        assert tuple(out[1:15]) == mode_styles(mode)
+        assert tuple(out[1:16]) == mode_styles(mode)
 
     def test_unknown_trigger_falls_back_to_the_default_view(self):
         with patch.multiple("callbacks.charts", ctx=_Ctx("something-else")):
             out = toggle_bub_view(0, 0, 0, 0, 0, [2010, 2033])
         assert out[0] == DEFAULT_MODE
-        assert tuple(out[1:15]) == mode_styles(DEFAULT_MODE)
+        assert tuple(out[1:16]) == mode_styles(DEFAULT_MODE)
 
     def test_xrange_swaps_only_off_the_other_views_default(self):
         from layout.bubble import CAGR_DEFAULT_XRANGE
         with patch.multiple("callbacks.charts", ctx=_Ctx("bub-view-cagr")):
-            assert toggle_bub_view(0, 1, 0, 0, 0, [2010, 2033])[15] == \
+            assert toggle_bub_view(0, 1, 0, 0, 0, [2010, 2033])[16] == \
                 CAGR_DEFAULT_XRANGE
-            assert toggle_bub_view(0, 1, 0, 0, 0, [2014, 2022])[15] is NU
+            assert toggle_bub_view(0, 1, 0, 0, 0, [2014, 2022])[16] is NU
         for mode in (m for m in _ALL if m != "cagr"):
             with patch.multiple("callbacks.charts",
                                 ctx=_Ctx(VIEW_MODES[mode].pill)):
                 assert toggle_bub_view(0, 0, 0, 0, 0,
-                                       list(CAGR_DEFAULT_XRANGE))[15] == \
+                                       list(CAGR_DEFAULT_XRANGE))[16] == \
                     [2010, 2033], mode
                 assert toggle_bub_view(0, 0, 0, 0, 0,
-                                       [2014, 2022])[15] is NU, mode
+                                       [2014, 2022])[16] is NU, mode
 
     def test_output_order_is_the_table_order(self):
         key = _find_callback(
@@ -213,7 +213,7 @@ class TestClientsideSyncTable:
         table = json.loads(re.search(r"var T = (\{.*\});", _sync_script(),
                                      flags=re.S).group(1))
         assert set(table) == set(VIEW_MODES)
-        assert {len(v) for v in table.values()} == {14}
+        assert {len(v) for v in table.values()} == {15}
 
     def test_fallback_is_the_default_mode(self):
         assert f'T[{json.dumps(DEFAULT_MODE)}]' in _sync_script()
@@ -255,14 +255,14 @@ class TestHistoricalOnlyScripts:
 
 class TestDeepLinkUsesTheTable:
     @pytest.mark.parametrize("mode", _ALL)
-    def test_deep_link_positions_1_to_14_match_mode_styles(self, mode):
+    def test_deep_link_positions_1_to_15_match_mode_styles(self, mode):
         link = VIEW_MODES[mode].deep_link
         if link is None:
             pytest.skip(f"{mode} has no deep link")
         out = deep_link_bub_view(link)
-        assert len(out) == 20
+        assert len(out) == 21
         assert out[0] == mode
-        assert tuple(out[1:15]) == mode_styles(mode)
+        assert tuple(out[1:16]) == mode_styles(mode)
 
     def test_modes_without_a_deep_link_are_unreachable_by_url(self):
         for mode, spec in VIEW_MODES.items():

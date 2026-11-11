@@ -49,9 +49,11 @@ class TestSnapshotRegistry:
         """v4 links are index-addressed: anywhere but the tail shifts every
         later field and corrupts already-shipped links."""
         assert _SNAPSHOT_CONTROLS[339] == ("bub-mc-paths", "value")
-        # Raw MC (Task 7) appended 8 more at 340-347; nothing may follow
-        # them (test_raw_mc_snapshot.py pins that block).
-        assert len(_SNAPSHOT_CONTROLS) == 348
+        # Raw MC (Task 7) appended 8 more at 340-347 (test_raw_mc_snapshot.py
+        # pins that block), then the Percentile cycle fit 348-351
+        # (test_pctile_cycle.py).
+        assert len(_SNAPSHOT_CONTROLS) >= 348
+        assert _SNAPSHOT_CONTROLS[347] == ("bub-mc-extremes", "value")
 
     def test_earlier_entries_kept_their_indices(self):
         assert _SNAPSHOT_CONTROLS[337] == ("bub-occ-window", "value")

@@ -16,8 +16,8 @@ INLINE = {"display": "inline"}
 # Output order of deep_link_bub_view (mirrors toggle_bub_view + CAGR/occ extras)
 (MODE, PRICE_W, CAGR_W, RESID_W, PCTILE_W, OCC_W,
  PRICE_O, CAGR_O, RESID_O, PCTILE_O, OCC_O,
- SCALE, PANEL, CAGR_CTL, OCC_CTL,
- XRANGE, FWD_YRS, HOVER_TODAY, OCC_TAIL, OCC_WINDOW) = range(20)
+ SCALE, PANEL, CAGR_CTL, PCTILE_CTL, OCC_CTL,
+ XRANGE, FWD_YRS, HOVER_TODAY, OCC_TAIL, OCC_WINDOW) = range(21)
 
 
 def _n_outputs():
@@ -32,11 +32,11 @@ def _n_outputs():
 
 
 class TestDeepLinkArity:
-    def test_twenty_outputs_and_every_branch_returns_twenty(self):
-        assert _n_outputs() == 20
+    def test_twenty_one_outputs_and_every_branch_returns_twenty_one(self):
+        assert _n_outputs() == 21
         for path in ("/1.2", "/1.2.5.1", "/1.3", "/1.4", "/1.5", "/1.5.3.1", "/2", None, ""):
             out = deep_link_bub_view(path)
-            assert len(out) == 20, path
+            assert len(out) == 21, path
 
 
 class TestExistingLinksUnchanged:
@@ -70,6 +70,7 @@ class TestPercentileLink:
         assert out[PRICE_W] == H and out[CAGR_W] == H and out[RESID_W] == H and out[OCC_W] == H
         assert out[PCTILE_O] is False
         assert out[PRICE_O] is True and out[CAGR_O] is True and out[RESID_O] is True and out[OCC_O] is True
+        assert out[PCTILE_CTL] == INLINE and out[OCC_CTL] == H and out[CAGR_CTL] == H
         assert out[SCALE] == {} and out[PANEL] == {}
         assert out[CAGR_CTL] == H and out[OCC_CTL] == H
         assert out[XRANGE] is NU and out[OCC_TAIL] is NU and out[OCC_WINDOW] is NU

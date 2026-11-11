@@ -64,7 +64,8 @@ VIEW_MODES: MappingProxyType[str, ViewMode] = MappingProxyType({
         scale_controls=True, bubble_panel=True, ctl=None, deep_link="/1.3"),
     "percentile": ViewMode(
         pill="bub-view-pctile", wrap="bub-pctile-wrap", historical=True,
-        scale_controls=True, bubble_panel=True, ctl=None, deep_link="/1.4"),
+        scale_controls=True, bubble_panel=True, ctl="bub-pctile-ctl-wrap",
+        deep_link="/1.4"),
     "occupancy": ViewMode(
         pill="bub-view-occ", wrap="bub-occ-wrap", historical=True,
         scale_controls=True, bubble_panel=True,

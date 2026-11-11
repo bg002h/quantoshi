@@ -539,6 +539,46 @@ def _chart_tab_layout(controls_fn, graph_id, filename, mc_prefix=None,
     ], className="g-0")
 
 
+def _pctile_cycle_controls():
+    """Percentile-view cycle-fit controls (shown only in that mode).
+
+    Model options are the picker keys registered on this host (``ef`` needs
+    model_data_ef.pkl); defaults come from SNAPSHOT_DEFAULTS, the one place
+    they live.
+    """
+    import pctile_cycle as _pc
+    from snapshot_defaults import SNAPSHOT_DEFAULTS as _D
+    models = [{"label": _app_ctx.PRICE_MODELS[k].legend_name, "value": k}
+              for k in _pc.CYCLE_MODEL_KEYS
+              if k in _app_ctx.PRICE_MODELS
+              and getattr(_app_ctx.PRICE_MODELS[k], "quantized", False)]
+    dd = {"fontSize": UI_FONT_BASE, "display": "inline-block",
+          "marginLeft": "6px", "verticalAlign": "middle"}
+    return html.Span(id="bub-pctile-ctl-wrap", style={"display": "none"}, children=[
+        dcc.Checklist(
+            id="bub-pctile-fit",
+            options=[{"label": "Cycle fit", "value": "fit"},
+                     {"label": "skip 2019\u201320", "value": "censor"}],
+            value=list(_D["bub-pctile-fit:value"]), inline=True,
+            inputStyle={"marginRight": "3px"},
+            labelStyle={"marginLeft": "8px", "fontSize": UI_FONT_BASE},
+            style={"display": "inline-block", "verticalAlign": "middle"}),
+        dcc.Dropdown(id="bub-pctile-fit-model", options=models,
+                     value=_D["bub-pctile-fit-model:value"], clearable=False,
+                     searchable=False, style={**dd, "width": "95px"}),
+        dcc.Dropdown(id="bub-pctile-fit-basis",
+                     options=[{"label": v[3], "value": k}
+                              for k, v in _pc.BASES.items()],
+                     value=_D["bub-pctile-fit-basis:value"], clearable=False,
+                     searchable=False, style={**dd, "width": "165px"}),
+        dcc.Dropdown(id="bub-pctile-fit-horizon",
+                     options=[{"label": f"+{h}yr", "value": h}
+                              for h in _pc.HORIZONS],
+                     value=_D["bub-pctile-fit-horizon:value"], clearable=False,
+                     searchable=False, style={**dd, "width": "80px"}),
+    ])
+
+
 def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
     """Chart tab with user model input panel + click context menu."""
     import dash_bootstrap_components as dbc
@@ -585,6 +625,9 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
                 style={"width": "75px", "fontSize": UI_FONT_BASE,
                        "display": "inline-block", "marginLeft": "8px"}),
         ]),
+        # Percentile view: cycle fit (one basis element through one model's
+        # percentile; spec 2026-11-10-percentile-cycle-fit-design.md)
+        _pctile_cycle_controls(),
         # Occupancy view: tail size + trailing window (shown only in that mode)
         html.Span(id="bub-occ-ctl-wrap", style={"display": "none"}, children=[
             dcc.Dropdown(id="bub-occ-tail",
@@ -604,7 +647,8 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
         ]),
         dcc.Store(id="bub-view-mode", data="price"),
         dcc.Store(id="bub-cagr-hover-today", data=False),
-    ], style={"display": "flex", "alignItems": "center", "justifyContent": "center"},
+    ], style={"display": "flex", "alignItems": "center", "justifyContent": "center",
+              "flexWrap": "wrap"},
        className="mb-1")
 
     return dbc.Row([
@@ -692,6 +736,9 @@ def _chart_tab_layout_with_fab(controls_fn, graph_id, filename):
                                       "displayModeBar": "hover",
                                       "toImageButtonOptions": {"format": "png", "scale": 2,
                                                                "filename": "btc_percentile"}}),
+                    # Cycle-fit summary (filled clientside from layout.meta)
+                    html.Div(id="bub-pctile-info", style={"display": "none"},
+                             className="qs-pctile-info"),
                 ]),
                 # Occupancy: time in the fan's tails (hidden by default)
                 html.Div(id="bub-occ-wrap", style=_STYLE_HIDDEN, children=[

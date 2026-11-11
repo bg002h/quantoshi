@@ -66,7 +66,9 @@ class TestRegistry:
         later field and corrupts already-shipped links."""
         assert [c for c, _ in _SNAPSHOT_CONTROLS[340:348]] == NEW
         assert all(p == "value" for _, p in _SNAPSHOT_CONTROLS[340:348])
-        assert len(_SNAPSHOT_CONTROLS) == 348
+        # The Percentile cycle-fit fields follow at 348-351
+        # (test_pctile_cycle.py pins them); nothing may come between.
+        assert _SNAPSHOT_CONTROLS[348][0] == "bub-pctile-fit"
 
     def test_earlier_entries_kept_their_indices(self):
         assert _SNAPSHOT_CONTROLS[339] == ("bub-mc-paths", "value")

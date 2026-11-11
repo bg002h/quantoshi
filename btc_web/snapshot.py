@@ -434,6 +434,15 @@ _SNAPSHOT_CONTROLS = [
     ("bub-mc-raw-regime", "value"),   # bin indices 0..9  (bitmask)
     ("bub-mc-lines",      "value"),   # int 5-200
     ("bub-mc-extremes",   "value"),   # [] | ["yes"]  (bitmask)
+    # ── Tab-1 Percentile cycle fit (appended 2026-11-10) ──
+    # APPEND-ONLY at the true tail -- same index-stability rule as above;
+    # test_pctile_cycle.py pins these as indices 348-351, in this order.
+    # A link made before they existed restores bub-pctile-fit as OFF (see
+    # _PREDATING_LINK_VALUES): the fit changes an existing view.
+    ("bub-pctile-fit",         "value"),   # fit | censor  (bitmask)
+    ("bub-pctile-fit-model",   "value"),   # picker key, e.g. "qr"
+    ("bub-pctile-fit-basis",   "value"),   # "cal" | "calw" | "log"
+    ("bub-pctile-fit-horizon", "value"),   # 10 | 20 | 30
 ]
 
 _SNAP_PREFIX_V4 = "q4:"   # current format (v4: sparse diff against fingerprint)
@@ -503,6 +512,7 @@ _CHECKLIST_OPTIONS = {
     # as the "show_ucl" note above. Positional: only ever append.
     "bub-mc-raw-regime":  list(range(10)),
     "bub-mc-extremes":    ["yes"],
+    "bub-pctile-fit":     ["fit", "censor"],
     "bub-show-stack":     ["yes"],
     "bub-use-lots":       ["yes"],
     "hm-toggles":         ["colorbar", "chart_zoom"],
@@ -699,7 +709,7 @@ def _safe_decompress(encoded):
 # {key: (value, requires)}: a decoded link that carries no value at all for
 # `key` predates the field, and gets `value` -- but only when `requires` (a
 # checklist key) is ticked in that link, i.e. only when the old behaviour was
-# actually on screen.
+# actually on screen. `requires=None` applies it unconditionally.
 #   bub-mc-paths: until 2026-11-09 Tab-1 MC always drew the example paths.
 #   The toggle defaults to off, so without this every older MC link would
 #   silently restore as fan-only.
@@ -708,6 +718,10 @@ def _safe_decompress(encoded):
 # this never overrides a choice.
 _PREDATING_LINK_VALUES = {
     "bub-mc-paths:value": (["yes"], "bub-mc-enable:value"),
+    #   bub-pctile-fit: until 2026-11-10 the Percentile view had no cycle fit.
+    #   The checkbox defaults ON, so without this an older Percentile link
+    #   would restore with a forecast its sender never saw.
+    "bub-pctile-fit:value": ([], None),
 }
 
 
@@ -715,6 +729,9 @@ def _fill_predating_fields(state):
     """Apply _PREDATING_LINK_VALUES to a decoded state dict, in place."""
     for key, (value, requires) in _PREDATING_LINK_VALUES.items():
         if key in state:
+            continue
+        if requires is None:
+            state[key] = list(value)
             continue
         gate = state.get(requires)
         if isinstance(gate, list) and "yes" in gate:

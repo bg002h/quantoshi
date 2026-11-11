@@ -82,6 +82,12 @@ SNAPSHOT_DEFAULTS: dict[str, Any] = {
     'bub-n-future:value': 3,
     'bub-occ-tail:value': 10,
     'bub-occ-window:value': 4,
+    # Percentile cycle fit (2026-11-10): on by default for NEW visits; links
+    # made before the field existed restore it off (_PREDATING_LINK_VALUES).
+    'bub-pctile-fit:value': ['fit'],
+    'bub-pctile-fit-basis:value': 'cal',
+    'bub-pctile-fit-horizon:value': 20,
+    'bub-pctile-fit-model:value': 'qr',
     'bub-ptalpha:value': 0.3,
     'bub-ptsize:value': 5,
     'bub-qs-adv:value': [0.5],

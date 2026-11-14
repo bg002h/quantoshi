@@ -703,6 +703,29 @@ R² ≈ 0.205 against the 0.20 weak gate, so its forecast can come and go with
 daily data. Both follow the settled rules; recorded so prod behaviour is not a
 surprise. Revisit only if the operator wants hysteresis.
 
+### F-28 — Entering Percentile rewrites a user-chosen slider end of next year to 2033
+**Type:** UX · **Owning phase:** standalone (next Tab-1 touch) · **Severity:** Minor ·
+**Found:** 2026-11-14, slider+labels fold re-review M-1
+
+`toggle_bub_view` restores `[x0, 2033]` when Percentile is entered with the
+slider end == next year, the value Residuals/Occupancy's clientside cap
+writes. A user who deliberately set next year (on Price/CAGR, or re-clicking
+Percentile) gets 2033 instead. **Fix sketch:** add
+`State("bub-view-mode", "data")` and restore only when the previous view is
+in `bub_views.XCAPPED_MODES`.
+
+### F-29 — `bub-pctile-fit` predating rule has the eviction hole I-2 closed for labels
+**Type:** wrong result (latent) · **Owning phase:** before `0eac47fc` nears the
+registry's eviction end (index 17 of 0–19 on 2026-11-14: ~18 more defaults changes away) · **Severity:** Minor ·
+**Found:** 2026-11-14, slider+labels fold re-review (out of scope)
+
+`_PREDATING_LINK_VALUES["bub-pctile-fit:value"]` relies on "oldest registry
+entry lacks the key". Once `0eac47fc` (last fp before the cycle fit) is
+evicted, every retained entry has the key, so a pre-cycle-fit Percentile link
+at `0eac47fc` would restore with the fit ON. **Fix sketch:** the same
+per-fp list `_MIGRATION_SENTINELS` uses (name `0eac47fc`), plus an
+eviction test like `test_evicting_the_pre_labels_fp_still_migrates`.
+
 ## Closed
 
 ### F-24 — Share links drop regime bins ≥ 5 on Tabs 2–6

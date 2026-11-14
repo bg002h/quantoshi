@@ -676,16 +676,21 @@ def toggle_bub_view(price_clicks, cagr_clicks, resid_clicks, pctile_clicks,
     test_bub_view_modes.py).  Only the x-range is per-view logic: CAGR wants a
     forward window, every other view wants the price window back — and each
     swap only fires when the slider is still sitting on the *other* view's
-    default, so a user-chosen range is never clobbered.
+    default, so a user-chosen range is never clobbered — except an end of
+    exactly next year on entering Percentile, read as a capped view's end and
+    restored to 2033 (F-28).
     """
     mode = _PILL_TO_MODE.get(ctx.triggered_id, DEFAULT_MODE)
     if mode == "cagr":
         xr = CAGR_DEFAULT_XRANGE if cur_xrange == [2010, 2033] else dash.no_update
     elif (mode == "percentile" and isinstance(cur_xrange, list)
-          and len(cur_xrange) == 2 and cur_xrange[1] == date.today().year + 1):
+          and len(cur_xrange) == 2 and cur_xrange[1] == date.today().year + 1
+          and 2033 > cur_xrange[1]):
         # arriving from a capped historical view (Residuals / Occupancy cap
         # the end at next year): give the cycle-fit forecast the default end
-        # back rather than a few weeks (whole-diff review M-2)
+        # back rather than a few weeks (whole-diff review M-2). It cannot
+        # tell that cap from a user who chose next year (F-28); a no-op
+        # once 2033 is no longer past the cap (re-review N-1).
         xr = [cur_xrange[0], 2033]
     else:
         xr = [2010, 2033] if cur_xrange == CAGR_DEFAULT_XRANGE else dash.no_update

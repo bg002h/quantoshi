@@ -24,8 +24,7 @@ shared `bub-xrange`, default end 2033); no new label placement/collision logic.
 ## Decisions
 
 **D1 — Slider drives the forecast.** With a non-weak fit and the slider's right
-handle `xmax` past today (`yr_to_t(xmax) > today_t`; today's rule is `>=`,
-keep it), the forecast region runs from the last close to `yr_to_t(xmax)`;
+handle at or past today (`yr_to_t(xmax) >= today_t`, today's rule), the forecast region runs from the last close to `yr_to_t(xmax)`;
 the x-axis ends there and the year ticks run to `xmax`. Otherwise (fit off,
 weak fit, or `xmax` at/before today) behaviour is unchanged: the axis is
 capped at today (`t_hi = min(yr_to_t(xmax), today_t)`). Slider domain is
@@ -51,7 +50,9 @@ before. It is removed as an `Input` of `update_bub_pctile`, from
 `_cycle_params` (no `cycle_horizon` key any more) and from
 `_PCTILE_SUB_CONTROLS`. `pctile_cycle.HORIZONS/DEFAULT_HORIZON` and
 `figures/percentile._LINEAR_LABELS` are deleted (grep for every user first;
-tests that pin them are updated).
+tests that pin them are updated). The hidden dropdown keeps its options as a
+literal `[10, 20, 30]` in `layout/common.py` (review N-2), so a restored `30`
+is not dropped by an option-less dropdown; D7 uses the same literal set.
 
 **D4 — Label switch is a NEW, separate checklist.** `dcc.Checklist(
 id="bub-pctile-fit-labels", options=[{"label": "labels", "value": "labels"}],
@@ -69,8 +70,9 @@ oldest evicted at the 20 cap — check the evicted one is not the current
 prod-era fp `757574d3`); `_TAB_CONTROLS["bubble"]`; new `Input` on
 `update_bub_pctile`; `_cycle_params` gains `cycle_labels: bool` (fit off →
 fixed default `True`); add the id to `_PCTILE_SUB_CONTROLS` so toggling it with
-the fit off is a no-op. `_TAB_CONTROLS` / deep link (`routing.py`) need no new
-outputs (the switch lives inside the existing `bub-pctile-ctl-wrap`).
+the fit off is a no-op. `_TAB_CONTROLS["bubble"]` gains the id; the deep link
+(`routing.py`) needs no new outputs (the switch lives inside the existing
+`bub-pctile-ctl-wrap`).
 
 **D5 — Labels: content and count.**
 - Only **forecast** turns are labelled (as now), and only the **next peak and
@@ -86,9 +88,15 @@ outputs (the switch lives inside the existing `bub-pctile-ctl-wrap`).
   in today's hover, and that end's price is shown as `—` (a fan price 100 yr
   out is meaningless). Same for a start clamped to the first close.
 - The marker hover gains the same two range prices.
-- Placement: peaks anchor `yanchor="bottom"` above the marker, troughs
-  `yanchor="top"` below it (a 3-line box centred on `yshift=24` would cover
-  its own marker). Keep font/bg/border as now.
+- Placement (review M-3, M-4): peaks anchor `yanchor="bottom"` with
+  `yshift≈+8`, troughs `yanchor="top"` with `yshift≈-8` (a 3-line box centred
+  on `yshift=24` would cover its own marker). Raise the y headroom from
+  `[-12, 112]` so a Q95 peak's / Q5 trough's 3-line box stays inside the plot
+  area (pin with a test on the range bound; exact value the builder's call,
+  checked visually on a 450 px and a mobile-width chart). Horizontal: when
+  `ax_x(x)` lies in the last 15% of the axis span use `xanchor="right"`, in the
+  first 15% `xanchor="left"`, else centre — one conditional, no collision
+  logic. Keep font/bg/border as now.
 
 **D7 — Old links keep their forecast length (operator: "I want this link to
 still work").** Under D1 alone, a link made before this change would load fine
@@ -97,21 +105,41 @@ but draw a shorter forecast than its sender saw. The operator's own link
 decodes (current code) to `bub-view-mode: percentile`, `bub-xscale: linear`,
 `bub-xrange: [2010, 2027]`, `bub-pctile-fit: ['fit']`, model `qr`, basis
 `cal`, horizon `20`: prod draws the forecast to today + 20 yr (≈ Nov 2046);
-D1 alone would stop it at 1 Jan 2027. Migration, applied in decode after
-`_fill_predating_fields`: a decoded state that **lacks**
-`bub-pctile-fit-labels:value` (so it predates this change — every link made
-after it carries that key, per D4's reasoning) **and** has view `percentile`
-**and** `fit` ticked **and** a horizon `h` in (10, 20, 30) **and** an xrange end
-`e` with `e >= current year + 1` (prod's rule: forecast drawn iff
-`yr_to_t(e) >= today_t`; with integer years that is `e > current year`) gets
-`bub-xrange` end set to `max(e, current_year + h + 1)` — the whole year that
-contains prod's `today + h` edge. Gated on view `percentile` so a link opened
-on another pill keeps its range. "Current year" is evaluated at restore time,
-matching prod (whose edge was `today + h` at view time, not at link time).
-Test: the operator's link above, decoded, restores `bub-xrange` =
-`[2010, date.today().year + 21]`; the same link re-encoded with view `price`
-keeps `[2010, 2027]`; a link with xrange end ≤ current year is untouched; a
-link carrying `bub-pctile-fit-labels` is untouched.
+D1 alone would stop it at 1 Jan 2027. Migration, applied inside/right after
+`_fill_predating_fields` (both live decoders, `_decode_snapshot` and
+`_decode_snapshot_v4`, return through it; v1 links predate the feature): a
+decoded state that **lacks** `bub-pctile-fit-labels:value` **and** has view
+`percentile` **and** `fit` ticked **and** a horizon `h` in (10, 20, 30) **and**
+a list-valued `bub-xrange` whose end `e` satisfies `e >= current year + 1`
+(prod's rule: forecast drawn iff `yr_to_t(e) >= today_t`; with integer years
+that is `e > current year`) gets `bub-xrange` end set to
+`min(current_year + h + 1, XRANGE_MAX)` — the whole year that contains prod's
+`today + h` edge, which is where prod's axis ended whatever `e` was (review
+M-1: exact, not `max(e, …)`; M-2: clamped to the slider domain, via a
+snapshot-local constant pinned by a test to `layout.bubble.XRANGE_MAX`).
+States missing `bub-xrange` or with a non-list value are skipped. Gated on
+view `percentile` so a link opened on another pill keeps its range. "Current
+year" is evaluated at restore time, matching prod (whose edge was `today + h`
+at view time, not at link time).
+
+*Why absence is a sound trigger (review I-1).* A v4 link fills omitted fields
+from its own registered fingerprint's defaults, so every link made after the
+new fingerprint is registered carries the key, and a `757574d3` link does not.
+But a link whose fingerprint has been **evicted** from the 20-entry registry
+takes the unregistered branch (`historical = dict(SNAPSHOT_DEFAULTS)`), which
+would hand it today's key and silently skip D7. Fix: a
+`_MIGRATION_SENTINELS = ("bub-pctile-fit-labels:value",)` tuple, included in
+that branch's pop loop alongside `_PREDATING_LINK_VALUES` (keys the oldest
+registry entry lacks are removed). Positional links pad with `None`, so they
+lack the key; they also predate the cycle fit (fit → `[]`), so D7 is inert
+for them.
+
+Tests: the operator's link above, decoded, restores `bub-xrange` =
+`[2010, min(date.today().year + 21, 2080)]`; the same state with view `price`
+keeps `[2010, 2027]`; xrange end ≤ current year → untouched; a state carrying
+`bub-pctile-fit-labels` → untouched; `h = 10, e = 2060` → end
+`current_year + 11`; a forced end past 2080 is clamped; **an unregistered-fp
+link whose oldest registry entry lacks the labels key still triggers D7**.
 
 **D6 — Copy.** Summary text and subtitle carry no horizon wording today; no
 change needed beyond any test that asserts horizon-dependent output.
@@ -135,7 +163,9 @@ change needed beyond any test that asserts horizon-dependent output.
    checklist present with default `["labels"]`; `_cycle_params` keys;
    `_PCTILE_SUB_CONTROLS` no-op with fit off; snapshot index 352 and
    `_CHECKLIST_OPTIONS`; an old v4 link at fp `757574d3` and a positional link
-   without index 352 both restore `bub-pctile-fit-labels` = `["labels"]`;
+   without index 352 both decode with the labels key **absent**, and the
+   layout default is `["labels"]` (review N-3); a new-fp link with labels at
+   default decodes **with** the key;
    registry round-trip; D7 migration tests (operator's link verbatim).
    Update count-pinning tests (Input counts etc.).
 4. **Gate:** full `pytest btc_web/` (expected: only the known

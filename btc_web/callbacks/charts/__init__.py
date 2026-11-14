@@ -19,6 +19,7 @@ still works exactly as before.
 
 import json
 import math
+from datetime import date
 
 import dash
 from dash import Input, Output, State, ctx, callback, html
@@ -680,6 +681,12 @@ def toggle_bub_view(price_clicks, cagr_clicks, resid_clicks, pctile_clicks,
     mode = _PILL_TO_MODE.get(ctx.triggered_id, DEFAULT_MODE)
     if mode == "cagr":
         xr = CAGR_DEFAULT_XRANGE if cur_xrange == [2010, 2033] else dash.no_update
+    elif (mode == "percentile" and isinstance(cur_xrange, list)
+          and len(cur_xrange) == 2 and cur_xrange[1] == date.today().year + 1):
+        # arriving from a capped historical view (Residuals / Occupancy cap
+        # the end at next year): give the cycle-fit forecast the default end
+        # back rather than a few weeks (whole-diff review M-2)
+        xr = [cur_xrange[0], 2033]
     else:
         xr = [2010, 2033] if cur_xrange == CAGR_DEFAULT_XRANGE else dash.no_update
     return (mode, *mode_styles(mode), xr)

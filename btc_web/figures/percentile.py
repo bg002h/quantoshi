@@ -408,15 +408,16 @@ def _cycle_overlay(cyc, mdl, p, m, t_lo, t_edge, xlog, forecast):
     else:
         per_txt = (f"{fit.period:.2f} yr" if sp == "cal" else f"×{fit.period:.2f}")
     front = []
-    ins = G[G <= t_last]
-    if ins.size == 0 or ins[-1] < min(t_last, t_end):
-        ins = np.append(ins, min(t_last, t_end))
-    yc, cd = rows(ins)
-    front.append(go.Scatter(
-        x=ins, y=_round_trace_data(yc), mode="lines", customdata=cd,
-        name=f"{label} cycle fit ({per_txt})", hovertemplate=hover,
-        line=dict(color=color, width=_FIT_LINE_WIDTH,
-                  dash="dot" if weak else "solid")))
+    if t_lo <= t_last:          # left handle past the data: no in-sample part
+        ins = G[G <= t_last]
+        if ins.size == 0 or ins[-1] < min(t_last, t_end):
+            ins = np.append(ins, min(t_last, t_end))
+        yc, cd = rows(ins)
+        front.append(go.Scatter(
+            x=ins, y=_round_trace_data(yc), mode="lines", customdata=cd,
+            name=f"{label} cycle fit ({per_txt})", hovertemplate=hover,
+            line=dict(color=color, width=_FIT_LINE_WIDTH,
+                      dash="dot" if weak else "solid")))
     if forecast:
         fc = np.insert(G[G > t_last], 0, t_last)
         yc, cd = rows(fc)
@@ -454,10 +455,18 @@ def _cycle_overlay(cyc, mdl, p, m, t_lo, t_edge, xlog, forecast):
                 past_turns = _pc.turns(fit, float(cyc["t"][0]), t_last)
                 anchor = {k: max((r[0] for r in past_turns if r[2] == k),
                                  default=None) for k in ("peak", "trough")}
-                seen = {"peak": 0, "trough": 0}
+                # cycle index counts EVERY forecast turn since the last close,
+                # including any left of the view (left handle past today:
+                # whole-diff review I-1); idx (which visible turn of its kind)
+                # only picks the labelled ones
+                hidden = ([r for r in _pc.turns(fit, t_last, t_lo)
+                           if t_last < r[0] < t_lo] if t_lo > t_last else [])
+                seen = {k: sum(r[2] == k for r in hidden) for k in ("peak", "trough")}
+                vis = {"peak": 0, "trough": 0}
                 idx, timing = [], []
                 for x, k in zip(xs, kinds):
-                    idx.append(seen[k])
+                    idx.append(vis[k])
+                    vis[k] += 1
                     seen[k] += 1
                     t_a, j = ((anchor[k], seen[k]) if anchor[k] is not None
                               else (float(x), 0))

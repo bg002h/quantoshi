@@ -387,10 +387,35 @@ class TestFigure:
         tail = np.asarray(up.y[-60:], float)
         assert np.ptp(tail) > 0.5                  # still varying at 2080
 
-    def test_fit_off_and_weak_stay_capped_at_today(self):
-        for kw in (dict(cycle_fit=False), dict(cycle_model="bub")):
-            fig = fp.build_percentile_figure(M, _p(xmax=2080, **kw))
-            assert fig.layout.xaxis.range[1] <= today_t(M.genesis) + 1e-6, kw
+    def test_fit_off_and_weak_stay_capped_at_today(self, monkeypatch):
+        fig = fp.build_percentile_figure(M, _p(xmax=2080, cycle_fit=False))
+        assert fig.layout.xaxis.range[1] <= today_t(M.genesis) + 1e-6
+        fp._cycle_result.cache_clear()
+        monkeypatch.setattr(fp._pc, "is_weak", lambda fit: True)   # review N-2
+        try:
+            fig = fp.build_percentile_figure(M, _p(xmax=2080))
+            assert fig.layout.xaxis.range[1] <= today_t(M.genesis) + 1e-6
+        finally:
+            fp._cycle_result.cache_clear()
+
+    def test_turn_timing_does_not_depend_on_the_left_handle(self):
+        """Whole-diff review I-1: with the left handle past today the cycle
+        index must still count from the last close."""
+        def rows(xmin):
+            fig = fp.build_percentile_figure(M, _p(xmin=xmin, xmax=2060))
+            (tr,) = _forecast_turn_traces(fig)
+            return {round(float(x), 6): list(cd) for x, cd in zip(tr.x, tr.customdata)}
+        full, late = rows(2010), rows(2030)
+        assert late and set(late) <= set(full)
+        for x, cd in late.items():
+            assert cd == full[x], x
+
+    def test_left_handle_past_data_drops_the_in_sample_trace(self):
+        """Whole-diff review M-3."""
+        fig = fp.build_percentile_figure(M, _p(xmin=2030, xmax=2060))
+        assert not any("cycle fit (" in (n or "") for n in _names(fig))
+        assert any("cycle extrapolation" in (n or "") for n in _names(fig))
+        assert len(_price_labels(fig)) == 2        # first visible of each kind
 
     def test_forecast_region_is_shaded_from_last_data_to_edge(self):
         fig = fp.build_percentile_figure(M, _p())
@@ -480,24 +505,21 @@ class TestFigure:
             assert l2.endswith(" or later") and l3.endswith(" – —"), lab.text
 
     def test_label_at_right_edge_anchors_right(self):
-        """Review M-4: a turn in the last 15% of the axis hangs left."""
-        fig = fp.build_percentile_figure(M, _p())
+        """Review M-4: a turn in the last 15% of the axis hangs inward. The
+        slider end is set from the fit (the year after the first forecast
+        turn), so the case exists whatever today's date (whole-diff M-1)."""
+        r = fp._cycle_result("qr", "resqr", False, "cal", str(_app_ctx._MODEL_FP))
+        t_last = float(r["t"][-1])
+        first = min(x for x, _, _ in pc.turns(r["fit"], t_last, t_last + 10)
+                    if x > t_last)
+        xmax = int(fp._mon_yr(first, M.genesis).split()[1]) + 1
+        fig = fp.build_percentile_figure(M, _p(xmax=xmax))
         lo, hi = fig.layout.xaxis.range
-        for lab in _price_labels(fig):
-            frac = (float(lab.x) - lo) / (hi - lo)
-            want = "right" if frac > 0.85 else "left" if frac < 0.15 else "center"
-            assert lab.xanchor == want
-
-    def test_label_near_slider_end_anchors_right(self):
-        """The operator's case: slider end 1 yr out puts the next turn at the
-        right edge; its box must hang inward."""
-        fig = fp.build_percentile_figure(M, _p(xmax=date.today().year + 1))
-        lo, hi = fig.layout.xaxis.range
-        labs = _price_labels(fig)
-        assert labs
-        for lab in labs:
-            if (float(lab.x) - lo) / (hi - lo) > 0.85:
-                assert lab.xanchor == "right"
+        (lab,) = [a for a in _price_labels(fig) if abs(float(a.x) - first) < 1e-9]
+        assert (float(lab.x) - lo) / (hi - lo) > 0.85
+        assert lab.xanchor == "right"
+        mid = fp.build_percentile_figure(M, _p(xmin=2010, xmax=2080))
+        assert {a.xanchor for a in _price_labels(mid)} == {"center"}
 
     def test_label_headroom(self):
         """Review M-3: room for a 3-line box over a Q95 peak."""
@@ -1017,3 +1039,31 @@ class TestSliderLabelsSnapshot:
         from snapshot import _registry_lookup
         assert _registry_lookup(_compute_snapshot_defaults_fingerprint()) is not None
         assert _registry_lookup(_PRE_LABELS_FP) is not None
+
+
+class TestSliderLabelsWholeDiffFold:
+    def test_evicting_the_pre_labels_fp_still_migrates(self, monkeypatch):
+        """Whole-diff review I-2: once 757574d3 itself is evicted every
+        retained entry carries the labels key; the link must still migrate."""
+        import snapshot
+        reg = dict(snapshot._load_registry())
+        reg.pop(_PRE_LABELS_FP)
+        fake = {_compute_snapshot_defaults_fingerprint(): reg[
+            _compute_snapshot_defaults_fingerprint()]}
+        monkeypatch.setattr(snapshot, "_registry_cache", fake)
+        assert snapshot._registry_lookup(_PRE_LABELS_FP) is None
+        st = _decode_snapshot_v4(_OPERATOR_LINK)
+        assert _LAB not in st
+        assert st["bub-xrange:value"] == [2010, min(date.today().year + 21, 2080)]
+
+    def test_returning_from_a_capped_view_restores_the_default_end(self):
+        import dash
+        from callbacks.charts import toggle_bub_view
+        cap = date.today().year + 1
+        with patch("callbacks.charts.ctx", _Trig("bub-view-pctile")):
+            out = toggle_bub_view(0, 0, 0, 1, 0, [2010, cap])
+            assert out[-1] == [2010, 2033]
+            out = toggle_bub_view(0, 0, 0, 1, 0, [2015, 2040])
+            assert out[-1] is dash.no_update
+        with patch("callbacks.charts.ctx", _Trig("bub-view-resid")):
+            assert toggle_bub_view(1, 0, 0, 0, 0, [2010, cap])[-1] is dash.no_update

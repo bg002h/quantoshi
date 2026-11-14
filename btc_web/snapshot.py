@@ -730,9 +730,13 @@ _PREDATING_LINK_VALUES = {
 
 
 # Keys whose ABSENCE marks a link as older than a change, for a migration that
-# reads more than one field (so not a _PREDATING_LINK_VALUES entry). The
-# unregistered-fp fallback must leave them absent too (review 2026-11-14 I-1).
-_MIGRATION_SENTINELS = ("bub-pctile-fit-labels:value",)
+# reads more than one field (so not a _PREDATING_LINK_VALUES entry), each with
+# the fingerprints made before that change that the migration must still
+# reach. The unregistered-fp fallback leaves the key absent for a link at one
+# of those fps (exact after any eviction; whole-diff review I-2), and for any
+# fp older than an oldest registry entry that lacks the key (note review I-1).
+#   757574d3: the only defaults fp with the cycle fit but no labels switch.
+_MIGRATION_SENTINELS = {"bub-pctile-fit-labels:value": frozenset({"757574d3"})}
 
 # Year slider domain max (layout.bubble.XRANGE_MAX; snapshot must not import
 # layout -- pinned equal by a test).
@@ -1014,9 +1018,13 @@ def _decode_snapshot_v4(encoded_with_fp_prefix):
             # _fill_predating_fields instead of filling today's default.
             oldest = next(iter(_load_registry().values()), None)
             if oldest is not None:
-                for k in (*_PREDATING_LINK_VALUES, *_MIGRATION_SENTINELS):
+                for k in _PREDATING_LINK_VALUES:
                     if k not in oldest:
                         historical.pop(k, None)
+            for k, pre_fps in _MIGRATION_SENTINELS.items():
+                if fp_payload in pre_fps or (oldest is not None
+                                             and k not in oldest):
+                    historical.pop(k, None)
         state = {}
         for i, (cid, prop) in enumerate(_SNAPSHOT_CONTROLS):
             key = f"{cid}:{prop}"

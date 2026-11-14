@@ -228,19 +228,26 @@ class TestClientsideSyncTable:
 
 
 class TestHistoricalOnlyScripts:
-    """The N-future hide + the x-range cap both gate on the same mode set."""
+    """The N-future hide gates on the historical modes; the x-range cap on
+    the historical modes that draw no forecast (XCAPPED_MODES)."""
 
     def _scripts(self):
         needle = "mode === '%s'" % sorted(HISTORICAL_MODES)[0]
         return [s for s in _app_ctx.app._inline_scripts
                 if needle in s and SYNC_JS_MARKER not in s]
 
-    def test_both_scripts_gate_on_exactly_the_historical_modes(self):
+    def test_scripts_gate_on_historical_and_capped_modes(self):
+        """N-future hide: every historical view. x-range cap: historical
+        views that draw no forecast (note 2026-11-14: not Percentile)."""
+        from bub_views import XCAPPED_MODES
         scripts = self._scripts()
         assert len(scripts) == 2, len(scripts)
-        for js in scripts:
-            modes = re.findall(r"mode === '(\w+)'", js)
-            assert modes == sorted(HISTORICAL_MODES), js
+        got = sorted(tuple(re.findall(r"mode === '(\w+)'", js)) for js in scripts)
+        assert got == sorted([tuple(sorted(HISTORICAL_MODES)),
+                              tuple(sorted(XCAPPED_MODES))])
+        assert XCAPPED_MODES == HISTORICAL_MODES - {"percentile"}
+        cap = [js for js in scripts if "hist_max" in js]
+        assert len(cap) == 1 and "mode === 'percentile'" not in cap[0]
 
     def test_non_historical_modes_are_absent(self):
         for js in self._scripts():

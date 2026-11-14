@@ -44,11 +44,11 @@ def _resid(view_mode, snapshot_pending=False):
 
 def _pctile(view_mode, snapshot_pending=False):
     #  view_mode, xrange, toggles, xscale, model_show, legend_pos, palette,
-    #  sigma_mode, fit, fit_model, fit_basis, fit_horizon, user_model,
+    #  sigma_mode, fit, fit_model, fit_basis, fit_labels, user_model,
     #  snapshot_pending
     return update_bub_pctile(view_mode, [2015, 2025], [], "log", ["bub"],
                              "outside", "default", "constant", ["fit"], "qr",
-                             "cal", 20, None, snapshot_pending)
+                             "cal", ["labels"], None, snapshot_pending)
 
 
 def _occ(view_mode, snapshot_pending=False):

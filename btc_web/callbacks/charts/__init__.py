@@ -64,7 +64,7 @@ from layout.common import _bands_to_qs
 from layout.bubble import CAGR_DEFAULT_XRANGE
 from bub_views import (VIEW_MODES, DEFAULT_MODE, SYNC_JS_MARKER,
                        mode_styles, styles_table_json,
-                       historical_modes_js)
+                       historical_modes_js, xcapped_modes_js)
 from callbacks.coerce import _ci, _cf
 from callbacks.timemachine import _asof_frame
 from callbacks.charts._raw import add_raw_overlay
@@ -730,14 +730,15 @@ _app_ctx.app.clientside_callback(
     Input("bub-view-mode", "data"),
 )
 
-# Residuals + Percentile + Occupancy views: cap X range slider max at (current year + 1) —
-# both are historical-only. Price/CAGR restore the full 2080 range for forward
-# projection visibility.
+# Residuals + Occupancy views: cap X range slider max at (current year + 1) —
+# both are historical-only. Price/CAGR/Percentile keep the full 2080 range
+# (Percentile's cycle-fit extrapolation runs to the slider's end; note
+# 2026-11-14, bub_views.XCAPPED_MODES).
 _app_ctx.app.clientside_callback(
     """
     function(mode, cur_range) {
         var hist_max = (new Date()).getFullYear() + 1;
-        var new_max = (""" + historical_modes_js() + """) ? hist_max : 2080;
+        var new_max = (""" + xcapped_modes_js() + """) ? hist_max : 2080;
         // Cap current value if it exceeds the new max
         var r = (cur_range || [2010, 2033]).slice();
         if (r[1] > new_max) r[1] = new_max;
@@ -880,7 +881,7 @@ def update_bub_resid(view_mode, xrange, toggles, xscale, model_show,
 
 # ── Percentile oscillator for tab 1 ─────────────────────────────────────────
 
-def _cycle_params(fit_val, fit_model, fit_basis, fit_horizon) -> dict:
+def _cycle_params(fit_val, fit_model, fit_basis, fit_labels) -> dict:
     """Cycle-fit params from the four controls, coerced: a share link (or a
     host without model_data_ef.pkl) can carry anything, so unknown values fall
     back to the defaults rather than reaching the figure builder."""
@@ -890,8 +891,7 @@ def _cycle_params(fit_val, fit_model, fit_basis, fit_horizon) -> dict:
         # Fit off: the sub-settings change nothing on screen, so pin them to
         # the defaults and every fit-off figure shares one cache key.
         return dict(cycle_fit=False, cycle_censor=False, cycle_model="qr",
-                    cycle_basis=_pc.DEFAULT_BASIS,
-                    cycle_horizon=_pc.DEFAULT_HORIZON)
+                    cycle_basis=_pc.DEFAULT_BASIS, cycle_labels=True)
     return dict(
         cycle_fit=True,
         cycle_censor="censor" in fit_val,
@@ -899,13 +899,12 @@ def _cycle_params(fit_val, fit_model, fit_basis, fit_horizon) -> dict:
                      _pc.available_models(_app_ctx.PRICE_MODELS) else "qr"),
         cycle_basis=(fit_basis if isinstance(fit_basis, str)
                      and fit_basis in _pc.BASES else _pc.DEFAULT_BASIS),
-        cycle_horizon=(fit_horizon if fit_horizon in _pc.HORIZONS
-                       else _pc.DEFAULT_HORIZON),
+        cycle_labels=isinstance(fit_labels, list) and "labels" in fit_labels,
     )
 
 
 _PCTILE_SUB_CONTROLS = frozenset({"bub-pctile-fit-model", "bub-pctile-fit-basis",
-                                  "bub-pctile-fit-horizon"})
+                                  "bub-pctile-fit-labels"})
 
 
 # Cycle-fit summary under the Percentile chart. The figure carries its lines in
@@ -937,14 +936,14 @@ _app_ctx.app.clientside_callback(
     Input("bub-pctile-fit", "value"),
     Input("bub-pctile-fit-model", "value"),
     Input("bub-pctile-fit-basis", "value"),
-    Input("bub-pctile-fit-horizon", "value"),
+    Input("bub-pctile-fit-labels", "value"),
     State("user-model-store", "data"),
     State("snapshot-pending", "data"),
     prevent_initial_call=True,
 )
 def update_bub_pctile(view_mode, xrange, toggles, xscale, model_show,
                       legend_pos, palette_key, sigma_mode, fit_val, fit_model,
-                      fit_basis, fit_horizon, user_model_store,
+                      fit_basis, fit_labels, user_model_store,
                       snapshot_pending=False):
     # Snapshot gate — see spec 2026-04-24-single-redraw-per-snapshot.
     if snapshot_pending:
@@ -978,7 +977,7 @@ def update_bub_pctile(view_mode, xrange, toggles, xscale, model_show,
         legend_pos=legend_pos or "outside",
         sigma_mode=sigma_mode or "constant",
         user_model=user_model_store,
-        **_cycle_params(fit_val, fit_model, fit_basis, fit_horizon),
+        **_cycle_params(fit_val, fit_model, fit_basis, fit_labels),
     )
     fig = _get_pctile_fig(p)
     apply_zoom_lock(fig, "chart_zoom" in toggles)

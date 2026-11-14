@@ -442,7 +442,10 @@ _SNAPSHOT_CONTROLS = [
     ("bub-pctile-fit",         "value"),   # fit | censor  (bitmask)
     ("bub-pctile-fit-model",   "value"),   # picker key, e.g. "qr"
     ("bub-pctile-fit-basis",   "value"),   # "cal" | "calw" | "log"
-    ("bub-pctile-fit-horizon", "value"),   # 10 | 20 | 30
+    ("bub-pctile-fit-horizon", "value"),   # 10 | 20 | 30 (retired 2026-11-14:
+                                           # hidden; read only by D7 below)
+    # Tab-1 Percentile cycle fit: forecast-turn text labels on/off (2026-11-14)
+    ("bub-pctile-fit-labels", "value"),
 ]
 
 _SNAP_PREFIX_V4 = "q4:"   # current format (v4: sparse diff against fingerprint)
@@ -513,6 +516,7 @@ _CHECKLIST_OPTIONS = {
     "bub-mc-raw-regime":  list(range(10)),
     "bub-mc-extremes":    ["yes"],
     "bub-pctile-fit":     ["fit", "censor"],
+    "bub-pctile-fit-labels": ["labels"],
     "bub-show-stack":     ["yes"],
     "bub-use-lots":       ["yes"],
     "hm-toggles":         ["colorbar", "chart_zoom"],
@@ -725,8 +729,50 @@ _PREDATING_LINK_VALUES = {
 }
 
 
+# Keys whose ABSENCE marks a link as older than a change, for a migration that
+# reads more than one field (so not a _PREDATING_LINK_VALUES entry). The
+# unregistered-fp fallback must leave them absent too (review 2026-11-14 I-1).
+_MIGRATION_SENTINELS = ("bub-pctile-fit-labels:value",)
+
+# Year slider domain max (layout.bubble.XRANGE_MAX; snapshot must not import
+# layout -- pinned equal by a test).
+_XRANGE_MAX = 2080
+_OLD_HORIZONS = (10, 20, 30)
+
+
+def _migrate_pctile_horizon(state):
+    """Note 2026-11-14 D7: before that date the Percentile cycle fit drew its
+    forecast to today + horizon (10/20/30 yr) whatever the year slider said;
+    now the slider's end is the forecast's end. A link made before the change
+    (no labels key) that opened on the Percentile view with the fit on and a
+    forecast drawn gets its slider end moved to where its forecast ended, so
+    it shows what its sender saw. In place; returns the state."""
+    if "bub-pctile-fit-labels:value" in state:
+        return state
+    if state.get("bub-view-mode:data") != "percentile":
+        return state
+    fit = state.get("bub-pctile-fit:value")
+    h = state.get("bub-pctile-fit-horizon:value")
+    xr = state.get("bub-xrange:value")
+    if not (isinstance(fit, list) and "fit" in fit) or h not in _OLD_HORIZONS:
+        return state
+    if not (isinstance(xr, list) and len(xr) == 2):
+        return state
+    try:
+        e = int(xr[1])
+    except (TypeError, ValueError):
+        return state
+    import datetime as _dt
+    y = _dt.date.today().year
+    if e < y + 1:              # forecast was not drawn: nothing to keep
+        return state
+    state["bub-xrange:value"] = [xr[0], min(y + h + 1, _XRANGE_MAX)]
+    return state
+
+
 def _fill_predating_fields(state):
-    """Apply _PREDATING_LINK_VALUES to a decoded state dict, in place."""
+    """Apply _PREDATING_LINK_VALUES to a decoded state dict, in place, then
+    the cross-field migrations (_migrate_pctile_horizon)."""
     for key, (value, requires) in _PREDATING_LINK_VALUES.items():
         if key in state:
             continue
@@ -736,7 +782,7 @@ def _fill_predating_fields(state):
         gate = state.get(requires)
         if isinstance(gate, list) and "yes" in gate:
             state[key] = list(value)
-    return state
+    return _migrate_pctile_horizon(state)
 
 
 def _decode_snapshot(encoded):
@@ -968,7 +1014,7 @@ def _decode_snapshot_v4(encoded_with_fp_prefix):
             # _fill_predating_fields instead of filling today's default.
             oldest = next(iter(_load_registry().values()), None)
             if oldest is not None:
-                for k in _PREDATING_LINK_VALUES:
+                for k in (*_PREDATING_LINK_VALUES, *_MIGRATION_SENTINELS):
                     if k not in oldest:
                         historical.pop(k, None)
         state = {}

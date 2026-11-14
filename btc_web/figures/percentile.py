@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import functools
 import math
-from datetime import date
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -105,13 +104,19 @@ _WEEK = 7.0 / 365.25
 _TRANSPARENT = BLACK_A0   # width-0 band edges need an explicit transparent colour
 _FIT_LINE_WIDTH = 2.4
 _TURN_SIZE = 9
-_LABEL_SHIFT = 24          # px between a turn marker and its label
-_GRID_PAST_LAST = 30.0     # fixed band grid runs this far past the last close
+_LABEL_SHIFT = 8           # px between a turn marker and its label box edge
+_GRID_PAST_LAST = 30.0     # band grid runs at least this far past the last close
+#: ...and at least to this year, one past the year slider's max
+#: (layout.bubble.XRANGE_MAX, pinned by a test; figures must not import
+#: layout): the forecast runs to the slider's end (note 2026-11-14 D2).
+_GRID_END_YEAR = 2081
 _TIMING_CAP = 100.0        # turn-timing bars stop this far past the last close
-#: Text labels per kind (peak / trough) on the next forecast turns; the rest
-#: carry hover only. A log x-axis gets 1 (20 yr is ~1/5 of the width); a
-#: linear one 3 / 2 / 1 at +10 / +20 / +30 yr (~70 px labels, review r2 M-2).
-_LINEAR_LABELS = {10: 3, 20: 2, 30: 1}
+#: Only the next forecast peak and trough carry a text label (note D5); the
+#: rest carry hover only. A label in the outer 15% of the axis span hangs
+#: inward instead of centring (review M-4).
+_EDGE_FRAC = 0.15
+#: y headroom for 3-line turn labels above a Q95 peak / below a Q5 trough
+_Y_RANGE_FIT = [-22, 122]
 
 
 def _t_of(datestr: str, genesis) -> float:
@@ -196,8 +201,8 @@ def _cycle_result(model_key: str, sigma_mode: str, censor: bool, basis: str,
     ``fp`` (the model-data fingerprint) is only a cache key: a rebuilt
     model_data.pkl changes it, so a worker never serves a stale fit. The
     x-window never enters — the slider cannot change the fit. Bands live on a
-    fixed weekly grid from the first close to last + 30 yr, so zoom and horizon
-    never re-draw them. Returns None when the model is unavailable, the
+    fixed weekly grid from the first close past the year slider's max
+    (``_GRID_END_YEAR``), so zoom never re-draws them. Returns None when the model is unavailable, the
     element unknown, or the fan missing.
     """
     mdl = _cycle_model(model_key)
@@ -241,7 +246,8 @@ def _cycle_result(model_key: str, sigma_mode: str, censor: bool, basis: str,
     if not honest:
         hind = _pc.hindcast(tw, yw, basis=basis, step=1, fit_mask=mw)
 
-    grid = np.arange(float(t[0]), float(t[-1]) + _GRID_PAST_LAST + _WEEK, _WEEK)
+    g_end = max(float(t[-1]) + _GRID_PAST_LAST, yr_to_t(_GRID_END_YEAR, M.genesis))
+    grid = np.arange(float(t[0]), g_end + _WEEK, _WEEK)
     fit_lo, fit_hi = _pc.band(params, grid, space=fit.space)
     lik_lo, lik_hi = _pc.likely_band(params, tf, yf, fit, grid)
 
@@ -424,8 +430,8 @@ def _cycle_overlay(cyc, mdl, p, m, t_lo, t_edge, xlog, forecast):
     anns, shapes = [], []
     if not weak:
         tturns = _pc.turns(fit, t_lo, t_end)
-        h = p.get("cycle_horizon")
-        n_lab = 1 if xlog else _LINEAR_LABELS.get(h, 1)
+        show_labels = p.get("cycle_labels", True)
+        x0_ax, x1_ax = ax_x(t_lo), ax_x(t_end)
         for past, tag in ((True, "fitted turns"), (False, "forecast turns")):
             sel = [r for r in tturns if (r[0] <= t_last) == past]
             if not sel:
@@ -461,25 +467,47 @@ def _cycle_overlay(cyc, mdl, p, m, t_lo, t_edge, xlog, forecast):
                     # the dates can name and the axis can show (review M-2)
                     timing.append((max(a_, float(cyc["t"][0])),
                                    min(b_, t_last + _TIMING_CAP)))
+                # price at each end of the timing range: the turn's own
+                # percentile read off the fan on that date ("if it comes
+                # early / late"); a capped end has no meaningful price
+                t0_data = float(cyc["t"][0])
+                ends = []
+                for v, (a, b) in zip(vs, timing):
+                    a_cap, b_cap = a <= t0_data, b >= t_last + _TIMING_CAP
+                    qa, la = _logfan(mdl, np.array([a, b]), sm)
+                    pa, pb = _pc.fan_prices(la, qa, np.array([v, v]))
+                    ends.append(("\u2014" if a_cap else _money(pa),
+                                 "\u2014" if b_cap else _money(pb),
+                                 " or later" if b_cap else ""))
                 cd = [[k, _money(pr), _mon_yr(a, m.genesis),
-                       _mon_yr(b, m.genesis)
-                       + (" or later" if b >= t_last + _TIMING_CAP else "")]
-                      for k, pr, (a, b) in zip(kinds, prices, timing)]
+                       _mon_yr(b, m.genesis) + later, pa, pb]
+                      for k, pr, (a, b), (pa, pb, later)
+                      in zip(kinds, prices, timing, ends)]
                 tmpl = ("<b>forecast %{customdata[1]}</b> %{customdata[0]}<br>"
                         "Q%{y:.0f} · ≈ %{customdata[2]}<br>"
                         "turn date, 10–90% of refits: "
-                        "%{customdata[3]} – %{customdata[4]}<extra></extra>")
+                        "%{customdata[3]} – %{customdata[4]}<br>"
+                        "price then: %{customdata[5]} – %{customdata[6]}"
+                        "<extra></extra>")
                 err = dict(type="data", symmetric=False,
                            array=[max(0.0, b - x) for x, (a, b) in zip(xs, timing)],
                            arrayminus=[max(0.0, x - a) for x, (a, b) in zip(xs, timing)],
                            color=color, thickness=1.5, width=5)
-                for x, v, k, pr, j in zip(xs, vs, kinds, prices, idx):
-                    if j >= n_lab:
+                for x, v, k, pr, j, row in zip(xs, vs, kinds, prices, idx, cd):
+                    if j >= 1 or not show_labels:
                         continue
+                    xa = ax_x(float(x))
+                    frac = (xa - x0_ax) / (x1_ax - x0_ax) if x1_ax > x0_ax else 0.5
                     anns.append(dict(
-                        x=ax_x(float(x)), y=float(v), xref="x", yref="y",
-                        text=f"{_mon_yr(x, m.genesis)}<br>Q{v:.0f} · {_money(pr)}",
+                        x=xa, y=float(v), xref="x", yref="y",
+                        text=(f"{k.capitalize()} {_mon_yr(x, m.genesis)} · "
+                              f"Q{v:.0f} · {_money(pr)}<br>"
+                              f"range {row[2]} – {row[3]}<br>"
+                              f"{row[4]} – {row[5]}"),
                         showarrow=False,
+                        xanchor=("right" if frac > 1 - _EDGE_FRAC else
+                                 "left" if frac < _EDGE_FRAC else "center"),
+                        yanchor="bottom" if k == "peak" else "top",
                         yshift=_LABEL_SHIFT if k == "peak" else -_LABEL_SHIFT,
                         font=dict(size=CHART_FONT_LEGEND, color=color),
                         bgcolor=_hex_alpha(PLOT_BG_COLOR, MC_LEGEND_BG_ALPHA),
@@ -553,10 +581,9 @@ def build_percentile_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
     t_data = m.price_years[mask]
     px_data = m.price_prices[mask]
 
-    # Cycle fit: one model's wave + band. With the slider's right handle at or
-    # past this calendar year the axis runs to today + horizon (the slider
-    # itself stays capped and is never written); zoomed into the past, no
-    # forecast region is drawn.
+    # Cycle fit: one model's wave + band. With the slider's right handle past
+    # today the axis and the forecast run to the handle; zoomed into the
+    # past, no forecast region is drawn.
     cyc = cyc_mdl = None
     sigma_mode = p.get("sigma_mode", "constant")
     if p.get("cycle_fit"):
@@ -566,13 +593,12 @@ def build_percentile_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             cyc = _cycle_result(cyc_key, sigma_mode, bool(p.get("cycle_censor")),
                                 p.get("cycle_basis") or _pc.DEFAULT_BASIS,
                                 str(getattr(_app_ctx, "_MODEL_FP", "")))
-    horizon = p.get("cycle_horizon")
-    horizon = horizon if horizon in _pc.HORIZONS else _pc.DEFAULT_HORIZON
     # Forecast only for a fit that is not weak, and only while the right
-    # handle reaches today (2027 = 1 Jan 2027 does; 2026 = 1 Jan 2026 not).
-    forecast = (cyc is not None and not cyc["weak"]
-                and yr_to_t(p["xmax"], m.genesis) >= td)
-    t_edge = td + horizon if forecast else t_hi
+    # handle reaches today (2027 = 1 Jan 2027 does; 2026 = 1 Jan 2026 not);
+    # it then runs to the handle (note 2026-11-14 D1).
+    t_xmax = yr_to_t(p["xmax"], m.genesis)
+    forecast = cyc is not None and not cyc["weak"] and t_xmax >= td
+    t_edge = t_xmax if forecast else t_hi
 
     traces = []
     for model_key in p.get("active_models", []):
@@ -635,8 +661,7 @@ def build_percentile_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
             td, 0, 1, palette.get("today_line", _TODAY_LINE_COLOR),
             glow=False, yref="paper"))
 
-    end_yr = (date.today().year + horizon + 1) if t_edge > t_hi else p["xmax"]
-    tick_ts, tick_lbls = _year_ticks(p["xmin"], end_yr, m.genesis,
+    tick_ts, tick_lbls = _year_ticks(p["xmin"], p["xmax"], m.genesis,
                                      minor_grid=p.get("minor_grid"))
     filtered = [(t, lbl) for t, lbl in zip(tick_ts, tick_lbls) if t_lo <= t <= t_edge]
     tick_ts, tick_lbls = (list(x) for x in zip(*filtered)) if filtered else ([], [])
@@ -652,7 +677,8 @@ def build_percentile_figure(m: ModelData, p: dict[str, Any]) -> go.Figure:
                            ticklabelposition="inside", ticklabelshift=-5)
     if cyc is not None:
         # headroom for the turn labels above Q-peaks / below Q-troughs
-        layout["yaxis"].update(range=[-12, 112], tickvals=[0, 25, 50, 75, 100])
+        layout["yaxis"].update(range=list(_Y_RANGE_FIT),
+                               tickvals=[0, 25, 50, 75, 100])
     layout["shapes"] = shapes
     layout["showlegend"] = bool(p.get("show_legend", True))
     leg_pos = p.get("legend_pos", "outside")

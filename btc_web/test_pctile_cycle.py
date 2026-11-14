@@ -282,16 +282,16 @@ from colors import (PCTILE_FIT_CONTEXT_OPACITY,                # noqa: E402
                     _hex_alpha)
 from figures import percentile as fp                           # noqa: E402
 
-_PRICE_LABEL = re.compile(r"Q\d+ · \$[\d.,]+[kMB]?")
+_PRICE_LABEL = re.compile(r"(Peak|Trough) \w{3} \d{4} · Q\d+ · \$[\d.,]+[kMB]?")
 
 
 def _p(**kw):
-    base = dict(xmin=2010, xmax=date.today().year + 1,
+    base = dict(xmin=2010, xmax=date.today().year + 21,
                 active_models=["qr"], palette="default", xscale="lin",
                 show_legend=True, show_today=True, minor_grid=False,
                 chart_zoom=False, legend_pos="outside", user_model=None,
                 sigma_mode="resqr", cycle_fit=True, cycle_censor=False,
-                cycle_model="qr", cycle_horizon=20)
+                cycle_model="qr", cycle_labels=True)
     base.update(kw)
     return base
 
@@ -353,14 +353,44 @@ class TestFigure:
         y = np.asarray(fp._percentile_series(mdl, t, px, sigma_mode="resqr"))
         assert not pc.is_weak(pc.fit_cycle(t, y))
 
-    @pytest.mark.parametrize("h", [10, 20, 30])
-    def test_xrange_extends_to_horizon(self, h):
-        fig = fp.build_percentile_figure(M, _p(cycle_horizon=h))
-        assert fig.layout.xaxis.range[1] == pytest.approx(today_t(M.genesis) + h, abs=0.02)
+    @pytest.mark.parametrize("xmax", [2033, 2050, 2080])
+    def test_slider_end_drives_the_forecast(self, xmax):
+        """Note D1: the year slider's right end is the forecast's end."""
+        fig = fp.build_percentile_figure(M, _p(xmax=xmax))
+        edge = yr_to_t(xmax, M.genesis)
+        assert fig.layout.xaxis.range[1] == pytest.approx(edge, abs=1e-9)
+        (fc,) = [t for t in fig.data
+                 if (t.name or "").startswith("QR cycle extrapolation")]
+        assert fc.x[-1] == pytest.approx(edge, abs=1e-9)
+        assert max(fig.layout.xaxis.tickvals) <= edge + 1e-9
+        if xmax % 5 == 0:                         # ticks every 5 yr: '50, '80
+            assert f"'{xmax % 100:02d}" in list(fig.layout.xaxis.ticktext)
 
-    def test_bad_horizon_falls_back_to_20(self):
-        fig = fp.build_percentile_figure(M, _p(cycle_horizon=7))
-        assert fig.layout.xaxis.range[1] == pytest.approx(today_t(M.genesis) + 20, abs=0.02)
+    def test_slider_end_on_log_axis(self):
+        fig = fp.build_percentile_figure(M, _p(xmax=2080, xscale="log"))
+        assert fig.layout.xaxis.range[1] == pytest.approx(
+            math.log10(yr_to_t(2080, M.genesis)), abs=1e-9)
+
+    def test_ignores_a_stray_horizon_param(self):
+        a = fp.build_percentile_figure(M, _p(xmax=2040))
+        b = fp.build_percentile_figure(M, _p(xmax=2040, cycle_horizon=30))
+        assert a.layout.xaxis.range == b.layout.xaxis.range
+
+    def test_band_grid_reaches_the_slider_domain(self):
+        """Note D2: bands must not clamp flat before the slider's max."""
+        from layout.bubble import XRANGE_MAX
+        assert fp._GRID_END_YEAR >= XRANGE_MAX + 1
+        r = fp._cycle_result("qr", "resqr", False, "cal", str(_app_ctx._MODEL_FP))
+        assert r["grid"][-1] >= yr_to_t(XRANGE_MAX, M.genesis)
+        fig = fp.build_percentile_figure(M, _p(xmax=XRANGE_MAX))
+        up = [t for t in fig.data if t.name == "likely range (10–90%) (upper)"][0]
+        tail = np.asarray(up.y[-60:], float)
+        assert np.ptp(tail) > 0.5                  # still varying at 2080
+
+    def test_fit_off_and_weak_stay_capped_at_today(self):
+        for kw in (dict(cycle_fit=False), dict(cycle_model="bub")):
+            fig = fp.build_percentile_figure(M, _p(xmax=2080, **kw))
+            assert fig.layout.xaxis.range[1] <= today_t(M.genesis) + 1e-6, kw
 
     def test_forecast_region_is_shaded_from_last_data_to_edge(self):
         fig = fp.build_percentile_figure(M, _p())
@@ -391,17 +421,89 @@ class TestFigure:
         assert widths[0] < per / 2
         assert np.all(widths < per)
 
-    @pytest.mark.parametrize("h,n", [(10, 6), (20, 4), (30, 2)])
-    def test_linear_axis_labels_the_next_turns_by_horizon(self, h, n):
-        fig = fp.build_percentile_figure(M, _p(cycle_horizon=h))
+    @pytest.mark.parametrize("xmax", [2040, 2080])
+    def test_linear_axis_labels_only_the_next_peak_and_trough(self, xmax):
+        """Note D5: one label per kind whatever the span."""
+        fig = fp.build_percentile_figure(M, _p(xmax=xmax))
         (tr,) = _forecast_turn_traces(fig)
         labels = _price_labels(fig)
-        assert len(labels) == n <= len(tr.x)
+        assert len(labels) == 2 < len(tr.x)
+        assert {a.text.split(" ")[0] for a in labels} == {"Peak", "Trough"}
         assert all(v >= 0 for v in tr.error_x.array)
         assert all(v >= 0 for v in tr.error_x.arrayminus)
-        # the labelled turns are exactly the EARLIEST n (kinds alternate)
         np.testing.assert_allclose(sorted(float(a.x) for a in labels),
-                                   sorted(tr.x)[:n])
+                                   sorted(tr.x)[:2])
+
+    def test_labels_switch_off_keeps_markers_and_bars(self):
+        on = fp.build_percentile_figure(M, _p())
+        off = fp.build_percentile_figure(M, _p(cycle_labels=False))
+        assert _price_labels(on) and not _price_labels(off)
+        (tr,) = _forecast_turn_traces(off)
+        assert tr.error_x.array is not None and len(tr.x) >= 2
+        assert _names(on) == _names(off)
+        fig = fp.build_percentile_figure(M, _p(cycle_model="pl", cycle_censor=True,
+                                               cycle_labels=False))
+        assert any(a.text == "withheld<br>from fit" for a in _anns(fig))
+
+    def test_label_text_has_range_and_end_prices(self):
+        """Note D5: kind, date, Q, price / date range / price at each end."""
+        fig = fp.build_percentile_figure(M, _p())
+        (tr,) = _forecast_turn_traces(fig)
+        mdl = _app_ctx.PRICE_MODELS["qr"]
+        for lab in _price_labels(fig):
+            i = int(np.argmin(np.abs(np.asarray(tr.x) - float(lab.x))))
+            x, v = float(tr.x[i]), float(tr.y[i])
+            a = x - float(tr.error_x.arrayminus[i])
+            b = x + float(tr.error_x.array[i])
+            want = []
+            for t_ in (a, b):
+                qs, lf = fp._logfan(mdl, np.array([t_]), "resqr")
+                want.append(fp._money(float(pc.fan_prices(lf, qs, np.array([v]))[0])))
+            line1, line2, line3 = lab.text.split("<br>")
+            assert line2 == (f"range {fp._mon_yr(a, M.genesis)} – "
+                             f"{fp._mon_yr(b, M.genesis)}")
+            assert line3 == f"{want[0]} – {want[1]}"
+            cd = tr.customdata[i]
+            assert list(cd[-2:]) == want           # hover carries them too
+            assert lab.yanchor == ("bottom" if line1.startswith("Peak") else "top")
+
+    def test_capped_timing_end_reads_or_later_and_dash(self, monkeypatch):
+        real = fp._pc.turn_timing
+
+        def wide(params, t_a, j, kind, t_e, **kw):
+            a, _ = real(params, t_a, j, kind, t_e, **kw)
+            return a, t_e + 500.0
+        monkeypatch.setattr(fp._pc, "turn_timing", wide)
+        fig = fp.build_percentile_figure(M, _p())
+        for lab in _price_labels(fig):
+            l2, l3 = lab.text.split("<br>")[1:]
+            assert l2.endswith(" or later") and l3.endswith(" – —"), lab.text
+
+    def test_label_at_right_edge_anchors_right(self):
+        """Review M-4: a turn in the last 15% of the axis hangs left."""
+        fig = fp.build_percentile_figure(M, _p())
+        lo, hi = fig.layout.xaxis.range
+        for lab in _price_labels(fig):
+            frac = (float(lab.x) - lo) / (hi - lo)
+            want = "right" if frac > 0.85 else "left" if frac < 0.15 else "center"
+            assert lab.xanchor == want
+
+    def test_label_near_slider_end_anchors_right(self):
+        """The operator's case: slider end 1 yr out puts the next turn at the
+        right edge; its box must hang inward."""
+        fig = fp.build_percentile_figure(M, _p(xmax=date.today().year + 1))
+        lo, hi = fig.layout.xaxis.range
+        labs = _price_labels(fig)
+        assert labs
+        for lab in labs:
+            if (float(lab.x) - lo) / (hi - lo) > 0.85:
+                assert lab.xanchor == "right"
+
+    def test_label_headroom(self):
+        """Review M-3: room for a 3-line box over a Q95 peak."""
+        fig = fp.build_percentile_figure(M, _p())
+        lo, hi = fig.layout.yaxis.range
+        assert lo <= -20 and hi >= 120
 
     def test_log_axis_labels_next_peak_and_trough_at_log10(self):
         fig = fp.build_percentile_figure(M, _p(xscale="log"))
@@ -540,6 +642,13 @@ _FIT = "bub-pctile-fit:value"
 _NEW = ["bub-pctile-fit", "bub-pctile-fit-model", "bub-pctile-fit-basis",
         "bub-pctile-fit-horizon"]
 _PRE_FIT_FP = "0eac47fc"      # last defaults fingerprint before the fields
+_LAB = "bub-pctile-fit-labels:value"
+_PRE_LABELS_FP = "757574d3"   # last fingerprint before the labels switch
+# The operator's own share link (2026-11-14): Percentile, linear, slider
+# 2010-2027, fit on QR, horizon +20 -> prod drew the forecast to ~Nov 2046.
+_OPERATOR_LINK = ("757574d3:H4sIAEWp-GoC_w2MMQrEMBAD_6J6bXZtbwz-SkgR7lwEjAkhqcL9_"
+                  "YQKMQzSiupM-WbIi4yGccy-XxA42prUVJKmugkWcrDo4tGJRgbVEsyCFQ5MK5o"
+                  "KkrNx9uvT532MTpUz36zYT-YzxvYHsN3TJXYAAAA=")
 
 
 def _idx(cid):
@@ -577,10 +686,23 @@ class TestWiring:
         assert ids["bub-pctile-fit-model"].value == "qr"
         assert ids["bub-pctile-fit-basis"].value == "cal"
         assert ids["bub-pctile-fit-horizon"].value == 20
+        assert ids["bub-pctile-fit-horizon"].style.get("display") == "none"
+        assert ids["bub-pctile-fit-labels"].value == ["labels"]
+        assert [o["value"] for o in ids["bub-pctile-fit-labels"].options] == ["labels"]
         models = [o["value"] for o in ids["bub-pctile-fit-model"].options]
         assert models[0] == "qr" and set(models) <= set(pc.CYCLE_MODEL_KEYS)
         assert [o["value"] for o in ids["bub-pctile-fit-basis"].options] == list(pc.BASES)
-        assert [o["value"] for o in ids["bub-pctile-fit-horizon"].options] == list(pc.HORIZONS)
+        assert [o["value"] for o in ids["bub-pctile-fit-horizon"].options] == [10, 20, 30]
+        assert not hasattr(pc, "HORIZONS") and not hasattr(fp, "_LINEAR_LABELS")
+
+    def test_horizon_is_not_an_input_labels_is(self):
+        from test_no_orphan_callbacks import _all_callbacks
+        cm = _all_callbacks()
+        (ids,) = [[i["id"] for i in v["inputs"]] for k, v in cm.items()
+                  if "bub-pctile-graph.figure" in k
+                  and any(i["id"] == "bub-pctile-fit" for i in v["inputs"])]
+        assert "bub-pctile-fit-horizon" not in ids
+        assert "bub-pctile-fit-labels" in ids
 
     def test_update_callback_passes_coerced_cycle_params(self):
         from callbacks.charts import update_bub_pctile
@@ -592,12 +714,17 @@ class TestWiring:
         args = ("percentile", [2010, 2027], [], "lin", ["bub"], "outside",
                 "default", "resqr")
         with patch("utils._get_pctile_fig", side_effect=grab):
-            update_bub_pctile(*args, ["fit", "censor"], "pl", "log", 30, None, False)
+            update_bub_pctile(*args, ["fit", "censor"], "pl", "log", [], None, False)
             assert (seen["cycle_fit"], seen["cycle_censor"], seen["cycle_model"],
-                    seen["cycle_basis"], seen["cycle_horizon"]) == (True, True, "pl", "log", 30)
+                    seen["cycle_basis"], seen["cycle_labels"]) == (True, True, "pl", "log", False)
+            assert "cycle_horizon" not in seen
+            update_bub_pctile(*args, ["fit"], "qr", "cal", ["labels"], None, False)
+            assert seen["cycle_labels"] is True
+            update_bub_pctile(*args, ["fit"], "qr", "cal", None, None, False)
+            assert seen["cycle_labels"] is False
             update_bub_pctile(*args, None, "u1", "zzz", 7, None, False)
             assert (seen["cycle_fit"], seen["cycle_censor"], seen["cycle_model"],
-                    seen["cycle_basis"], seen["cycle_horizon"]) == (False, False, "qr", "cal", 20)
+                    seen["cycle_basis"], seen["cycle_labels"]) == (False, False, "qr", "cal", True)
 
     def test_info_div_is_filled_clientside_from_layout_meta(self):
         scripts = [s for s in _app_ctx.app._inline_scripts if "cycle_info" in s]
@@ -636,7 +763,8 @@ class TestSnapshot:
     def test_new_fields_appended_at_the_absolute_tail(self):
         assert [c for c, _ in _SNAPSHOT_CONTROLS[348:352]] == _NEW
         assert all(p == "value" for _, p in _SNAPSHOT_CONTROLS[348:352])
-        assert len(_SNAPSHOT_CONTROLS) == 352
+        assert _SNAPSHOT_CONTROLS[352] == ("bub-pctile-fit-labels", "value")
+        assert len(_SNAPSHOT_CONTROLS) == 353
         assert _SNAPSHOT_CONTROLS[347] == ("bub-mc-extremes", "value")
 
     def test_defaults_options_and_tab_controls(self):
@@ -647,6 +775,9 @@ class TestSnapshot:
         assert SNAPSHOT_DEFAULTS["bub-pctile-fit-horizon:value"] == 20
         assert _CHECKLIST_OPTIONS["bub-pctile-fit"] == ["fit", "censor"]
         assert set(_NEW) <= _TAB_CONTROLS["bubble"]
+        assert SNAPSHOT_DEFAULTS[_LAB] == ["labels"]
+        assert _CHECKLIST_OPTIONS["bub-pctile-fit-labels"] == ["labels"]
+        assert "bub-pctile-fit-labels" in _TAB_CONTROLS["bubble"]
 
     def test_round_trip(self):
         st = {"bub-view-mode:data": "percentile", _FIT: ["fit", "censor"],
@@ -708,11 +839,11 @@ class TestDashFold:
 
     def test_fit_off_pins_sub_settings_to_one_cache_key(self):
         from callbacks.charts import _cycle_params
-        a = _cycle_params([], "pl", "log", 30)
-        b = _cycle_params(None, "bub", "calw", 10)
+        a = _cycle_params([], "pl", "log", [])
+        b = _cycle_params(None, "bub", "calw", ["labels"])
         assert a == b == dict(cycle_fit=False, cycle_censor=False,
                               cycle_model="qr", cycle_basis="cal",
-                              cycle_horizon=20)
+                              cycle_labels=True)
 
     def test_sub_dropdown_with_fit_off_does_not_rebuild(self):
         import dash
@@ -720,11 +851,14 @@ class TestDashFold:
         args = ("percentile", [2010, 2027], [], "lin", ["bub"], "outside",
                 "default", "resqr")
         with patch("callbacks.charts.ctx", _Trig("bub-pctile-fit-basis")):
-            assert update_bub_pctile(*args, [], "qr", "log", 20, None, False) \
+            assert update_bub_pctile(*args, [], "qr", "log", ["labels"], None, False) \
+                is dash.no_update
+        with patch("callbacks.charts.ctx", _Trig("bub-pctile-fit-labels")):
+            assert update_bub_pctile(*args, [], "qr", "cal", [], None, False) \
                 is dash.no_update
         with patch("callbacks.charts.ctx", _Trig("bub-pctile-fit")), \
                 patch("utils._get_pctile_fig", return_value=fp.go.Figure()):
-            assert update_bub_pctile(*args, [], "qr", "cal", 20, None, False) \
+            assert update_bub_pctile(*args, [], "qr", "cal", ["labels"], None, False) \
                 is not dash.no_update               # unticking redraws
 
     def test_one_availability_filter(self):
@@ -735,7 +869,7 @@ class TestDashFold:
         assert "ef" not in pc.available_models(fake)
         with patch.dict(_app_ctx.PRICE_MODELS, {}, clear=False):
             _app_ctx.PRICE_MODELS.pop("ef", None)
-            assert _cycle_params(["fit"], "ef", "cal", 20)["cycle_model"] == "qr"
+            assert _cycle_params(["fit"], "ef", "cal", ["labels"])["cycle_model"] == "qr"
 
 
 class TestWholeDiffFold:
@@ -800,3 +934,86 @@ class TestWholeDiffFold:
         t, y = _synthetic(noise=10.0, ar=0.99)
         fs = np.linspace(1 / 8, 1 / 2, 400)
         assert pc._grid_best(t, y, fs, chunk=50) == pc._grid_best(t, y, fs, chunk=10_000)
+
+
+class TestSliderLabelsSnapshot:
+    """Note 2026-11-14 D4 + D7: the labels switch and old links' forecast."""
+
+    def _st(self, **kw):
+        st = {"bub-view-mode:data": "percentile", _FIT: ["fit"],
+              "bub-pctile-fit-horizon:value": 20, "bub-xrange:value": [2010, 2027]}
+        st.update(kw)
+        return st
+
+    def test_operator_link_keeps_its_forecast_length(self):
+        st = _decode_snapshot_v4(_OPERATOR_LINK)
+        y = date.today().year
+        assert _LAB not in st
+        assert st["bub-xscale:value"] == "linear"
+        assert st["bub-xrange:value"] == [2010, min(y + 21, 2080)]
+
+    def test_old_link_on_another_pill_keeps_its_range(self):
+        from snapshot import _migrate_pctile_horizon
+        st = _migrate_pctile_horizon(self._st(**{"bub-view-mode:data": "price"}))
+        assert st["bub-xrange:value"] == [2010, 2027]
+
+    def test_old_link_ending_before_today_untouched(self):
+        from snapshot import _migrate_pctile_horizon
+        y = date.today().year
+        st = _migrate_pctile_horizon(self._st(**{"bub-xrange:value": [2010, y]}))
+        assert st["bub-xrange:value"] == [2010, y]
+
+    def test_new_link_untouched(self):
+        from snapshot import _migrate_pctile_horizon
+        st = _migrate_pctile_horizon(self._st(**{_LAB: ["labels"]}))
+        assert st["bub-xrange:value"] == [2010, 2027]
+
+    def test_exact_end_not_max_and_clamped(self):
+        from snapshot import _migrate_pctile_horizon, _XRANGE_MAX
+        from layout.bubble import XRANGE_MAX
+        assert _XRANGE_MAX == XRANGE_MAX
+        y = date.today().year
+        st = _migrate_pctile_horizon(self._st(**{
+            "bub-pctile-fit-horizon:value": 10, "bub-xrange:value": [2010, 2060]}))
+        assert st["bub-xrange:value"] == [2010, min(y + 11, 2080)]
+        with patch("snapshot._XRANGE_MAX", y + 5):
+            st = _migrate_pctile_horizon(self._st())
+        assert st["bub-xrange:value"] == [2010, y + 5]
+
+    def test_fit_off_bad_horizon_or_bad_range_untouched(self):
+        from snapshot import _migrate_pctile_horizon
+        for kw in ({_FIT: []}, {"bub-pctile-fit-horizon:value": 7},
+                   {"bub-xrange:value": None}, {"bub-xrange:value": "x"}):
+            st = self._st(**kw)
+            before = dict(st)
+            assert _migrate_pctile_horizon(st) == before, kw
+        assert _migrate_pctile_horizon({"bub-view-mode:data": "percentile",
+                                        _FIT: ["fit"]}) is not None
+
+    def test_old_links_lack_the_labels_key_new_ones_carry_it(self):
+        old = _decode_snapshot_v4(_v4(_PRE_LABELS_FP, {}))
+        assert _LAB not in old
+        values = [None] * _idx("bub-pctile-fit-labels")
+        j = json.dumps([values, None], separators=(",", ":"))
+        pos = _decode_snapshot(base64.urlsafe_b64encode(gzip.compress(j.encode())).decode())
+        assert _LAB not in pos
+        new = _decode_snapshot_v4(_v4(_compute_snapshot_defaults_fingerprint(), {}))
+        assert new[_LAB] == ["labels"]
+        off = _decode_snapshot_v4(_encode_snapshot_v4({_LAB: []}))
+        assert off[_LAB] == []
+
+    def test_evicted_fingerprint_still_migrates(self):
+        """Review I-1: an unregistered fp falls back to today's defaults,
+        which must not hand an old link the labels key."""
+        st = _decode_snapshot_v4(_v4("deadbeef", {
+            str(_idx("bub-view-mode")): "percentile",
+            str(_idx("bub-pctile-fit")): 1,
+            str(_idx("bub-pctile-fit-horizon")): 20,
+            str(_idx("bub-xrange")): [2010, 2027]}))
+        assert _LAB not in st
+        assert st["bub-xrange:value"] == [2010, min(date.today().year + 21, 2080)]
+
+    def test_current_fp_registered_and_prod_era_fp_kept(self):
+        from snapshot import _registry_lookup
+        assert _registry_lookup(_compute_snapshot_defaults_fingerprint()) is not None
+        assert _registry_lookup(_PRE_LABELS_FP) is not None

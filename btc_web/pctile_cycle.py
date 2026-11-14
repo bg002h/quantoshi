@@ -41,7 +41,6 @@ __all__ = [
     "likely_band", "available_models",
     "PMIN", "PMAX", "B_DEFAULT", "BLOCK_WEEKS", "SEED", "WEAK_R2",
     "CENSOR_WINDOW", "CYCLE_MODEL_KEYS", "BASES", "DEFAULT_BASIS",
-    "HORIZONS", "DEFAULT_HORIZON",
 ]
 
 PMIN = 2.0            # shortest period of the default calendar element (yr)
@@ -58,8 +57,6 @@ CENSOR_WINDOW = ("2019-04-15", "2020-02-15")   # operator's study window
 #: Percentile view are one series under one name (legend_name).
 CYCLE_MODEL_KEYS: tuple[str, ...] = (
     "qr", "bub", "pl", "spl", "lppl", "hybppl", "eppl", "pca", "grdy", "ef")
-HORIZONS: tuple[int, ...] = (10, 20, 30)
-DEFAULT_HORIZON = 20
 
 
 def available_models(price_models) -> list[str]:

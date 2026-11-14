@@ -165,6 +165,7 @@ _TAB_CONTROLS = {
                     "bub-occ-tail","bub-occ-window",
                     "bub-pctile-fit","bub-pctile-fit-model",
                     "bub-pctile-fit-basis","bub-pctile-fit-horizon",
+                    "bub-pctile-fit-labels",
                     "bub-ma",
                     "bub-lppl-activate","bub-hybppl-activate","bub-eppl-activate",
                     # Custom Time Axis (Tab 1 only, added 2026-04-13)

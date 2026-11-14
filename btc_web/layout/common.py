@@ -561,6 +561,13 @@ def _pctile_cycle_controls():
             inputStyle={"marginRight": "3px"},
             labelStyle={"marginLeft": "8px", "fontSize": UI_FONT_BASE},
             style={"display": "inline-block", "verticalAlign": "middle"}),
+        dcc.Checklist(
+            id="bub-pctile-fit-labels",
+            options=[{"label": "labels", "value": "labels"}],
+            value=list(_D["bub-pctile-fit-labels:value"]), inline=True,
+            inputStyle={"marginRight": "3px"},
+            labelStyle={"marginLeft": "8px", "fontSize": UI_FONT_BASE},
+            style={"display": "inline-block", "verticalAlign": "middle"}),
         dcc.Dropdown(id="bub-pctile-fit-model", options=models,
                      value=_D["bub-pctile-fit-model:value"], clearable=False,
                      searchable=False, style={**dd, "width": "95px"}),
@@ -569,11 +576,15 @@ def _pctile_cycle_controls():
                               for k, v in _pc.BASES.items()],
                      value=_D["bub-pctile-fit-basis:value"], clearable=False,
                      searchable=False, style={**dd, "width": "165px"}),
+        # Retired 2026-11-14 (the year slider sets the forecast's end): kept,
+        # hidden, so old share links still restore it (like hm-model-show);
+        # snapshot._migrate_pctile_horizon reads it. Literal options so a
+        # restored 30 is kept.
         dcc.Dropdown(id="bub-pctile-fit-horizon",
                      options=[{"label": f"+{h}yr", "value": h}
-                              for h in _pc.HORIZONS],
+                              for h in (10, 20, 30)],
                      value=_D["bub-pctile-fit-horizon:value"], clearable=False,
-                     searchable=False, style={**dd, "width": "95px"}),
+                     searchable=False, style={"display": "none"}),
     ])
 
 

@@ -141,6 +141,18 @@ keeps `[2010, 2027]`; xrange end ≤ current year → untouched; a state carryin
 `current_year + 11`; a forced end past 2080 is clamped; **an unregistered-fp
 link whose oldest registry entry lacks the labels key still triggers D7**.
 
+**D8 — The Percentile view's slider is no longer capped (found in the DEV
+browser journey, after the note review).** `bub_views` marks Percentile
+`historical`, and a clientside callback caps `bub-xrange` max *and value* at
+next year for every historical view — so D1 could never see an `xmax` beyond
+next year, and the operator's link restored 2010–2027 despite D7. (The note's
+recon claim "no per-view clamp" was wrong; the reviewer was told it as
+settled.) Fix: `ViewMode.forecast: bool = False`; Percentile sets it;
+`XCAPPED_MODES = historical and not forecast` drives the cap
+(`xcapped_modes_js`), while the N-future hide keeps every historical view.
+Fit off / weak: the slider may run past today but the figure stays capped at
+today (D1), as on a zoomed-past view.
+
 **D6 — Copy.** Summary text and subtitle carry no horizon wording today; no
 change needed beyond any test that asserts horizon-dependent output.
 

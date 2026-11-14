@@ -10,7 +10,9 @@ move a fixed set of UI state in lockstep:
   (``scale_controls`` / ``bubble_panel``),
 * whether a view-specific control span shows (``ctl``),
 * whether the view is historical-only — x-range slider capped at next year and
-  the "N future bubbles" slider hidden (``historical``),
+  the "N future bubbles" slider hidden (``historical``) — unless it may draw a
+  forecast past today (``forecast``: Percentile's cycle-fit extrapolation runs
+  to the slider's end, so its slider keeps the full range; note 2026-11-14),
 * which deep link opens it (``deep_link``).
 
 That state used to be written out by hand in three places that had to agree:
@@ -31,8 +33,9 @@ from typing import NamedTuple
 
 __all__ = [
     "ViewMode", "VIEW_MODES", "WRAP_IDS", "PILL_IDS", "CTL_IDS",
-    "HISTORICAL_MODES", "DEFAULT_MODE", "mode_styles", "mode_for_path",
-    "styles_table_json", "historical_modes_js",
+    "HISTORICAL_MODES", "XCAPPED_MODES", "DEFAULT_MODE", "mode_styles",
+    "mode_for_path", "styles_table_json", "historical_modes_js",
+    "xcapped_modes_js",
 ]
 
 
@@ -46,6 +49,8 @@ class ViewMode(NamedTuple):
     bubble_panel: bool   # show the bubble-composite panel
     ctl: str | None      # view-specific control span id, or None
     deep_link: str | None  # URL prefix that opens this view, or None
+    forecast: bool = False  # historical view that may run past today: its
+                            # x-range slider is NOT capped (N-future still hidden)
 
 
 # ── The table ────────────────────────────────────────────────────────────────
@@ -66,7 +71,7 @@ VIEW_MODES: MappingProxyType[str, ViewMode] = MappingProxyType({
     "percentile": ViewMode(
         pill="bub-view-pctile", wrap="bub-pctile-wrap", historical=True,
         scale_controls=True, bubble_panel=True, ctl="bub-pctile-ctl-wrap",
-        deep_link="/1.4"),
+        deep_link="/1.4", forecast=True),
     "occupancy": ViewMode(
         pill="bub-view-occ", wrap="bub-occ-wrap", historical=True,
         scale_controls=True, bubble_panel=True,
@@ -88,6 +93,10 @@ PANEL_IDS: tuple[str, str] = ("bub-scale-controls", "bub-bubble-panel")
 #: Views that only ever show past data.
 HISTORICAL_MODES: frozenset[str] = frozenset(
     m for m, v in VIEW_MODES.items() if v.historical)
+
+#: Historical views whose x-range slider is capped at next year.
+XCAPPED_MODES: frozenset[str] = frozenset(
+    m for m, v in VIEW_MODES.items() if v.historical and not v.forecast)
 
 #: Full Output order of the style/outline values `mode_styles` returns.
 STYLE_OUTPUT_IDS: tuple[str, ...] = WRAP_IDS + PILL_IDS + PANEL_IDS + CTL_IDS
@@ -164,3 +173,9 @@ def historical_modes_js() -> str:
     generated, never typed.
     """
     return " || ".join(f"mode === '{m}'" for m in sorted(HISTORICAL_MODES))
+
+
+def xcapped_modes_js() -> str:
+    """Same form as :func:`historical_modes_js`, over :data:`XCAPPED_MODES`
+    (the x-range cap; the N-future hide keeps the full historical set)."""
+    return " || ".join(f"mode === '{m}'" for m in sorted(XCAPPED_MODES))

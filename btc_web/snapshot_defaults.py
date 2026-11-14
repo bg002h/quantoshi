@@ -87,6 +87,7 @@ SNAPSHOT_DEFAULTS: dict[str, Any] = {
     'bub-pctile-fit:value': ['fit'],
     'bub-pctile-fit-basis:value': 'cal',
     'bub-pctile-fit-horizon:value': 20,
+    'bub-pctile-fit-labels:value': ['labels'],
     'bub-pctile-fit-model:value': 'qr',
     'bub-ptalpha:value': 0.3,
     'bub-ptsize:value': 5,

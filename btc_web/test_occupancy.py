@@ -397,8 +397,9 @@ class TestOccupancyWiring:
 
     def test_historical_only_clientside_checks_include_occupancy(self):
         hits = [s for s in _app_ctx.app._inline_scripts
-                if "mode === 'occupancy'" in s and "mode === 'percentile'" in s]
-        # n-future hide + x-range cap
+                if "mode === 'occupancy'" in s and "mode === 'resid'" in s]
+        # n-future hide + x-range cap (Percentile is in the first only:
+        # its cycle fit extrapolates to the slider's end, note 2026-11-14)
         assert len(hits) == 2
 
     def test_update_callback_builds_figure(self):

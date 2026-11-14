@@ -115,8 +115,8 @@ _TIMING_CAP = 100.0        # turn-timing bars stop this far past the last close
 #: rest carry hover only. A label in the outer 15% of the axis span hangs
 #: inward instead of centring (review M-4).
 _EDGE_FRAC = 0.15
-#: y headroom for 3-line turn labels above a Q95 peak / below a Q5 trough
-_Y_RANGE_FIT = [-22, 122]
+#: y headroom for 4-line turn labels above a Q95 peak / below a Q5 trough
+_Y_RANGE_FIT = [-28, 128]
 
 
 def _t_of(datestr: str, genesis) -> float:
@@ -488,15 +488,24 @@ def _cycle_overlay(cyc, mdl, p, m, t_lo, t_edge, xlog, forecast):
                     ends.append(("\u2014" if a_cap else _money(pa),
                                  "\u2014" if b_cap else _money(pb),
                                  " or later" if b_cap else ""))
+                # price at the low / high edge of both bands on the turn's
+                # date: wave (fit uncertainty) and likely range
+                bq, bl = _logfan(mdl, xs, sm)
+                band_px = [[_money(v_) for v_ in _pc.fan_prices(
+                    bl, bq, np.clip(at(xs, cyc[key_]), 0.0, 100.0))]
+                    for key_ in ("fit_lo", "fit_hi", "lik_lo", "lik_hi")]
                 cd = [[k, _money(pr), _mon_yr(a, m.genesis),
-                       _mon_yr(b, m.genesis) + later, pa, pb]
-                      for k, pr, (a, b), (pa, pb, later)
-                      in zip(kinds, prices, timing, ends)]
+                       _mon_yr(b, m.genesis) + later, pa, pb,
+                       band_px[0][i], band_px[1][i], band_px[2][i], band_px[3][i]]
+                      for i, (k, pr, (a, b), (pa, pb, later))
+                      in enumerate(zip(kinds, prices, timing, ends))]
                 tmpl = ("<b>forecast %{customdata[1]}</b> %{customdata[0]}<br>"
                         "Q%{y:.0f} · ≈ %{customdata[2]}<br>"
                         "turn date, 10–90% of refits: "
                         "%{customdata[3]} – %{customdata[4]}<br>"
-                        "price then: %{customdata[5]} – %{customdata[6]}"
+                        "price then: %{customdata[5]} – %{customdata[6]}<br>"
+                        "wave %{customdata[7]} – %{customdata[8]} · "
+                        "likely %{customdata[9]} – %{customdata[10]}"
                         "<extra></extra>")
                 err = dict(type="data", symmetric=False,
                            array=[max(0.0, b - x) for x, (a, b) in zip(xs, timing)],
@@ -512,7 +521,9 @@ def _cycle_overlay(cyc, mdl, p, m, t_lo, t_edge, xlog, forecast):
                         text=(f"{k.capitalize()} {_mon_yr(x, m.genesis)} · "
                               f"Q{v:.0f} · {_money(pr)}<br>"
                               f"range {row[2]} – {row[3]}<br>"
-                              f"{row[4]} – {row[5]}"),
+                              f"{row[4]} – {row[5]}<br>"
+                              f"wave {row[6]} – {row[7]} · "
+                              f"likely {row[8]} – {row[9]}"),
                         showarrow=False,
                         xanchor=("right" if frac > 1 - _EDGE_FRAC else
                                  "left" if frac < _EDGE_FRAC else "center"),

@@ -484,12 +484,20 @@ class TestFigure:
             for t_ in (a, b):
                 qs, lf = fp._logfan(mdl, np.array([t_]), "resqr")
                 want.append(fp._money(float(pc.fan_prices(lf, qs, np.array([v]))[0])))
-            line1, line2, line3 = lab.text.split("<br>")
+            line1, line2, line3, line4 = lab.text.split("<br>")
             assert line2 == (f"range {fp._mon_yr(a, M.genesis)} – "
                              f"{fp._mon_yr(b, M.genesis)}")
             assert line3 == f"{want[0]} – {want[1]}"
             cd = tr.customdata[i]
-            assert list(cd[-2:]) == want           # hover carries them too
+            assert list(cd[5:7]) == want           # hover carries them too
+            r = fp._cycle_result("qr", "resqr", False, "cal", str(_app_ctx._MODEL_FP))
+            qs, lf = fp._logfan(mdl, np.array([x]), "resqr")
+            bands = [fp._money(float(pc.fan_prices(lf, qs, np.array(
+                [np.interp(x, r["grid"], r[k])]))[0]))
+                for k in ("fit_lo", "fit_hi", "lik_lo", "lik_hi")]
+            assert line4 == (f"wave {bands[0]} – {bands[1]} · "
+                             f"likely {bands[2]} – {bands[3]}")
+            assert list(cd[7:11]) == bands
             assert lab.yanchor == ("bottom" if line1.startswith("Peak") else "top")
 
     def test_capped_timing_end_reads_or_later_and_dash(self, monkeypatch):
@@ -501,7 +509,7 @@ class TestFigure:
         monkeypatch.setattr(fp._pc, "turn_timing", wide)
         fig = fp.build_percentile_figure(M, _p())
         for lab in _price_labels(fig):
-            l2, l3 = lab.text.split("<br>")[1:]
+            l2, l3 = lab.text.split("<br>")[1:3]
             assert l2.endswith(" or later") and l3.endswith(" – —"), lab.text
 
     def test_label_at_right_edge_anchors_right(self):
@@ -525,7 +533,7 @@ class TestFigure:
         """Review M-3: room for a 3-line box over a Q95 peak."""
         fig = fp.build_percentile_figure(M, _p())
         lo, hi = fig.layout.yaxis.range
-        assert lo <= -20 and hi >= 120
+        assert lo <= -26 and hi >= 126
 
     def test_log_axis_labels_next_peak_and_trough_at_log10(self):
         fig = fp.build_percentile_figure(M, _p(xscale="log"))
